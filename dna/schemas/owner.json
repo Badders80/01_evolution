@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://evolution.nz/schemas/owner.json",
+  "title": "Owner",
+  "description": "An independent entity that can own or co-own horses. Linked by ID, never inlined.",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "Auto-generated Firestore document ID"
+    },
+    "name": {
+      "type": "string",
+      "description": "Full legal name of the owner or syndicate.",
+      "examples": ["Goldeye Trust", "Alex Morrison"]
+    },
+    "email": {
+      "type": "string",
+      "format": "email",
+      "description": "Primary contact email."
+    },
+    "phone": {
+      "type": ["string", "null"],
+      "description": "Phone number with country code.",
+      "examples": ["+64 21 123 4567"]
+    },
+    "type": {
+      "type": "string",
+      "enum": ["individual", "syndicate", "corporate"],
+      "default": "individual",
+      "description": "Type of owner."
+    },
+    "address": {
+      "type": ["string", "null"],
+      "description": "Physical address for legal documents."
+    },
+    "bankAccount": {
+      "type": ["string", "null"],
+      "description": "Bank account for distributions. Format: XX-XXXX-XXXXXXX-X"
+    },
+    "irdNumber": {
+      "type": ["string", "null"],
+      "description": "IRD number for tax purposes."
+    },
+    "createdAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updatedAt": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": ["name", "email"],
+  "additionalProperties": false
+}

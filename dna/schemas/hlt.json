@@ -1,0 +1,125 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://evolution.nz/schemas/hlt.json",
+  "title": "HLT",
+  "description": "Horse Lease Token — the assembled record of horse identity + commercial lease terms. The canonical unit for syndication. An HLT only exists after commercial terms are attached to a horse.",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "Auto-generated Firestore document ID"
+    },
+    "horseMicrochip": {
+      "type": "string",
+      "pattern": "^\\d{15}$",
+      "description": "Reference to the horse by microchip. The durable anchor."
+    },
+    "ownerId": {
+      "type": "string",
+      "description": "Reference to the owner document ID."
+    },
+    "trainerId": {
+      "type": "string",
+      "description": "Reference to the trainer document ID."
+    },
+    "leasePeriodMonths": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Length of the lease in months.",
+      "examples": [36]
+    },
+    "leaseStartDate": {
+      "type": "string",
+      "format": "date",
+      "description": "Start date of the lease."
+    },
+    "leaseholdStakePercentage": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100,
+      "description": "Percentage of leasehold stake offered."
+    },
+    "investorReturnPercentage": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100,
+      "description": "Percentage return to investors from prizemoney."
+    },
+    "syndicatePriceCents": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Total syndication price in NZD cents.",
+      "examples": [500000]
+    },
+    "sharesTotal": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Total number of shares in the syndicate.",
+      "examples": [50]
+    },
+    "sharesSold": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Number of shares sold. Step 1: always 0. Step 2: updated by Token.",
+      "default": 0
+    },
+    "sharePriceCents": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Price per share in NZD cents.",
+      "examples": [10000]
+    },
+    "fractionalInterestPerShare": {
+      "type": "number",
+      "description": "Fractional interest per share (e.g. 0.02 for 2%)."
+    },
+    "currency": {
+      "type": "string",
+      "enum": ["NZD"],
+      "default": "NZD"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["draft", "reviewed", "publish_ready", "published"],
+      "default": "draft",
+      "description": "HLT lifecycle status. Step 1 uses draft and reviewed. Step 2 adds publish_ready and published for marketplace."
+    },
+    "documents": {
+      "type": "object",
+      "description": "Generated legal documents.",
+      "properties": {
+        "termSheet": {
+          "type": "object",
+          "properties": {
+            "status": { "type": "string", "enum": ["pending", "reviewed"] },
+            "gcsUrl": { "type": ["string", "null"] }
+          }
+        },
+        "pds": {
+          "type": "object",
+          "properties": {
+            "status": { "type": "string", "enum": ["pending", "reviewed"] },
+            "gcsUrl": { "type": ["string", "null"] }
+          }
+        },
+        "sa": {
+          "type": "object",
+          "properties": {
+            "status": { "type": "string", "enum": ["pending", "reviewed"] },
+            "gcsUrl": { "type": ["string", "null"] }
+          }
+        }
+      }
+    },
+    "createdAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updatedAt": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": ["horseMicrochip", "ownerId", "trainerId", "leasePeriodMonths", "leaseStartDate", "syndicatePriceCents", "sharesTotal", "sharePriceCents", "currency"],
+  "additionalProperties": false
+}

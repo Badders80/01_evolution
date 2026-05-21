@@ -1,0 +1,87 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://evolution.nz/schemas/content.json",
+  "title": "Content",
+  "description": "Content record — transcripts, video updates, race reports, and other ingested content tied to a horse.",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "Auto-generated Firestore document ID"
+    },
+    "contentType": {
+      "type": "string",
+      "enum": ["transcript", "video_update", "race_report", "workout_update", "general_update"],
+      "description": "Content type."
+    },
+    "horseMicrochip": {
+      "type": "string",
+      "pattern": "^\\d{15}$",
+      "description": "Reference to the horse by microchip number."
+    },
+    "title": {
+      "type": "string",
+      "description": "Content title (e.g. email subject line)."
+    },
+    "contentDate": {
+      "type": "string",
+      "format": "date",
+      "description": "Date of the content (from email or recording date)."
+    },
+    "speakers": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string", "description": "Real name (e.g. 'Andrew Scott')." },
+          "label": { "type": "string", "description": "Diarization label (e.g. 'spk0')." }
+        },
+        "required": ["name", "label"]
+      }
+    },
+    "fullText": {
+      "type": "string",
+      "description": "Full concatenated transcript text."
+    },
+    "segments": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "startTime": { "type": "number", "description": "Start time in seconds." },
+          "endTime": { "type": "number", "description": "End time in seconds." },
+          "speaker": { "type": "string", "description": "Speaker name." },
+          "text": { "type": "string", "description": "Transcribed text for this segment." }
+        },
+        "required": ["startTime", "endTime", "speaker", "text"]
+      }
+    },
+    "source": {
+      "type": "string",
+      "description": "Source of the transcript (e.g. 'google_speech_v1')."
+    },
+    "sourceEmailId": {
+      "type": ["string", "null"],
+      "description": "Gmail message ID for deduplication."
+    },
+    "assetIds": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Linked GCS asset document IDs."
+    },
+    "status": {
+      "type": "string",
+      "enum": ["draft", "published"],
+      "default": "draft"
+    },
+    "createdAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updatedAt": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": ["contentType", "horseMicrochip", "title", "contentDate", "fullText", "source"]
+}

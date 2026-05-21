@@ -1,0 +1,129 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://evolution.nz/schemas/horse.json",
+  "title": "Horse",
+  "description": "Canonical horse identity record. Anchored by microchip number — the durable, immutable identifier for every NZ thoroughbred.",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "Auto-generated Firestore document ID"
+    },
+    "microchip": {
+      "type": "string",
+      "pattern": "^\\d{15}$",
+      "description": "NZ microchip number (15 digits). The durable anchor. Never changes. Sourced from loveracing.nz Stud Book.",
+      "examples": ["985125000126462"]
+    },
+    "lifeNumber": {
+      "type": "string",
+      "pattern": "^NZ\\d{8}$",
+      "description": "NZTR life number. Sourced from loveracing.nz Stud Book.",
+      "examples": ["NZ00427416"]
+    },
+    "loveracingId": {
+      "type": "integer",
+      "description": "HorseID on loveracing.nz. Used to construct the profile URL: /Breeding/{loveracingId}/{slug}.aspx",
+      "examples": [427416]
+    },
+    "name": {
+      "type": "string",
+      "description": "Registered horse name including country suffix and year. e.g. 'Prudentia (NZ) 2021'",
+      "examples": ["Prudentia (NZ) 2021"]
+    },
+    "nameSlug": {
+      "type": "string",
+      "description": "URL-safe slug of the horse name. e.g. 'Prudentia-NZ-2021'",
+      "examples": ["Prudentia-NZ-2021"]
+    },
+    "foalingDate": {
+      "type": "string",
+      "format": "date",
+      "description": "Date of birth. Sourced from loveracing.nz.",
+      "examples": ["2021-11-13"]
+    },
+    "age": {
+      "type": "integer",
+      "description": "Current age in years. Computed from foalingDate.",
+      "minimum": 0
+    },
+    "sex": {
+      "type": "string",
+      "enum": ["colt", "filly", "gelding", "mare", "stallion", "horse"],
+      "description": "Sex of the horse."
+    },
+    "colour": {
+      "type": "string",
+      "description": "Coat colour. e.g. 'Bay'",
+      "examples": ["Bay", "Chestnut", "Brown", "Grey", "Black"]
+    },
+    "sireId": {
+      "type": ["string", "null"],
+      "description": "Reference to the sire (father) horse document ID. null if unknown."
+    },
+    "sireName": {
+      "type": ["string", "null"],
+      "description": "Sire name for display. e.g. 'PROISIR (AUS) 2009'"
+    },
+    "damId": {
+      "type": ["string", "null"],
+      "description": "Reference to the dam (mother) horse document ID. null if unknown."
+    },
+    "damName": {
+      "type": ["string", "null"],
+      "description": "Dam name for display. e.g. 'LITTLE BIT IRISH (NZ) 2012'"
+    },
+    "familyNumber": {
+      "type": ["string", "null"],
+      "description": "Stud Book family number. e.g. '13'"
+    },
+    "dnaTyped": {
+      "type": "boolean",
+      "description": "Whether the horse has been DNA typed.",
+      "default": false
+    },
+    "pv": {
+      "type": "boolean",
+      "description": "Whether the horse has been parentage verified.",
+      "default": false
+    },
+    "breeder": {
+      "type": ["string", "null"],
+      "description": "Breeder name. e.g. 'Goldeye Trust'"
+    },
+    "leftShoulderBrand": {
+      "type": ["string", "null"],
+      "description": "Left shoulder brand description. e.g. 'KB INSIDE CIRCLE'"
+    },
+    "rightShoulderBrand": {
+      "type": ["string", "null"],
+      "description": "Right shoulder brand description. e.g. '85 OVER 1'"
+    },
+    "trainerId": {
+      "type": ["string", "null"],
+      "description": "Reference to the current trainer document ID."
+    },
+    "imageUrl": {
+      "type": ["string", "null"],
+      "description": "Primary image GCS URL. null if no image uploaded yet."
+    },
+    "status": {
+      "type": "string",
+      "enum": ["active", "retired", "deceased"],
+      "default": "active",
+      "description": "Current status of the horse."
+    },
+    "createdAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Timestamp when the record was created."
+    },
+    "updatedAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Timestamp when the record was last updated."
+    }
+  },
+  "required": ["microchip", "name", "foalingDate", "sex"],
+  "additionalProperties": false
+}

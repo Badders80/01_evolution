@@ -1,0 +1,50 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://evolution.nz/schemas/trainer.json",
+  "title": "Trainer",
+  "description": "A trainer/stable. Independent entity linked by ID. A horse can change trainers over time.",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "Auto-generated Firestore document ID"
+    },
+    "name": {
+      "type": "string",
+      "description": "Full name of the trainer.",
+      "examples": ["Sam Spratt"]
+    },
+    "stableName": {
+      "type": "string",
+      "description": "Name of the training stable.",
+      "examples": ["Evolution Stables"]
+    },
+    "location": {
+      "type": "string",
+      "description": "Training location/region.",
+      "examples": ["Cambridge, NZ"]
+    },
+    "email": {
+      "type": "string",
+      "format": "email"
+    },
+    "phone": {
+      "type": ["string", "null"],
+      "examples": ["+64 21 123 4567"]
+    },
+    "nztrLicenseNumber": {
+      "type": ["string", "null"],
+      "description": "NZTR trainer license number."
+    },
+    "createdAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updatedAt": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": ["name", "stableName", "location", "email"],
+  "additionalProperties": false
+}

@@ -12,6 +12,7 @@ venv/
 .env.*.local
 .env.api
 .env.api.local
+.env.deploy.yaml
 
 # Build outputs
 .next/
@@ -41,3 +42,7 @@ ui-debug.log
 
 # GCS upload staging
 uploads/
+
+# Task Master
+.taskmaster/
+archive/

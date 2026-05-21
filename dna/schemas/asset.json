@@ -1,0 +1,95 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://evolution.nz/schemas/asset.json",
+  "title": "Asset",
+  "description": "An image or document attached to an entity. Designed for extensibility: entityType can be 'horse', 'owner', 'trainer', 'hlt', or 'marketplace'. Step 1 only uses 'horse'.",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "Auto-generated Firestore document ID"
+    },
+    "entityType": {
+      "type": "string",
+      "enum": ["horse", "owner", "trainer", "hlt", "marketplace"],
+      "description": "The type of entity this asset belongs to. Step 1 only uses 'horse'."
+    },
+    "entityId": {
+      "type": "string",
+      "description": "The ID of the entity. For horses, this is the microchip number."
+    },
+    "assetType": {
+      "type": "string",
+      "enum": ["image", "document"],
+      "description": "Whether this is an image or a document."
+    },
+    "gcsUrl": {
+      "type": "string",
+      "description": "Full GCS URL to the asset file.",
+      "examples": ["gs://evolution-horse-images/horse/985125000126462/prudentia-nz_2026-05-20_morning-training_001.jpg"]
+    },
+    "publicUrl": {
+      "type": "string",
+      "description": "Public HTTPS URL for the asset (via signed URL or CDN).",
+      "examples": ["https://storage.googleapis.com/evolution-horse-images/horse/985125000126462/prudentia-nz_2026-05-20_morning-training_001.jpg"]
+    },
+    "thumbnailUrl": {
+      "type": ["string", "null"],
+      "description": "URL to a resized thumbnail version. Generated on upload."
+    },
+    "fileName": {
+      "type": "string",
+      "description": "Meaningful file name generated from context. Pattern: {horse-slug}_{date}_{context}_{seq}.{ext}",
+      "examples": ["prudentia-nz_2026-05-20_morning-training_001.jpg"]
+    },
+    "originalFileName": {
+      "type": "string",
+      "description": "Original file name as uploaded by the user.",
+      "examples": ["IMG_4521.jpg", "DSC_0089.png"]
+    },
+    "mimeType": {
+      "type": "string",
+      "description": "MIME type of the file.",
+      "examples": ["image/jpeg", "image/png", "application/pdf"]
+    },
+    "fileSizeBytes": {
+      "type": "integer",
+      "description": "File size in bytes."
+    },
+    "alt": {
+      "type": "string",
+      "description": "Alt text description for accessibility."
+    },
+    "tags": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Searchable tags for the asset. Auto-generated from horse name, owner, trainer, location, and context.",
+      "examples": [["prudentia-nz", "wexford", "morning-training", "headshot"]]
+    },
+    "context": {
+      "type": "string",
+      "description": "Free-text description of what's happening in the asset. e.g. 'morning training work at Wexford'",
+      "examples": ["morning training work at Wexford", "conformation shot at Karaka"]
+    },
+    "location": {
+      "type": "string",
+      "description": "Location where the asset was captured.",
+      "examples": ["Wexford", "Cambridge", "Karaka"]
+    },
+    "isPrimary": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether this is the primary image for the entity. Only one primary per entity."
+    },
+    "uploadedBy": {
+      "type": "string",
+      "description": "User ID of the uploader."
+    },
+    "createdAt": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": ["entityType", "entityId", "assetType", "gcsUrl", "fileName", "mimeType", "uploadedBy"],
+  "additionalProperties": false
+}
