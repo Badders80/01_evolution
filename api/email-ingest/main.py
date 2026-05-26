@@ -200,7 +200,12 @@ def _process_email(raw_email: dict, gmail: GmailClient) -> IngestResult:
 
             # Step 6: Transcribe
             transcriber = Transcriber(speaker_count=parsed.speaker_count)
-            transcript = transcriber.transcribe_video(video_path)
+            force_audit = os.getenv("FORCE_AUDIT", "false").lower() == "true"
+            transcript = transcriber.transcribe_video(
+                video_path,
+                horse_name=parsed.horse_name,
+                force_audit=force_audit
+            )
             logger.info(f"Transcription complete: {len(transcript.segments)} segments")
 
             # Step 7: Store transcript via SSOT API
@@ -321,6 +326,10 @@ def _store_content(
         "source_email_id": parsed.message_id,
         "asset_ids": [asset_id],
         "status": "published",
+        "confidence": getattr(transcript, "confidence", None),
+        "needs_human_review": getattr(transcript, "needs_human_review", None),
+        "review_reason": getattr(transcript, "review_reason", None),
+        "reconciliation_changes": getattr(transcript, "reconciliation_changes", []),
     }
 
     resp = requests.post(

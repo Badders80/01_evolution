@@ -40,6 +40,11 @@ class TranscriptResult(BaseModel):
     full_text: str = Field(..., description="Full concatenated transcript.")
     segments: list[TranscriptSegment] = Field(default_factory=list)
     speakers: list[dict] = Field(default_factory=list, description="Speaker mappings [{name, label}].")
+    confidence: Optional[str] = Field(None, description="LLM reconciliation confidence score.")
+    needs_human_review: Optional[bool] = Field(None, description="Flag indicating if transcript requires manual review.")
+    review_reason: Optional[str] = Field(None, description="Reason why manual review is needed.")
+    reconciliation_changes: Optional[list[dict]] = Field(default_factory=list, description="Detailed change log of edits made during reconciliation.")
+
 
 
 class IngestResult(BaseModel):

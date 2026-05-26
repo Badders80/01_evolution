@@ -42,6 +42,8 @@ ui-debug.log
 
 # GCS upload staging
 uploads/
+scratch/gdrive_imports/
+api/email-ingest/output/
 
 # Task Master
 .taskmaster/

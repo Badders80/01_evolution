@@ -1,88 +1,212 @@
 """
-Google Speech-to-Text Transcriber
-
-Extracts audio from video, uploads to GCS temp bucket, runs Google STT
-with speaker diarization, and returns structured transcript segments.
-
-Speaker mapping rule:
-  1 speaker → Andrew Scott
-  2 speakers → Andrew Scott (spk0), Lance O'Sullivan (spk1)
+transcriber.py
+Premium multi-engine Transcriber supporting Google Speech-to-Text, NVIDIA Canary daemon,
+Groq Whisper, and Gemini 2.5 Flash. Fully integrates post-processing dictionary
+corrections and LLM-based consensus reconciliation.
 """
 
-import logging
 import os
-import subprocess
-import tempfile
+import json
+import re
 import uuid
+import time
+import logging
+import tempfile
+import subprocess
+import requests
+from typing import Optional
 
 from google.cloud import speech, storage
+from google import genai
+from google.genai import types
 
 from models import TranscriptResult, TranscriptSegment
+from corrections import CorrectionsApplier
+from reconciler import TranscriptReconciler
 
 logger = logging.getLogger(__name__)
 
-# Temp GCS bucket for STT audio (not for permanent storage)
 TEMP_BUCKET = os.getenv("SPEECH_TEMP_BUCKET", "evolution-engine-speech-temp")
+CANARY_URL = os.getenv("CANARY_URL", "http://127.0.0.1:5005/transcribe")
+GROQ_API_URL = "https://api.groq.com/openai/v1/audio/transcriptions"
 
 
 class Transcriber:
-    """Transcribes video/audio using Google Speech-to-Text with diarization."""
+    """Orchestrates multi-engine transcription with fallbacks, corrections, and reconciliation."""
 
     def __init__(self, speaker_count: int = 1):
-        """
-        Args:
-            speaker_count: Expected number of speakers (1 or 2).
-        """
         self.speaker_count = max(1, min(speaker_count, 2))
-        self.speech_client = speech.SpeechClient()
-        self.storage_client = storage.Client()
-        self.speaker_names = _get_speaker_names(self.speaker_count)
+        self.speaker_names = self._get_speaker_names()
+        self.corrections_applier = CorrectionsApplier()
+        self.reconciler = TranscriptReconciler()
 
-    def transcribe_video(self, video_path: str) -> TranscriptResult:
+        # Lazy initialize clients to allow running without specific credentials if unused
+        self._speech_client = None
+        self._storage_client = None
+
+    @property
+    def speech_client(self):
+        if self._speech_client is None:
+            self._speech_client = speech.SpeechClient()
+        return self._speech_client
+
+    @property
+    def storage_client(self):
+        if self._storage_client is None:
+            self._storage_client = storage.Client()
+        return self._storage_client
+
+    def _get_speaker_names(self) -> list[str]:
+        if self.speaker_count >= 2:
+            return ["Andrew Scott", "Lance O'Sullivan"]
+        return ["Andrew Scott"]
+
+    def transcribe_video(
+        self,
+        video_path: str,
+        engine: str = "auto",
+        force_audit: bool = False,
+        horse_name: str = "Unknown",
+        venue: str = "Unknown",
+        content_type: str = "update"
+    ) -> TranscriptResult:
         """
-        Transcribe a video file. Extracts audio, uploads to GCS, runs STT.
-
+        Transcribes a video/audio file.
+        
         Args:
-            video_path: Local path to the video file (.mp4, .mov, etc.).
-
-        Returns:
-            TranscriptResult with full_text, segments, and speaker mappings.
+            video_path: Local path to the video file.
+            engine: 'auto', 'google', 'canary', 'groq', or 'gemini'.
+            force_audit: If True, run multiple backends and reconcile them with LLM.
+            horse_name: Used for LLM reconciliation context and Gemini prompting.
+            venue: Used for LLM reconciliation context.
+            content_type: Used for LLM reconciliation context.
         """
-        logger.info(f"Transcribing video: {video_path} (speakers={self.speaker_count})")
+        logger.info(f"Starting transcription: {video_path} (engine={engine}, force_audit={force_audit})")
 
-        # Step 1: Extract audio to WAV
+        # Step 1: Handle direct video/audio model if Gemini is selected
+        if engine == "gemini":
+            logger.info("Using direct Gemini 2.5 Flash transcription.")
+            result_dict = self._transcribe_gemini(video_path, horse_name)
+            result = TranscriptResult(**result_dict)
+            return self.corrections_applier.apply_to_transcript_result(result)
+
+        # Step 2: Extract audio for all other audio-based STT engines
         audio_path = self._extract_audio(video_path)
-
+        
         try:
-            # Step 2: Upload to GCS
-            gcs_uri = self._upload_to_gcs(audio_path)
+            transcripts: dict[str, TranscriptResult] = {}
 
-            try:
-                # Step 3: Run STT with diarization
-                segments = self._transcribe(gcs_uri)
+            # Execute engines based on request
+            if engine in ("auto", "google"):
+                try:
+                    logger.info("Running Google STT...")
+                    gcs_uri = self._upload_to_gcs(audio_path)
+                    try:
+                        google_segments = self._transcribe_google_gcs(gcs_uri)
+                        google_segments = self._map_speakers(google_segments)
+                        full_text = " ".join(s.text for s in google_segments)
+                        transcripts["google"] = TranscriptResult(
+                            source="google_speech_v1",
+                            model="latest_long",
+                            full_text=full_text,
+                            segments=google_segments,
+                            speakers=[{"name": name, "label": f"spk{i}"} for i, name in enumerate(self.speaker_names)]
+                        )
+                    finally:
+                        self._delete_from_gcs(gcs_uri)
+                except Exception as e:
+                    logger.error(f"Google STT failed: {e}")
+                    if engine == "google":
+                        raise
 
-                # Step 4: Map speaker labels to real names
-                segments = self._map_speakers(segments)
+            # Gated Audits & Fallbacks
+            # If primary failed or force_audit is requested, run alternative engines
+            primary_failed = "google" not in transcripts or not transcripts["google"].full_text
+            run_audits = force_audit or primary_failed
 
-                # Step 5: Build result
-                full_text = " ".join(s.text for s in segments)
-                speakers = [
-                    {"name": name, "label": f"spk{i}"}
-                    for i, name in enumerate(self.speaker_names)
-                ]
+            if run_audits:
+                # 1. Groq Whisper Fallback
+                groq_key = os.getenv("GROQ_API_KEY")
+                if groq_key:
+                    try:
+                        logger.info("Running Groq Whisper ASR...")
+                        groq_result = self._transcribe_groq(audio_path)
+                        if groq_result:
+                            transcripts["groq"] = groq_result
+                    except Exception as e:
+                        logger.warning(f"Groq Whisper failed: {e}")
+                else:
+                    logger.debug("Groq key not configured, skipping Groq Whisper.")
 
-                return TranscriptResult(
-                    source="google_speech_v1",
-                    model="latest_long",
-                    full_text=full_text,
-                    segments=segments,
-                    speakers=speakers,
-                )
-            finally:
-                # Clean up GCS temp file
-                self._delete_from_gcs(gcs_uri)
+                # 2. Local GPU Canary Fallback
+                try:
+                    logger.info("Running NVIDIA Canary ASR...")
+                    canary_result = self._transcribe_canary(audio_path)
+                    if canary_result:
+                        transcripts["canary"] = canary_result
+                except Exception as e:
+                    logger.warning(f"Canary Daemon failed: {e}")
+
+                # 3. Gemini Fallback if other methods failed and we have GEMINI_API_KEY
+                if not transcripts and os.getenv("GEMINI_API_KEY"):
+                    try:
+                        logger.info("Running Gemini 2.5 Flash as final fallback...")
+                        gemini_dict = self._transcribe_gemini(video_path, horse_name)
+                        transcripts["gemini"] = TranscriptResult(**gemini_dict)
+                    except Exception as e:
+                        logger.warning(f"Gemini fallback failed: {e}")
+
+            # If absolutely no transcripts succeeded, raise error
+            if not transcripts:
+                raise RuntimeError("All transcription engines failed.")
+
+            # Step 3: Apply corrections to all successful raw transcripts
+            for key, t_res in transcripts.items():
+                transcripts[key] = self.corrections_applier.apply_to_transcript_result(t_res)
+
+            # Step 4: Perform Reconciliation if needed
+            # If multiple transcripts exist, or force_audit is True, run the LLM reconciler
+            if len(transcripts) > 1 or (len(transcripts) == 1 and force_audit):
+                logger.info(f"Reconciling {len(transcripts)} transcripts with Ollama consensus LLM...")
+                meta = {"horse": horse_name, "venue": venue, "content_type": content_type}
+                
+                # Format candidate texts for the reconciler
+                texts_to_reconcile = {engine: r.full_text for engine, r in transcripts.items()}
+                
+                reconciled_raw = self.reconciler.reconcile(texts_to_reconcile, meta=meta)
+                if reconciled_raw and reconciled_raw.get("finalText"):
+                    # Use the primary/first available engine as structural base, and insert the reconciled text
+                    base_engine = "google" if "google" in transcripts else list(transcripts.keys())[0]
+                    base_res = transcripts[base_engine]
+                    
+                    # Construct clean, single-segment reconciled output (or map text onto base segments)
+                    # For simplicity and clean UI display, we return a single segment with the LLM reconciled text,
+                    # mimicking the legacy JavaScript pipeline.
+                    reconciled_segments = [TranscriptSegment(
+                        start_time=base_res.segments[0].start_time if base_res.segments else 0.0,
+                        end_time=base_res.segments[-1].end_time if base_res.segments else 0.0,
+                        speaker=base_res.segments[0].speaker if base_res.segments else self.speaker_names[0],
+                        text=reconciled_raw["finalText"]
+                    )]
+                    
+                    return TranscriptResult(
+                        source="reconciled_llm",
+                        model=f"reconciled_{reconciled_raw.get('reconciliation_model', 'unknown')}",
+                        full_text=reconciled_raw["finalText"],
+                        segments=reconciled_segments,
+                        speakers=base_res.speakers,
+                        confidence=reconciled_raw.get("confidence"),
+                        needs_human_review=reconciled_raw.get("needsHumanReview"),
+                        review_reason=reconciled_raw.get("reviewReason"),
+                        reconciliation_changes=reconciled_raw.get("changes", [])
+                    )
+
+            # Return the single best transcript if no reconciliation took place
+            best_engine = "google" if "google" in transcripts else list(transcripts.keys())[0]
+            logger.info(f"Returning non-reconciled transcript from engine: {best_engine}")
+            return transcripts[best_engine]
+
         finally:
-            # Clean up local temp audio
             if os.path.exists(audio_path):
                 os.unlink(audio_path)
 
@@ -97,11 +221,11 @@ class Transcriber:
         cmd = [
             "ffmpeg",
             "-i", video_path,
-            "-vn",                # No video
-            "-acodec", "pcm_s16le",  # 16-bit PCM
-            "-ar", "16000",       # 16kHz sample rate
-            "-ac", "1",           # Mono
-            "-y",                 # Overwrite
+            "-vn",
+            "-acodec", "pcm_s16le",
+            "-ar", "16000",
+            "-ac", "1",
+            "-y",
             audio_path,
         ]
 
@@ -110,39 +234,26 @@ class Transcriber:
         except subprocess.CalledProcessError as e:
             raise RuntimeError(f"ffmpeg failed: {e.stderr.decode()}") from e
 
-        size_mb = os.path.getsize(audio_path) / (1024 * 1024)
-        logger.info(f"Audio extracted: {size_mb:.1f}MB")
         return audio_path
 
     def _upload_to_gcs(self, local_path: str) -> str:
-        """Upload audio to GCS temp bucket. Returns gs:// URI."""
         bucket = self.storage_client.bucket(TEMP_BUCKET)
         blob_name = f"email-ingest/{uuid.uuid4().hex}.wav"
         blob = bucket.blob(blob_name)
-
-        logger.info(f"Uploading to gs://{TEMP_BUCKET}/{blob_name}")
         blob.upload_from_filename(local_path)
-
         return f"gs://{TEMP_BUCKET}/{blob_name}"
 
     def _delete_from_gcs(self, gcs_uri: str):
-        """Delete a temp file from GCS."""
         try:
             bucket_name = TEMP_BUCKET
             blob_name = gcs_uri.replace(f"gs://{bucket_name}/", "")
             bucket = self.storage_client.bucket(bucket_name)
             bucket.blob(blob_name).delete()
-            logger.info(f"Cleaned up GCS: {gcs_uri}")
         except Exception as e:
             logger.warning(f"GCS cleanup failed (non-critical): {e}")
 
-    def _transcribe(self, gcs_uri: str) -> list[TranscriptSegment]:
-        """
-        Run Google Speech-to-Text with speaker diarization.
-        Returns raw segments with diarization labels (spk0, spk1).
-        """
-        logger.info("Starting Google STT longRunningRecognize...")
-
+    def _transcribe_google_gcs(self, gcs_uri: str) -> list[TranscriptSegment]:
+        """Existing Google Speech-to-Text longRunningRecognize implementation."""
         min_speakers = self.speaker_count
         max_speakers = max(self.speaker_count, 2)
 
@@ -163,14 +274,10 @@ class Transcriber:
             audio={"uri": gcs_uri},
         )
 
-        logger.info("Waiting for STT operation to complete...")
         response = operation.result(timeout=600)
-
         if not response.results:
-            logger.warning("STT returned no results")
             return []
 
-        # Collect all words with speaker tags
         all_words = []
         for result in response.results:
             alt = result.alternatives[0] if result.alternatives else None
@@ -180,16 +287,8 @@ class Transcriber:
             for word_info in alt.words:
                 speaker_tag = word_info.speaker_tag
                 speaker_label = f"spk{speaker_tag}" if speaker_tag else "spk0"
-
-                start_time = (
-                    word_info.start_time.seconds
-                    + word_info.start_time.microseconds / 1_000_000
-                )
-                end_time = (
-                    word_info.end_time.seconds
-                    + word_info.end_time.microseconds / 1_000_000
-                )
-
+                start_time = word_info.start_time.seconds + word_info.start_time.microseconds / 1_000_000
+                end_time = word_info.end_time.seconds + word_info.end_time.microseconds / 1_000_000
                 all_words.append({
                     "word": word_info.word,
                     "speaker_label": speaker_label,
@@ -197,10 +296,8 @@ class Transcriber:
                     "end_time": end_time,
                 })
 
-        # Sort by time
         all_words.sort(key=lambda w: w["start_time"])
 
-        # Group consecutive words by speaker into segments
         segments = []
         current_speaker = None
         current_words = []
@@ -224,25 +321,17 @@ class Transcriber:
                 current_words.append(w["word"])
                 segment_end = w["end_time"]
 
-        # Flush final segment
         if current_words:
-            last_word = all_words[-1]
             segments.append(TranscriptSegment(
                 start_time=segment_start,
-                end_time=last_word["end_time"],
+                end_time=all_words[-1]["end_time"],
                 speaker=current_speaker,
                 text=" ".join(current_words),
             ))
 
-        logger.info(f"STT complete: {len(segments)} segments, {len(all_words)} words")
         return segments
 
     def _map_speakers(self, segments: list[TranscriptSegment]) -> list[TranscriptSegment]:
-        """
-        Map diarization labels (spk0, spk1) to real names.
-        Rule: spk0 → first speaker name, spk1 → second speaker name.
-        """
-        # Build label → name map
         seen_labels = []
         for seg in segments:
             if seg.speaker not in seen_labels:
@@ -253,18 +342,156 @@ class Transcriber:
             if i < len(self.speaker_names):
                 label_map[label] = self.speaker_names[i]
             else:
-                label_map[label] = label  # Keep original if more speakers than expected
-
-        logger.info(f"Speaker map: {label_map}")
+                label_map[label] = label
 
         for seg in segments:
             seg.speaker = label_map.get(seg.speaker, seg.speaker)
 
         return segments
 
+    def _transcribe_canary(self, audio_path: str) -> Optional[TranscriptResult]:
+        """Hit local CUDA Canary daemon on port 5005."""
+        try:
+            logger.info(f"POSTing {audio_path} to Canary daemon at {CANARY_URL}...")
+            resp = requests.post(CANARY_URL, json={"audio_path": audio_path}, timeout=30)
+            if resp.status_code != 200:
+                logger.warning(f"Canary Daemon returned error: {resp.text}")
+                return None
+            
+            data = resp.json()
+            raw_text = data.get("text", "")
+            
+            # Form segments from daemon result
+            segments = []
+            for seg in data.get("segments", []):
+                segments.append(TranscriptSegment(
+                    start_time=seg.get("startTime", 0.0),
+                    end_time=seg.get("endTime", 0.0),
+                    speaker=self.speaker_names[0],
+                    text=seg.get("text", "")
+                ))
+                
+            if not segments and raw_text:
+                segments = [TranscriptSegment(start_time=0.0, end_time=0.0, speaker=self.speaker_names[0], text=raw_text)]
+                
+            return TranscriptResult(
+                source="nvidia_canary",
+                model=data.get("model", "canary-1b"),
+                full_text=raw_text,
+                segments=segments,
+                speakers=[{"name": name, "label": f"spk{i}"} for i, name in enumerate(self.speaker_names)]
+            )
+        except Exception as e:
+            logger.warning(f"Failed to communicate with Canary Daemon: {e}")
+            return None
 
-def _get_speaker_names(speaker_count: int) -> list[str]:
-    """Return speaker names based on count."""
-    if speaker_count >= 2:
-        return ["Andrew Scott", "Lance O'Sullivan"]
-    return ["Andrew Scott"]
+    def _transcribe_groq(self, audio_path: str) -> Optional[TranscriptResult]:
+        """Transcribe audio using Groq Whisper API (verbose_json format)."""
+        groq_key = os.getenv("GROQ_API_KEY")
+        if not groq_key:
+            return None
+            
+        try:
+            headers = {"Authorization": f"Bearer {groq_key}"}
+            files = {"file": (os.path.basename(audio_path), open(audio_path, "rb"), "audio/wav")}
+            data = {
+                "model": "whisper-large-v3",
+                "temperature": "0.0",
+                "language": "en",
+                "response_format": "verbose_json"
+            }
+            
+            resp = requests.post(GROQ_API_URL, headers=headers, files=files, data=data, timeout=60)
+            if resp.status_code != 200:
+                logger.warning(f"Groq API returned error: {resp.text}")
+                return None
+                
+            resp_data = resp.json()
+            full_text = resp_data.get("text", "")
+            
+            # Map Groq segments into TranscriptSegments
+            segments = []
+            for seg in resp_data.get("segments", []):
+                segments.append(TranscriptSegment(
+                    start_time=float(seg.get("start", 0.0)),
+                    end_time=float(seg.get("end", 0.0)),
+                    speaker=self.speaker_names[0], # Groq doesn't diarize natively
+                    text=seg.get("text", "").strip()
+                ))
+                
+            if not segments and full_text:
+                segments = [TranscriptSegment(start_time=0.0, end_time=0.0, speaker=self.speaker_names[0], text=full_text)]
+                
+            return TranscriptResult(
+                source="groq_whisper",
+                model="whisper-large-v3",
+                full_text=full_text,
+                segments=segments,
+                speakers=[{"name": name, "label": f"spk{i}"} for i, name in enumerate(self.speaker_names)]
+            )
+        except Exception as e:
+            logger.warning(f"Failed to transcribe with Groq API: {e}")
+            return None
+
+    def _transcribe_gemini(self, video_path: str, horse_name: str) -> dict:
+        """Transcribe video using Gemini 2.5 Flash API with structured JSON output."""
+        gemini_key = os.getenv("GEMINI_API_KEY")
+        if not gemini_key:
+            raise ValueError("GEMINI_API_KEY environment variable is not configured.")
+            
+        logger.info("Uploading video file to Gemini...")
+        client = genai.Client(vertexai=False, api_key=gemini_key)
+        uploaded_file = client.files.upload(file=video_path)
+        
+        try:
+            while uploaded_file.state.name == "PROCESSING":
+                logger.info("Waiting for Gemini video processing...")
+                time.sleep(5)
+                uploaded_file = client.files.get(name=uploaded_file.name)
+                
+            if uploaded_file.state.name == "FAILED":
+                raise RuntimeError(f"Gemini file processing failed: {uploaded_file.error.message}")
+                
+            prompt = f"""
+You are an expert audio transcription assistant.
+We have a video update of the horse '{horse_name}' from Wexford Stables.
+Expected speakers: {', '.join(self.speaker_names)}.
+Please transcribe the audio of this video with speaker diarization.
+Return ONLY a valid JSON object matching the schema below. Do not wrap in markdown block, do not include any explanatory text.
+
+Schema:
+{{
+  "full_text": "the entire concatenated transcript text",
+  "segments": [
+    {{
+      "start_time": 0.0,
+      "end_time": 5.2,
+      "speaker": "speaker name (must be one of: {', '.join(self.speaker_names)})",
+      "text": "transcribed segment text"
+    }}
+  ]
+}}
+
+Format segments chronologically. Split segments whenever the speaker changes, or if there is a pause (keep segments under 15s). Make sure the transcription is highly accurate.
+"""
+            logger.info("Generating content from Gemini...")
+            response = client.models.generate_content(
+                model='gemini-2.5-flash',
+                contents=[uploaded_file, prompt],
+                config=types.GenerateContentConfig(response_mime_type="application/json")
+            )
+            
+            result_json = json.loads(response.text)
+            result_json["source"] = "gemini_2_5_flash"
+            result_json["model"] = "gemini-2.5-flash"
+            result_json["speakers"] = [
+                {"name": name, "label": f"spk{i}"}
+                for i, name in enumerate(self.speaker_names)
+            ]
+            return result_json
+            
+        finally:
+            try:
+                client.files.delete(name=uploaded_file.name)
+            except Exception as e:
+                logger.debug(f"Gemini file deletion cleanup failed: {e}")

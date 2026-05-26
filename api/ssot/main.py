@@ -15,7 +15,7 @@ Routes:
 import functions_framework
 from flask import Request, jsonify
 
-from routes import horses, owners, trainers, hlts, docs, extract, content
+from routes import horses, owners, trainers, hlts, docs, extract, content, holdings
 
 
 @functions_framework.http
@@ -60,6 +60,11 @@ def ssot(request: Request):
     # Route: /extract
     if segments and segments[0] == "extract":
         return extract.handle(request)
+
+    # Route: /holdings, /holdings/{id}
+    if segments and segments[0] == "holdings":
+        holding_id = segments[1] if len(segments) > 1 else None
+        return holdings.handle(request, holding_id)
 
     # Route: /content, /content/{id}
     if segments and segments[0] == "content":

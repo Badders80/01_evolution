@@ -53,7 +53,7 @@ class HorseCreate(BaseModel):
     family_number: Optional[str] = Field(None, description="Stud Book family number.")
     dna_typed: bool = Field(False, description="Whether the horse has been DNA typed.")
     pv: bool = Field(False, description="Whether the horse has been parentage verified.")
-    breeder: Optional[str] = Field(None, examples=["Goldeye Trust"])
+    breeder: Optional[str] = Field(None, examples=["Golden Eye Trust"])
     left_shoulder_brand: Optional[str] = Field(None, examples=["KB INSIDE CIRCLE"])
     right_shoulder_brand: Optional[str] = Field(None, examples=["85 OVER 1"])
     trainer_id: Optional[str] = Field(None, description="Reference to current trainer document ID.")
@@ -96,7 +96,7 @@ class HorseUpdate(BaseModel):
 
 class OwnerCreate(BaseModel):
     """Payload for creating a new owner record."""
-    name: str = Field(..., description="Full legal name.", examples=["Goldeye Trust"])
+    name: str = Field(..., description="Full legal name.", examples=["Golden Eye Trust"])
     email: str = Field(..., description="Primary contact email.")
     phone: Optional[str] = Field(None, examples=["+64 21 123 4567"])
     type: Literal["individual", "syndicate", "corporate"] = Field("individual")
@@ -305,6 +305,31 @@ class ContentUpdate(BaseModel):
     source: Optional[str] = None
     asset_ids: Optional[list[str]] = None
     status: Optional[Literal["draft", "published"]] = None
+
+
+# ─── Holding (Digital Ledger) ──────────────────────────────────────────────────
+
+class HoldingCreate(BaseModel):
+    """Payload for creating a new holding (ownership record)."""
+    user_id: str = Field(..., description="Firebase Auth UID of the investor.")
+    hlt_id: str = Field(..., description="Reference to the HLT campaign document ID.")
+    horse_microchip: str = Field(..., pattern=r"^\d{15}$", description="Reference to the horse by microchip.")
+    shares_owned: int = Field(..., ge=1, description="Number of shares owned.")
+    percentage_owned: float = Field(..., ge=0.0, le=100.0, description="Percentage of ownership.")
+    purchase_price_cents: int = Field(..., ge=0, description="Purchase price in cents.")
+    stripe_session_id: str = Field(..., description="Stripe Checkout Session ID.")
+    document_acknowledgements: dict[str, bool] = Field(
+        default_factory=dict,
+        description="Records user's check of PDS, Term Sheet, and SA."
+    )
+
+
+class Holding(HoldingCreate):
+    """Full holding record with server-generated fields."""
+    id: str = Field(..., description="Firestore document ID")
+    status: Literal["pending", "paid", "refunded"] = Field("pending")
+    created_at: datetime
+    updated_at: datetime
 
 
 # ─── Loveracing.nz Reference ──────────────────────────────────────────────────

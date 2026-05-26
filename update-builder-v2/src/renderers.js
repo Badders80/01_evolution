@@ -1,35 +1,274 @@
-// Renders structured update data into production-quality HTML
-// v2: Dark editorial (website hosting) - table-based, email-safe
-// v3: Gmail teaser (email) - light theme, CTA to full update
+// Renders structured block-based update data into production-quality HTML
+// v2: Web Editorial - clean, modern white-space layout with block-level theme overrides (Light/Dark)
+// v3: Gmail Teaser - table-based, email-safe teaser linking to the hosted update
 
-export function renderV2(data) {
-  const {
-    preheader,
-    heading,
-    subheaderLabel,
-    subheaderBullets,
-    bodyParagraphs,
-    quoteText,
-    quoteAttribution,
-    linkLabel,
-    linkUrl,
-    heroImageUrl,
-    heroImageCaption,
-    signOffName,
-    signOffTitle,
-  } = data;
+export function renderWeb(blocks, tokens) {
+  const containerWidth = tokens.containerWidth || 600;
 
-  // Render subheader bullets
-  const bulletsHtml = subheaderBullets
-    .filter(b => b.trim())
-    .map(b => `<li style="font-family:'Playfair Display',Georgia,serif;font-size:18px;font-weight:400;line-height:1.5;color:#e5e5e5;margin:0 0 8px 0;text-align:left;">${escapeHtml(b)}</li>`)
-    .join('');
+  // Generate HTML for each block based on its type and theme settings
+  const blocksHtml = blocks.map(block => {
+    const isDark = block.theme === 'dark';
+    const bg = isDark ? tokens.colorBgDark : tokens.colorBgPrimary;
+    const textMain = isDark ? tokens.colorTextInv : tokens.colorTextMain;
+    const textMuted = isDark ? tokens.colorTextMuted : tokens.colorTextMuted;
+    const border = isDark ? tokens.colorBorderDark : tokens.colorBorderLight;
+    const accent = tokens.colorBrandGold;
 
-  // Render body paragraphs
-  const bodyHtml = bodyParagraphs
-    .filter(p => p.trim())
-    .map((p, i) => `<p style="font-family:'Inter',sans-serif;font-size:15px;line-height:1.75;color:#e5e5e5;margin:0 0 1.5em 0;text-align:justify;">${escapeHtml(p)}</p>`)
-    .join('');
+    // Outer block wrapper
+    const blockStyle = `
+      background-color: ${bg};
+      color: ${textMain};
+      border-bottom: 1px solid ${border}22;
+      transition: all 0.2s;
+    `;
+
+    switch (block.type) {
+      case 'header':
+        const isWatermark = block.logoType 
+          ? block.logoType === 'watermark'
+          : isDark;
+        
+        const colorOpt = block.logoColor || 'adaptive';
+        let useWhiteImage = isDark;
+        let opacityVal = 1;
+
+        if (colorOpt === 'white') {
+          useWhiteImage = true;
+          opacityVal = 1;
+        } else if (colorOpt === 'dark') {
+          useWhiteImage = false;
+          opacityVal = 1;
+        } else if (colorOpt === 'dark-grey') {
+          useWhiteImage = isDark;
+          opacityVal = isDark ? 0.3 : 0.7;
+        } else if (colorOpt === 'grey') {
+          useWhiteImage = isDark;
+          opacityVal = isDark ? 0.6 : 0.4;
+        } else {
+          // adaptive
+          useWhiteImage = isDark;
+          opacityVal = 1;
+        }
+
+        const logoUrl = isWatermark
+          ? (useWhiteImage 
+              ? 'https://www.evolutionstables.nz/updates/Evolution-Stables-Logo-White.png'
+              : 'https://www.evolutionstables.nz/updates/Evolution-Stables-Logo-Black.png')
+          : (useWhiteImage
+              ? 'https://www.evolutionstables.nz/updates/Logo-White.png'
+              : 'https://www.evolutionstables.nz/updates/Logo-Black.png');
+
+        const sizeHeight = block.logoSize === 'small' 
+          ? 64 
+          : (block.logoSize === 'large' 
+              ? 96 
+              : (block.logoSize === 'xlarge' ? 112 : 80));
+
+        const needsInvert = useWhiteImage && !isWatermark;
+        const filterStyle = needsInvert ? 'filter: brightness(0) invert(1); -webkit-filter: brightness(0) invert(1);' : '';
+
+        return `
+          <div style="${blockStyle} padding: 64px 48px 32px 48px; text-align: left;">
+            <div style="margin-bottom: 24px;">
+              <img src="${logoUrl}" alt="Evolution Stables" style="height: ${sizeHeight}px; max-height: ${sizeHeight}px; width: auto; display: block; margin: 0; opacity: ${opacityVal}; ${filterStyle}">
+            </div>
+            <div style="font-family:'${tokens.fontInterface}',sans-serif; font-size: 11px; font-weight: 700; letter-spacing: 3px; text-transform: uppercase; color: ${accent}; margin-bottom: 12px;">
+              ${escapeHtml(block.subtitle || 'STABLE UPDATE')}
+            </div>
+            <h1 style="font-family:'${tokens.fontDisplay}',serif; font-size: 48px; font-weight: 400; line-height: 1.15; margin: 0; color: ${textMain}; letter-spacing: -0.02em;">
+              ${block.title ? formatTitle(block.title, accent) : 'Update Title'}
+            </h1>
+          </div>
+        `;
+
+      case 'paragraph':
+        return `
+          <div style="${blockStyle} padding: 16px 48px; line-height: 1.8; font-size: 16px; font-family:'${tokens.fontInterface}',sans-serif; font-weight: 400; color: ${textMain === '#020202' ? '#333333' : textMain}; text-align: justify;">
+            <p style="margin: 0 0 1.5em 0;">${escapeHtml(block.text || '')}</p>
+          </div>
+        `;
+
+      case 'insights':
+        const bulletItems = (block.items || [])
+          .filter(item => item.trim())
+          .map(item => `
+            <li style="margin-bottom: 12px; display: flex; align-items: flex-start; text-align: left; line-height: 1.6;">
+              <span style="color: ${accent}; margin-right: 12px; font-weight: bold; font-size: 18px; line-height: 1;">•</span>
+              <span style="font-family:'${tokens.fontInterface}',sans-serif; font-size: 15px; color: ${isDark ? '#e4e4e7' : '#4b5563'};">${escapeHtml(item)}</span>
+            </li>
+          `).join('');
+
+        return `
+          <div style="${blockStyle} padding: 36px 48px;">
+            <div style="background-color: ${isDark ? '#0a0a0a' : '#fafafa'}; border: 1px solid ${border}; border-radius: 12px; padding: 28px 32px; text-align: left;">
+              <h3 style="font-family:'${tokens.fontInterface}',sans-serif; font-size: 11px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: ${accent}; margin: 0 0 18px 0;">
+                ${escapeHtml(block.label || 'KEY INSIGHTS')}
+              </h3>
+              <ul style="list-style: none; padding: 0; margin: 0;">
+                ${bulletItems || '<li style="color:#747474;font-size:14px;font-style:italic;">No insights added yet</li>'}
+              </ul>
+            </div>
+          </div>
+        `;
+
+      case 'quote':
+        let attributionHtml = '';
+        if (block.attribution) {
+          const commaIdx = block.attribution.indexOf(',');
+          if (commaIdx !== -1) {
+            const name = block.attribution.substring(0, commaIdx).trim();
+            const company = block.attribution.substring(commaIdx).trim(); // includes the comma
+            attributionHtml = `
+              <span style="color: ${textMuted}; font-weight: 500;">&mdash; ${escapeHtml(name)}</span><span style="color: ${textMain}; font-weight: 700;">${escapeHtml(company)}</span>
+            `;
+          } else {
+            attributionHtml = `
+              <span style="color: ${textMuted}; font-weight: 500;">&mdash; ${escapeHtml(block.attribution)}</span>
+            `;
+          }
+        }
+
+        return `
+          <div style="${blockStyle} padding: 36px 48px; text-align: left;">
+            <div style="border-left: 3px solid ${accent}; padding: 12px 0 12px 32px; margin: 8px 0;">
+              <blockquote style="font-family:'${tokens.fontDisplay}',serif; font-style: italic; font-size: 24px; line-height: 1.7; color: ${textMain}; margin: 0 0 28px 0; text-align: justify; max-width: 66.67%; box-sizing: border-box;">
+                &ldquo;${escapeHtml(block.text || 'Quote goes here...')}&rdquo;
+              </blockquote>
+              ${attributionHtml ? `
+                <cite style="font-family:'${tokens.fontInterface}',sans-serif; font-style: normal; font-size: 12px; text-transform: uppercase; letter-spacing: 1.5px; display: block; text-align: right;">
+                  ${attributionHtml}
+                </cite>
+              ` : ''}
+            </div>
+          </div>
+        `;
+
+      case 'numbered_grid':
+        const gridCells = (block.items || []).map((item, idx) => {
+          const borderRightStyle = idx % 2 === 0 ? `border-right: 1px solid ${border};` : '';
+          const borderBottomStyle = idx < 2 ? `border-bottom: 1px solid ${border};` : '';
+          return `
+            <div class="grid-cell" style="padding: 24px; flex: 1 1 45%; min-width: 220px; box-sizing: border-box; text-align: left; ${borderRightStyle} ${borderBottomStyle}">
+              <div style="font-family:'${tokens.fontInterface}',monospace; font-size: 13px; font-weight: bold; color: ${accent}; margin-bottom: 12px; letter-spacing: 1px;">
+                ${escapeHtml(item.num || `0${idx + 1}`)}
+              </div>
+              <h4 style="font-family:'${tokens.fontInterface}',sans-serif; font-size: 16px; font-weight: 700; margin: 0 0 8px 0; color: ${textMain}; line-height: 1.4;">
+                ${escapeHtml(item.title || 'Item Title')}
+              </h4>
+              <p style="font-family:'${tokens.fontInterface}',sans-serif; font-size: 13px; line-height: 1.6; color: ${isDark ? '#a1a1aa' : '#6b7280'}; margin: 0;">
+                ${escapeHtml(item.text || 'Item description...')}
+              </p>
+            </div>
+          `;
+        }).join('');
+
+        return `
+          <div style="${blockStyle} padding: 36px 48px;">
+            <div style="border: 1px solid ${border}; border-radius: 12px; overflow: hidden; display: flex; flex-wrap: wrap; background-color: ${isDark ? '#000000' : '#ffffff'};">
+              ${gridCells || '<div style="padding: 24px; color:#747474; font-size:14px; font-style:italic; width:100%; text-align:center;">No grid items added yet</div>'}
+            </div>
+          </div>
+        `;
+
+      case 'box':
+        const total = (block.items || []).length;
+        const numRows = Math.ceil(total / 2);
+        
+        const boxCards = (block.items || []).map((item, idx) => {
+          const col = idx % 2;
+          const row = Math.floor(idx / 2);
+          const borderRightStyle = (col === 0 && idx + 1 < total) ? `border-right: 1px solid ${border};` : '';
+          const borderBottomStyle = (row < numRows - 1) ? `border-bottom: 1px solid ${border};` : '';
+          
+          return `
+            <div class="grid-cell" style="flex: 1 1 45%; min-width: 220px; padding: 32px; box-sizing: border-box; text-align: left; ${borderRightStyle} ${borderBottomStyle}">
+              <div style="font-family:'${tokens.fontInterface}',monospace; font-size: 13px; font-weight: bold; color: ${isDark ? '#747474' : '#9ca3af'}; margin-bottom: 12px; letter-spacing: 1px;">
+                ${escapeHtml(item.num || `0${idx + 1}`)}
+              </div>
+              <h4 style="font-family:'${tokens.fontInterface}',sans-serif; font-size: 16px; font-weight: 700; margin: 0 0 8px 0; color: ${textMain}; line-height: 1.4;">
+                ${escapeHtml(item.title || 'Item Title')}
+              </h4>
+              <p style="font-family:'${tokens.fontInterface}',sans-serif; font-size: 13px; line-height: 1.6; color: ${isDark ? '#a1a1aa' : '#6b7280'}; margin: 0;">
+                ${escapeHtml(item.text || 'Item description...')}
+              </p>
+            </div>
+          `;
+        }).join('');
+
+        const headerHtml = (block.title || block.text) ? `
+          <div style="margin-bottom: 32px; text-align: left;">
+            ${block.title ? `
+              <div style="font-family:'${tokens.fontInterface}',sans-serif; font-size: 11px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: ${isDark ? '#747474' : '#6b7280'}; margin-bottom: 8px;">
+                ${escapeHtml(block.title)}
+              </div>
+            ` : ''}
+            ${block.text ? `
+              <h3 style="font-family:'${tokens.fontDisplay}',serif; font-size: 32px; font-weight: 400; line-height: 1.25; margin: 0; color: ${textMain}; letter-spacing: -0.01em;">
+                ${formatTitle(block.text, textMain)}
+              </h3>
+            ` : ''}
+          </div>
+        ` : '';
+
+        return `
+          <div style="${blockStyle} padding: 48px 48px; --block-border: ${border};">
+            ${headerHtml}
+            <div style="border: 1px solid ${border}; border-radius: 12px; overflow: hidden; display: flex; flex-wrap: wrap; background-color: ${bg};">
+              ${boxCards || '<div style="padding: 24px; color:#747474; font-size:14px; font-style:italic; width:100%; text-align:center;">No boxes added yet</div>'}
+            </div>
+          </div>
+        `;
+
+      case 'hero_image':
+        return `
+          <div style="${blockStyle} padding: 0;">
+            <img src="${escapeHtml(block.url || 'placeholder.jpg')}" alt="Hero" style="display: block; width: 100%; height: auto; border: 0; margin: 0;">
+            ${block.caption ? `
+              <div style="font-family:'${tokens.fontInterface}',sans-serif; font-size: 10px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: ${textMuted}; padding: 16px 48px 12px 48px; text-align: left;">
+                ${escapeHtml(block.caption)}
+              </div>
+            ` : ''}
+          </div>
+        `;
+
+      case 'footer':
+        return `
+          <div style="${blockStyle} padding: 64px 48px; text-align: center; border-top: 1px solid ${border}44;">
+            <h2 style="font-family:'${tokens.fontDisplay}',serif; font-size: 32px; font-weight: 400; line-height: 1.25; margin: 0 0 12px 0; color: ${textMain}; letter-spacing: -0.01em;">
+              ${block.title ? formatTitle(block.title, accent) : 'The Future of Ownership <br /> Has Arrived'}
+            </h2>
+            <p style="font-family:'${tokens.fontInterface}',sans-serif; font-size: 10px; font-weight: 600; color: ${textMuted}; text-transform: uppercase; letter-spacing: 2px; margin: 0 0 40px 0;">
+              ${escapeHtml(block.subtitle || 'DIGITAL-SYNDICATION, BY EVOLUTION STABLES, POWERED BY TOKINVEST')}
+            </p>
+            <div style="border-top: 1px solid ${border}22; padding-top: 24px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+              <div>
+                <img src="${isDark ? 'https://www.evolutionstables.nz/updates/Logo-White.png' : 'https://www.evolutionstables.nz/updates/Logo-Black.png'}" alt="Evolution Stables" style="height: 32px; max-height: 32px; width: auto; display: block; ${isDark ? 'filter: brightness(0) invert(1) opacity(0.4); -webkit-filter: brightness(0) invert(1) opacity(0.4);' : 'filter: opacity(0.4); -webkit-filter: opacity(0.4);'}">
+              </div>
+              <div style="display: flex; gap: 18px; align-items: center;">
+                <a href="https://linkedin.com" target="_blank" style="color: #747474; display: inline-block; transition: opacity 0.2s;" title="LinkedIn">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" style="display: block; width: 24px; height: 24px;">
+                    <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
+                  </svg>
+                </a>
+                <a href="https://x.com" target="_blank" style="color: #747474; display: inline-block; transition: opacity 0.2s;" title="X">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" style="display: block; width: 24px; height: 24px;">
+                    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+                  </svg>
+                </a>
+                <a href="mailto:alex@evolutionstables.nz" style="color: #747474; display: inline-block; transition: opacity 0.2s;" title="Email">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" style="display: block; width: 24px; height: 24px;">
+                    <path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z" />
+                  </svg>
+                </a>
+              </div>
+            </div>
+          </div>
+        `;
+
+      default:
+        return '';
+    }
+  }).join('');
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -37,183 +276,116 @@ export function renderV2(data) {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="robots" content="noindex, nofollow">
-  <meta name="slug" content="${escapeHtml(data.slug)}">
-  <title>Evolution Stables | Investor Update</title>
+  <title>Evolution Stables | Hosted Update</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,300;0,400;0,600;1,400&family=Inter:wght@300;400;500;600;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
   <style>
-    body { font-family: 'Inter', system-ui, -apple-system, 'Helvetica Neue', Arial, sans-serif; }
-    h1, h2, h3, h4, h5, h6 { font-family: 'Playfair Display', Georgia, 'Times New Roman', serif; }
-  </style>
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    html, body { overflow-x: hidden; width: 100%; }
     body {
-      background: #f4f1ea;
-      color: #111111;
-      font-family: 'Inter', sans-serif;
+      background-color: #f7f7f8;
       margin: 0;
-      padding: 20px;
+      padding: 48px 16px;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
       min-height: 100vh;
+      box-sizing: border-box;
+      -webkit-font-smoothing: antialiased;
     }
-    @media (max-width: 600px) {
-      body { padding: 16px; }
+    .update-container {
+      width: 100%;
+      max-width: ${containerWidth}px;
+      background-color: ${tokens.colorBgPrimary};
+      border: 1px solid ${tokens.colorBorderLight};
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.03);
+    }
+    @media (max-width: 640px) {
+      body {
+        padding: 16px 8px;
+      }
+      .update-container {
+        border-radius: 12px;
+      }
+      .grid-cell {
+        border-right: none !important;
+        border-bottom: 1px solid var(--block-border, ${tokens.colorBorderLight}) !important;
+      }
+      .grid-cell:last-child {
+        border-bottom: none !important;
+      }
     }
   </style>
 </head>
-<body style="background-color:#f4f1ea;">
-
-<!-- Preheader -->
-<div style="display:none;font-size:1px;color:#121212;line-height:1px;max-height:0px;max-width:0px;opacity:0;overflow:hidden;">
-  ${escapeHtml(preheader)}
-</div>
-
-<table width="100%" cellpadding="0" cellspacing="0" border="0">
-  <tr>
-    <td align="center">
-
-      <!-- MAIN CONTAINER -->
-      <table width="600" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;width:100%;background:#ffffff;border-radius:12px;box-shadow:0 4px 16px rgba(0,0,0,0.08);">
-
-        <!-- HEADER -->
-        <tr>
-          <td align="left" style="background:#000000;padding:40px 48px 20px 48px;border-radius:12px 12px 0 0;">
-            <img src="https://evolutionstables.nz/updates/Evolution-Stables-Logo-White.png" alt="Evolution Stables" style="height:auto;max-height:80px;display:block;margin:0;">
-            <div style="font-family:'Inter',sans-serif;font-size:10px;font-weight:600;letter-spacing:3px;text-transform:uppercase;color:#999999;margin-top:12px;text-align:left;">STABLE UPDATE</div>
-          </td>
-        </tr>
-
-        <!-- HERO IMAGE -->
-        ${heroImageUrl ? `
-        <tr>
-          <td align="center" style="padding:0;">
-            <img src="${escapeHtml(heroImageUrl)}" alt="Hero" style="display:block;width:100%;max-width:600px;height:auto;border:0;">
-            ${heroImageCaption ? `<div style="font-family:'Inter',sans-serif;font-size:11px;font-style:normal;color:#666;font-weight:600;text-transform:uppercase;letter-spacing:1px;text-align:left;padding:16px 48px 0;">${escapeHtml(heroImageCaption)}</div>` : ''}
-          </td>
-        </tr>
-        ` : ''}
-
-        <!-- BODY -->
-        <tr>
-          <td align="left" style="padding:32px 48px;text-align:left;">
-
-            <!-- HEADLINE -->
-            <h1 style="font-family:'Playfair Display',Georgia,serif;font-size:44px;font-weight:400;line-height:1.1;margin:0 0 32px 0;color:#000000;letter-spacing:-0.5px;text-align:left;">${escapeHtml(heading)}</h1>
-
-            <!-- SUBHEADLINE -->
-            <div style="margin:0 0 32px 0;">
-              <p style="font-family:'Inter',sans-serif;font-size:11px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:#000000;margin:0 0 12px 0;text-align:left;">${escapeHtml(subheaderLabel)}</p>
-              <ul style="list-style:none;padding:0;margin:0;">
-                ${bulletsHtml}
-              </ul>
-            </div>
-
-            <!-- BODY -->
-            <div style="font-family:'Inter',sans-serif;font-size:15px;line-height:1.75;color:#1a1a1a;margin:0 0 2.5em 0;text-align:justify;">
-              ${bodyHtml}
-            </div>
-
-            <!-- QUOTE -->
-            <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 32px 0;">
-              <tr>
-                <td style="background:#000000;padding:32px 48px;border-left:3px solid #d4a964;border-radius:12px;text-align:left;">
-                  <div style="font-family:'Playfair Display',Georgia,serif;font-size:22px;font-style:italic;line-height:1.6;color:#ffffff;margin:0 0 16px 0;font-weight:200;text-align:left;">
-                    <span>&quot;${escapeHtml(quoteText)}&quot;</span>
-                    <p style="font-family:'Inter',sans-serif;font-size:13px;font-weight:600;color:#999999;margin:16px 0 0 0;text-align:left;">${escapeHtml(quoteAttribution)}</p>
-                  </div>
-                </td>
-              </tr>
-            </table>
-
-            <!-- LINK -->
-            ${linkLabel && linkUrl ? `
-            <p style="font-family:'Inter',sans-serif;font-size:15px;line-height:1.75;color:#1a1a1a;margin:0 0 2.5em 0;text-align:center;">
-              <a href="${escapeHtml(linkUrl)}" style="color:#d4a964;text-decoration:underline;">${escapeHtml(linkLabel)}</a>
-            </p>
-            ` : ''}
-
-            <!-- SIGN-OFF -->
-            <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:48px;">
-              <tr>
-                <td style="border-top:1px solid #e0e0e0;padding-top:32px;text-align:left;">
-                  <p style="font-family:'Inter',sans-serif;font-size:15px;font-weight:600;color:#000000;margin:0 0 2px 0;text-align:left;">${escapeHtml(signOffName)}</p>
-                  <p style="font-family:'Inter',sans-serif;font-size:13px;font-weight:400;color:#666666;margin:0;text-align:left;">${escapeHtml(signOffTitle)}</p>
-                </td>
-              </tr>
-            </table>
-
-          </td>
-        </tr>
-
-        <!-- FOOTER -->
-        <tr>
-          <td align="center" style="background:#000000;color:#ffffff;padding:40px 48px;text-align:center;border-radius:0 0 12px 12px;">
-            <h2 style="font-family:'Playfair Display',Georgia,serif;font-size:22px;font-weight:400;color:#ffffff;margin:0 0 32px 0;text-align:center;">The Future of <span style="color:#d4a964;">Ownership</span><br>Has Arrived</h2>
-            <p style="font-family:'Inter',sans-serif;font-size:10px;color:#888888;text-transform:uppercase;letter-spacing:1px;margin:0;text-align:center;">Digital-Syndication, by Evolution Stables, Powered By Tokinvest</p>
-
-            <!-- FOOTER BAR -->
-            <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:48px;">
-              <tr>
-                <td style="text-align:left;">
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 107.78 94.41" style="height:24px;width:auto;display:block;fill:#d4a964;">
-                    <path d="M85.38,15.12c-1.96-2.03-4.1-3.89-6.38-5.55h0c-.87-.64-1.83-1.28-2.91-1.96h0C68.13,2.63,58.94,0,49.51,0,22.21,0,0,21.82,0,48.64c0,19.79,12.04,37.46,30.68,44.99,0,0,1.47,.59,2.37,.78l14.15-24.51,19.8,17.29L107.78,15.12h-22.4Zm-7.62,29.2l-13.67,24.16-11.69-9.3,5.72-10.28,2.43,1.12c-2.25-3.1-4.71-9.52-4.73-13.31l-25.3,43.82c-11.55-6.55-18.77-18.59-18.77-31.9-.01-20.33,16.93-36.89,37.76-36.89,7.23,0,14.26,2.01,20.34,5.82,.85,.53,1.58,1.02,2.23,1.5h0c2.31,1.68,4.42,3.63,6.28,5.78l1.76,2.03h14.26l-12.13,9.55-4.48,7.92v-.02Z"/>
-                  </svg>
-                </td>
-                <td style="text-align:right;">
-                  <table cellpadding="0" cellspacing="0" border="0" style="margin-left:auto;">
-                    <tr>
-                      <td style="padding-right:12px;">
-                        <a href="https://www.linkedin.com/in/alex-baddeley/" target="_blank" aria-label="LinkedIn" style="text-decoration:none;">
-                          <svg viewBox="0 0 24 24" style="height:20px;width:20px;display:block;fill:#d4a964;">
-                            <path d="M4.98 3.5C4.98 4.88 3.88 6 2.5 6S0 4.88 0 3.5 1.12 1 2.5 1 4.98 2.12 4.98 3.5zM0 8h5v16H0V8zm8.5 0h4.8v2.2h.07c.67-1.27 2.3-2.6 4.73-2.6 5.06 0 6 3.33 6 7.66V24h-5v-7.3c0-1.74-.03-3.98-2.43-3.98-2.43 0-2.8 1.9-2.8 3.86V24h-5V8z"/>
-                          </svg>
-                        </a>
-                      </td>
-                      <td style="padding-right:12px;">
-                        <a href="https://x.com/evostables" target="_blank" aria-label="X" style="text-decoration:none;">
-                          <svg viewBox="0 0 24 24" style="height:20px;width:20px;display:block;fill:#d4a964;">
-                            <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
-                          </svg>
-                        </a>
-                      </td>
-                      <td>
-                        <a href="https://instagram.com/evostables" target="_blank" aria-label="Instagram" style="text-decoration:none;">
-                          <svg viewBox="0 0 24 24" style="height:20px;width:20px;display:block;fill:#d4a964;">
-                            <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
-                          </svg>
-                        </a>
-                      </td>
-                    </tr>
-                  </table>
-                </td>
-              </tr>
-            </table>
-
-          </td>
-        </tr>
-
-      </table>
-
-    </td>
-  </tr>
-</table>
-
+<body>
+  <div class="update-container">
+    ${blocksHtml}
+  </div>
 </body>
 </html>`;
 }
 
-export function renderV3(data) {
-  const {
-    preheader,
-    heading,
-    bodyParagraphs,
-    linkUrl,
-    slug,
-  } = data;
+export function renderTeaser(blocks, tokens) {
+  // Find first header block, paragraph block, and footer block for email teaser
+  const headerBlock = blocks.find(b => b.type === 'header') || { title: 'Investor Update', subtitle: 'STABLE UPDATE' };
+  const firstParagraphBlock = blocks.find(b => b.type === 'paragraph') || { text: 'Click below to read the full update.' };
+  const footerBlock = blocks.find(b => b.type === 'footer') || {
+    title: 'The Future of Ownership <br /> Has Arrived',
+    subtitle: 'DIGITAL-SYNDICATION, BY EVOLUTION STABLES, POWERED BY TOKINVEST'
+  };
+  
+  // Try to find slug from header or generate a simple one
+  const slug = (headerBlock.title || 'update')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)/g, '');
 
-  // First paragraph only for teaser
-  const firstParagraph = bodyParagraphs.find(p => p.trim()) || '';
+  const accent = tokens.colorBrandGold;
+
+  const isTeaserWatermark = headerBlock.logoType === 'watermark';
+  
+  const teaserColorOpt = headerBlock.logoColor || 'adaptive';
+  let teaserUseWhiteImage = false; // default for light background in email teaser
+  let teaserOpacityVal = 1;
+
+  if (teaserColorOpt === 'white') {
+    teaserUseWhiteImage = true;
+    teaserOpacityVal = 1;
+  } else if (teaserColorOpt === 'dark') {
+    teaserUseWhiteImage = false;
+    teaserOpacityVal = 1;
+  } else if (teaserColorOpt === 'dark-grey') {
+    teaserUseWhiteImage = false;
+    teaserOpacityVal = 0.7;
+  } else if (teaserColorOpt === 'grey') {
+    teaserUseWhiteImage = false;
+    teaserOpacityVal = 0.4;
+  } else {
+    // adaptive
+    teaserUseWhiteImage = false;
+    teaserOpacityVal = 1;
+  }
+
+  const teaserLogoUrl = isTeaserWatermark
+    ? (teaserUseWhiteImage 
+        ? 'https://www.evolutionstables.nz/updates/Evolution-Stables-Logo-White.png'
+        : 'https://www.evolutionstables.nz/updates/Evolution-Stables-Logo-Black.png')
+    : (teaserUseWhiteImage
+        ? 'https://www.evolutionstables.nz/updates/Logo-White.png'
+        : 'https://www.evolutionstables.nz/updates/Logo-Black.png');
+
+  const teaserSizeHeight = headerBlock.logoSize === 'small' 
+    ? 64 
+    : (headerBlock.logoSize === 'large' 
+        ? 96 
+        : (headerBlock.logoSize === 'xlarge' ? 112 : 80));
+
+  const footerIsDark = (footerBlock.theme === 'dark');
+  const footerBg = footerIsDark ? tokens.colorBgDark : tokens.colorBgPrimary;
+  const footerTextMain = footerIsDark ? tokens.colorTextInv : tokens.colorTextMain;
+  const footerTextMuted = tokens.colorTextMuted;
+  const footerBorder = footerIsDark ? tokens.colorBorderDark : tokens.colorBorderLight;
 
   return `<!doctype html>
 <html lang="en" xmlns="http://www.w3.org/1999/xhtml" xmlns:o="urn:schemas-microsoft-com:office:office">
@@ -221,52 +393,48 @@ export function renderV3(data) {
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="x-apple-disable-message-reformatting">
-  <title>${escapeHtml(preheader)}</title>
+  <title>${escapeHtml(headerBlock.title)}</title>
   <!--[if mso]><noscript><xml><o:OfficeDocumentSettings><o:PixelsPerInch>96</o:PixelsPerInch></o:OfficeDocumentSettings></xml></noscript><![endif]-->
 </head>
-<body style="margin: 0; padding: 0; background-color: #f4f1ea; word-wrap:break-word; word-break:break-word;">
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%; border-collapse:collapse; background-color:#f4f1ea; margin:0; padding:0;">
+<body style="margin: 0; padding: 0; background-color: #f7f7f8; word-wrap:break-word; word-break:break-word;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%; border-collapse:collapse; background-color:#f7f7f8; margin:0; padding:0;">
     <tr>
-      <td align="center" style="padding:24px 12px;">
-        <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="width:100%; max-width:600px; border-collapse:collapse; background-color:#ffffff; border-radius:12px;">
+      <td align="center" style="padding:32px 12px;">
+        <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="width:100%; max-width:600px; border-collapse:collapse; background-color:#ffffff; border: 1px solid #e4e4e7; border-radius:16px;">
 
           <!-- HEADER -->
           <tr>
-            <td style="padding:32px 36px 20px 36px; border-bottom:1px solid #e8e1d6; border-radius:12px 12px 0 0;">
+            <td style="padding:40px 40px 20px 40px; border-bottom:1px solid #f4f4f5; border-radius:16px 16px 0 0;">
               <img
-                src="https://evolutionstables.nz/updates/Logo-Black.png"
+                src="${teaserLogoUrl}"
                 alt="Evolution Stables"
-                width="200"
-                style="display:block; width:200px; max-width:100%; height:auto; border:0;"
+                style="display:block; height:${teaserSizeHeight}px; max-height:${teaserSizeHeight}px; width:auto; border:0; opacity:${teaserOpacityVal};"
               />
-              <div style="font-family:'Inter', Arial, Helvetica, sans-serif; font-size:11px; line-height:16px; font-weight:bold; letter-spacing:1.5px; text-transform:uppercase; color:#747474; padding-top:18px;">
-                Stable Update
+              <div style="font-family:'Inter', Arial, Helvetica, sans-serif; font-size:11px; line-height:16px; font-weight:bold; letter-spacing:2px; text-transform:uppercase; color:#737373; padding-top:16px;">
+                ${escapeHtml(headerBlock.subtitle || 'STABLE UPDATE')}
               </div>
             </td>
           </tr>
 
-          <!-- PREHEADER + HEADLINE + BODY -->
+          <!-- HEADLINE & BODY TEASER -->
           <tr>
-            <td style="padding:34px 36px 22px 36px;">
-              <div style="font-family:'Inter', Arial, Helvetica, sans-serif; font-size:11px; line-height:16px; font-weight:bold; letter-spacing:1.8px; text-transform:uppercase; color:#747474; padding-bottom:10px;">
-                ${escapeHtml(preheader)}
+            <td style="padding:32px 40px 20px 40px;">
+              <div style="font-family:'Playfair Display', Georgia, serif; font-size:32px; line-height:1.2; font-weight:normal; color:#020202; padding-bottom:18px; letter-spacing:-0.01em;">
+                ${escapeHtml(headerBlock.title)}
               </div>
-              <div style="font-family:'Playfair Display', Georgia, 'Times New Roman', serif; font-size:40px; line-height:44px; font-weight:normal; color:#111111; padding-bottom:14px;">
-                ${escapeHtml(heading)}
-              </div>
-              <div style="font-family:'Inter', Arial, Helvetica, sans-serif; font-size:16px; line-height:28px; color:#1f1f1f; padding-bottom:16px;">
-                ${escapeHtml(firstParagraph)}
+              <div style="font-family:'Inter', Arial, Helvetica, sans-serif; font-size:15px; line-height:1.7; color:#4b5563; padding-bottom:16px;">
+                ${escapeHtml(firstParagraphBlock.text)}
               </div>
             </td>
           </tr>
 
-          <!-- CTA -->
+          <!-- CTA BUTTON -->
           <tr>
-            <td style="padding:0 36px 34px 36px; text-align:center;">
+            <td style="padding:0 40px 40px 40px; text-align:center;">
               <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 auto;">
                 <tr>
-                  <td style="background-color:#111111; border-radius:8px; text-align:center;">
-                    <a href="https://evolutionstables.nz/updates/${escapeHtml(slug)}.html" style="display:inline-block; font-family:'Inter', Arial, Helvetica, sans-serif; font-size:15px; font-weight:600; line-height:20px; color:#ffffff; text-decoration:none; padding:14px 28px; border-radius:8px;">
+                  <td style="background-color:#020202; border-radius:8px; text-align:center;">
+                    <a href="https://evolutionstables.nz/updates/${escapeHtml(slug)}.html" style="display:inline-block; font-family:'Inter', Arial, Helvetica, sans-serif; font-size:14px; font-weight:600; line-height:20px; color:#ffffff; text-decoration:none; padding:12px 28px; border-radius:8px;">
                       Read full update &rarr;
                     </a>
                   </td>
@@ -277,22 +445,46 @@ export function renderV3(data) {
 
           <!-- FOOTER -->
           <tr>
-            <td style="background-color:#111111; padding:36px; text-align:center; border-radius:0 0 12px 12px;">
-              <div style="font-family:'Playfair Display', Georgia, 'Times New Roman', serif; font-size:28px; line-height:34px; font-weight:normal; color:#ffffff; padding-bottom:10px;">
-                The Future of <span style="color:#d4a964;">Ownership</span><br />
-                Has Arrived
+            <td style="background-color:${footerBg}; padding:64px 40px; text-align:center; border-radius:0 0 16px 16px; border-top: 1px solid ${footerBorder}44;">
+              <div style="font-family:'${tokens.fontDisplay}', Georgia, serif; font-size:32px; line-height:1.25; font-weight:normal; color:${footerTextMain}; padding-bottom:12px; letter-spacing:-0.01em;">
+                ${footerBlock.title ? formatTitle(footerBlock.title, accent) : 'The Future of Ownership <br /> Has Arrived'}
               </div>
-              <div style="font-family:'Inter', Arial, Helvetica, sans-serif; font-size:11px; line-height:18px; letter-spacing:1px; text-transform:uppercase; color:#a6a6a6; padding-bottom:16px;">
-                Digital Syndication, by Evolution Stables, Powered by Tokinvest
+              <div style="font-family:'${tokens.fontInterface}', Arial, Helvetica, sans-serif; font-size:10px; line-height:18px; letter-spacing:2px; text-transform:uppercase; color:${footerTextMuted}; padding-bottom:40px; font-weight:600;">
+                ${escapeHtml(footerBlock.subtitle || 'DIGITAL-SYNDICATION, BY EVOLUTION STABLES, POWERED BY TOKINVEST')}
               </div>
-              <div style="font-family:'Inter', Arial, Helvetica, sans-serif; font-size:13px; line-height:22px; color:#d7d7d7; padding-bottom:18px;">
-                <a href="https://evolutionstables.nz" style="color:#d7d7d7; text-decoration:none;">evolutionstables.nz</a>
-                &nbsp;|&nbsp;
-                <a href="mailto:alex@evolutionstables.nz" style="color:#d7d7d7; text-decoration:none;">alex@evolutionstables.nz</a>
-              </div>
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 107.78 94.41" style="height:28px;width:auto;display:block;margin:0 auto;fill:#d4a964;">
-                <path d="M85.38,15.12c-1.96-2.03-4.1-3.89-6.38-5.55h0c-.87-.64-1.83-1.28-2.91-1.96h0C68.13,2.63,58.94,0,49.51,0,22.21,0,0,21.82,0,48.64c0,19.79,12.04,37.46,30.68,44.99,0,0,1.47,.59,2.37,.78l14.15-24.51,19.8,17.29L107.78,15.12h-22.4Zm-7.62,29.2l-13.67,24.16-11.69-9.3,5.72-10.28,2.43,1.12c-2.25-3.1-4.71-9.52-4.73-13.31l-25.3,43.82c-11.55-6.55-18.77-18.59-18.77-31.9-.01-20.33,16.93-36.89,37.76-36.89,7.23,0,14.26,2.01,20.34,5.82,.85,.53,1.58,1.02,2.23,1.5h0c2.31,1.68,4.42,3.63,6.28,5.78l1.76,2.03h14.26l-12.13,9.55-4.48,7.92v-.02Z"/>
-              </svg>
+              
+              <!-- Divider line -->
+              <div style="border-top: 1px solid ${footerBorder}22; margin-top: 24px; margin-bottom: 24px; height: 1px;"></div>
+
+              <!-- Social Links & Logo row -->
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td align="left" style="vertical-align: middle;">
+                    <img src="${footerIsDark ? 'https://www.evolutionstables.nz/updates/Logo-White.png' : 'https://www.evolutionstables.nz/updates/Logo-Black.png'}" alt="Evolution Stables" height="32" style="display: block; height: 32px; width: auto; border: 0; margin: 0; opacity: 0.4; ${footerIsDark ? 'filter: brightness(0) invert(1); -webkit-filter: brightness(0) invert(1);' : ''}" />
+                  </td>
+                  <td align="right" style="vertical-align: middle;">
+                    <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin: 0 0 0 auto;">
+                      <tr>
+                        <td style="padding-right: 18px; vertical-align: middle;">
+                          <a href="https://linkedin.com" target="_blank" style="color: #747474; text-decoration: none; display: inline-block;">
+                            <span style="font-family:'Inter', Arial, sans-serif; font-size: 13px; font-weight: bold; letter-spacing: 1.5px; text-transform: uppercase;">LinkedIn</span>
+                          </a>
+                        </td>
+                        <td style="padding-right: 18px; vertical-align: middle;">
+                          <a href="https://x.com" target="_blank" style="color: #747474; text-decoration: none; display: inline-block;">
+                            <span style="font-family:'Inter', Arial, sans-serif; font-size: 13px; font-weight: bold; letter-spacing: 1.5px; text-transform: uppercase;">X</span>
+                          </a>
+                        </td>
+                        <td style="vertical-align: middle;">
+                          <a href="mailto:alex@evolutionstables.nz" style="color: #747474; text-decoration: none; display: inline-block;">
+                            <span style="font-family:'Inter', Arial, sans-serif; font-size: 13px; font-weight: bold; letter-spacing: 1.5px; text-transform: uppercase;">Email</span>
+                          </a>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
             </td>
           </tr>
 
@@ -304,6 +496,7 @@ export function renderV3(data) {
 </html>`;
 }
 
+// Helpers
 function escapeHtml(text) {
   if (!text) return '';
   return text
@@ -312,4 +505,22 @@ function escapeHtml(text) {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#039;');
+}
+
+function formatTitle(title, goldColor) {
+  if (!title) return '';
+  // Highlight specific words or text inside quotes, or handle custom markup
+  let formatted = escapeHtml(title);
+  
+  // Unescape safe line breaks
+  formatted = formatted.replace(/&lt;br\s*\/?&gt;/gi, '<br />');
+  
+  // Highlight words like Ownership or First Gear
+  const highlightWords = ['Ownership', 'First Gear', 'Otaki', 'Prudentia'];
+  highlightWords.forEach(word => {
+    const regex = new RegExp(`\\b(${word})\\b`, 'gi');
+    formatted = formatted.replace(regex, `<span style="color: ${goldColor}; font-style: italic;">$1</span>`);
+  });
+
+  return formatted;
 }

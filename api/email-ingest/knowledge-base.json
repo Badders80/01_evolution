@@ -1,0 +1,110 @@
+{
+  "_description": "Evolution Stables domain knowledge base for transcript reconciliation. Used by LLM to resolve ambiguous ASR outputs.",
+  "_version": "2026-05-12",
+  "horses": {
+    "Prudentia": {
+      "aliases": ["Pradichia", "Pradinkia", "Pradeetia", "Pradeep Chia", "Pradeepchia", "Pradechia", "Pradichiya", "Prudeetia", "Prudencia", "Prodentia", "Perdecia", "Pradeep", "Pradechia", "Prudencia"],
+      "stable": "Wexford Stables",
+      "trainers": ["Lance O'Sullivan", "Andrew Scott"],
+      "type": "mare"
+    },
+    "General Munari": {
+      "aliases": ["General manari", "Generalminari", "General Minari", "General Manari"],
+      "stable": "Wexford Stables",
+      "trainers": ["Lance O'Sullivan", "Andrew Scott"],
+      "type": "gelding"
+    },
+    "Hot Than a Fantasy": {
+      "aliases": ["Hot than a fantasy", "Hottathanafantasy", "Hot fantasy"],
+      "stable": "Wexford Stables",
+      "trainers": ["Lance O'Sullivan", "Andrew Scott"],
+      "type": "filly"
+    }
+  },
+  "venues": {
+    "Te Rapa": {
+      "aliases": ["Tarapa", "tarapa", "TARAPA", "Terrapa", "TeRapa", "Te rapa", "Tearapa"],
+      "location": "Hamilton, NZ"
+    },
+    "Ellerslie": {
+      "aliases": ["Ellersly", "Ellerslie", "ellerslie"],
+      "location": "Auckland, NZ"
+    },
+    "Matamata": {
+      "aliases": ["Matamata", "matamata", "Matta Matta"],
+      "location": "Matamata, NZ"
+    },
+    "Riccarton": {
+      "aliases": ["Riccarton", "riccarton"],
+      "location": "Christchurch, NZ"
+    },
+    "Wexford": {
+      "aliases": ["Wexford", "wexford", "Wexford Stables"],
+      "location": "Training facility"
+    }
+  },
+  "people": {
+    "Lance O'Sullivan": {
+      "aliases": ["Lance", "O'Sullivan", "Matso Sullivan", "Lance O Sullivan"],
+      "role": "trainer",
+      "stable": "Wexford Stables"
+    },
+    "Andrew Scott": {
+      "aliases": ["Andrew", "Scott", "Matta Matta", "Andy Scott"],
+      "role": "trainer",
+      "stable": "Wexford Stables"
+    },
+    "Tony Pike": {
+      "aliases": ["Tony Pike", "Tony", "Pike"],
+      "role": "jockey"
+    }
+  },
+  "racingTerms": {
+    "BM75": {
+      "aliases": ["BM 75", "bm75", "Benchmark 75"],
+      "meaning": "Benchmark 75 handicap"
+    },
+    "BM65": {
+      "aliases": ["BM 65", "bm65", "Benchmark 65", "65", "65-13"],
+      "meaning": "Benchmark 65 handicap"
+    },
+    "Group 1": {
+      "aliases": ["Group One", "G1", "group 1"],
+      "meaning": "Group 1 race"
+    },
+    "going into": {
+      "aliases": ["home in", "going in to"],
+      "meaning": "approaching/next race"
+    },
+    "ground to suit": {
+      "aliases": ["grounder suit", "ground a suit", "ground suit"],
+      "meaning": "track conditions favorable"
+    }
+  },
+  "commonMishearings": {
+    "mere": "mare",
+    "cheer": "here",
+    "each year": "Prudentia",
+    "perdecia": "Prudentia",
+    "pradeep": "Prudentia",
+    "pradechia": "Prudentia",
+    "prudencia": "Prudentia",
+    "prodentia": "Prudentia",
+    "prudeetia": "Prudentia",
+    "pradichia": "Prudentia",
+    "pradinkia": "Prudentia",
+    "pradeetia": "Prudentia",
+    "pradeep chia": "Prudentia",
+    "pradeepchia": "Prudentia",
+    "pradichiya": "Prudentia",
+    "general manari": "General Munari",
+    "generalminari": "General Munari",
+    "general minari": "General Munari",
+    "matso sullivan": "Lance O'Sullivan",
+    "matta matta": "Andrew Scott",
+    "tarapa": "Te Rapa",
+    "terrapa": "Te Rapa",
+    "te rapa": "Te Rapa",
+    "teerapa": "Te Rapa"
+  }
+}

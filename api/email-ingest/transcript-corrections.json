@@ -1,0 +1,97 @@
+{
+  "_description": "Common Whisper transcription mishearings -> correct terms for horse racing NZ context. Applied after transcription.",
+  "_lastUpdated": "2026-05-26",
+  "corrections": {
+    "horseNames": {
+      "Pradichia": "Prudentia",
+      "Pradinkia": "Prudentia",
+      "Pradeetia": "Prudentia",
+      "Pradeep Chia": "Prudentia",
+      "Pradeepchia": "Prudentia",
+      "Pradechia": "Prudentia",
+      "Pradichiya": "Prudentia",
+      "Prudeetia": "Prudentia",
+      "Prudencia": "Prudentia",
+      "Prodentia": "Prudentia",
+      "Ninja": "Prudentia",
+      "General Munari": "General Munari",
+      "General manari": "General Munari",
+      "General Minari": "General Munari",
+      "Generalminari": "General Munari"
+    },
+    "venues": {
+      "Tarapa": "Te Rapa",
+      "tarapa": "Te Rapa",
+      "TARAPA": "Te Rapa",
+      "Terrapa": "Te Rapa",
+      "TeRapa": "Te Rapa",
+      "Te rapa": "Te Rapa",
+      "Wexford": "Wexford"
+    },
+    "racingTerms": {
+      "65-13": "65 (grade)",
+      "75": "75 (grade)",
+      "109.9": "1:09.9",
+      "139.3": "1:39.3",
+      "home in": "going into",
+      "grounder suit": "ground to suit",
+      "ground a suit": "ground to suit",
+      "weak white week": "quiet week",
+      "twelve hundred teams": "twelve hundred meters",
+      "run the truck": "run the trip",
+      "healthy meat": "healthy mare"
+    },
+    "people": {
+      "Matso Sullivan": "Lance O'Sullivan",
+      "Matta Matta": "Andrew Scott",
+      "Chris": "Chris (racing manager)"
+    }
+  },
+  "applyRules": [
+    {
+      "pattern": "\\b(Pradichia|Pradinkia|Pradeetia|Pradeep Chia|Pradeepchia|Pradechia|Pradichiya|Prudeetia|Prudencia|Prodentia|Ninja)\\b",
+      "replacement": "Prudentia",
+      "category": "horseNames"
+    },
+    {
+      "pattern": "\\b(Tarapa|tarapa|TARAPA|Terrapa|TeRapa|Te rapa)\\b",
+      "replacement": "Te Rapa",
+      "category": "venues"
+    },
+    {
+      "pattern": "\\b(General manari|Generalminari|General Minari)\\b",
+      "replacement": "General Munari",
+      "category": "horseNames"
+    },
+    {
+      "pattern": "\\b(Matso Sullivan)\\b",
+      "replacement": "Lance O'Sullivan",
+      "category": "people"
+    },
+    {
+      "pattern": "\\b(Matta Matta)\\b",
+      "replacement": "Andrew Scott",
+      "category": "people"
+    },
+    {
+      "pattern": "\\bweak white week\\b",
+      "replacement": "quiet week",
+      "category": "racingTerms"
+    },
+    {
+      "pattern": "\\btwelve hundred teams\\b",
+      "replacement": "twelve hundred meters",
+      "category": "racingTerms"
+    },
+    {
+      "pattern": "\\brun the truck\\b",
+      "replacement": "run the trip",
+      "category": "racingTerms"
+    },
+    {
+      "pattern": "\\bhealthy meat\\b",
+      "replacement": "healthy mare",
+      "category": "racingTerms"
+    }
+  ]
+}

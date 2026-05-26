@@ -61,6 +61,8 @@ deploy-assets:
         --runtime python312 \
         --trigger-http \
         --allow-unauthenticated \
+        --region australia-southeast1 \
+        --memory 512MB \
         --entry-point assets
 
 # Deploy KYC function
@@ -68,6 +70,8 @@ deploy-kyc:
     cd api/kyc && gcloud functions deploy kyc \
         --runtime python312 \
         --trigger-http \
+        --allow-unauthenticated \
+        --region australia-southeast1 \
         --entry-point kyc
 
 # Deploy Email Ingest function

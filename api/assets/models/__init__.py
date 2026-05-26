@@ -53,7 +53,7 @@ class HorseCreate(BaseModel):
     family_number: Optional[str] = Field(None, description="Stud Book family number.")
     dna_typed: bool = Field(False, description="Whether the horse has been DNA typed.")
     pv: bool = Field(False, description="Whether the horse has been parentage verified.")
-    breeder: Optional[str] = Field(None, examples=["Goldeye Trust"])
+    breeder: Optional[str] = Field(None, examples=["Golden Eye Trust"])
     left_shoulder_brand: Optional[str] = Field(None, examples=["KB INSIDE CIRCLE"])
     right_shoulder_brand: Optional[str] = Field(None, examples=["85 OVER 1"])
     trainer_id: Optional[str] = Field(None, description="Reference to current trainer document ID.")
@@ -96,7 +96,7 @@ class HorseUpdate(BaseModel):
 
 class OwnerCreate(BaseModel):
     """Payload for creating a new owner record."""
-    name: str = Field(..., description="Full legal name.", examples=["Goldeye Trust"])
+    name: str = Field(..., description="Full legal name.", examples=["Golden Eye Trust"])
     email: str = Field(..., description="Primary contact email.")
     phone: Optional[str] = Field(None, examples=["+64 21 123 4567"])
     type: Literal["individual", "syndicate", "corporate"] = Field("individual")
@@ -233,6 +233,103 @@ class Asset(AssetCreate):
     """Full asset record with server-generated fields."""
     id: str
     created_at: datetime
+
+
+# ─── Content ──────────────────────────────────────────────────────────────────
+
+class ContentSegment(BaseModel):
+    """A single segment of transcribed speech with speaker attribution."""
+    start_time: float = Field(..., description="Start time in seconds.")
+    end_time: float = Field(..., description="End time in seconds.")
+    speaker: str = Field(..., description="Speaker name (e.g. 'Andrew Scott').")
+    text: str = Field(..., description="Transcribed text for this segment.")
+
+
+class ContentSpeaker(BaseModel):
+    """Speaker identity mapping."""
+    name: str = Field(..., description="Real name (e.g. 'Andrew Scott').")
+    label: str = Field(..., description="Diarization label (e.g. 'spk0').")
+
+
+class ContentCreate(BaseModel):
+    """Payload for creating a content record (transcript, video update, etc.)."""
+    content_type: Literal["transcript", "video_update", "race_report", "workout_update", "general_update"] = Field(
+        ..., description="Content type."
+    )
+    horse_microchip: str = Field(
+        ...,
+        pattern=r"^\d{15}$",
+        description="Reference to the horse by microchip.",
+    )
+    title: str = Field(..., description="Content title (e.g. email subject).")
+    content_date: date = Field(..., description="Date of the content (from email or recording).")
+    speakers: list[ContentSpeaker] = Field(
+        default_factory=list,
+        description="Speaker identity mappings.",
+    )
+    full_text: str = Field(..., description="Full concatenated transcript text.")
+    segments: list[ContentSegment] = Field(
+        default_factory=list,
+        description="Timestamped transcript segments with speaker attribution.",
+    )
+    source: str = Field(
+        ...,
+        description="Source of the transcript (e.g. 'google_speech_v1').",
+    )
+    source_email_id: Optional[str] = Field(
+        None,
+        description="Gmail message ID for deduplication.",
+    )
+    asset_ids: list[str] = Field(
+        default_factory=list,
+        description="Linked GCS asset IDs (video, audio files).",
+    )
+    status: Literal["draft", "published"] = Field("draft")
+
+
+class Content(ContentCreate):
+    """Full content record with server-generated fields."""
+    id: str
+    created_at: datetime
+    updated_at: datetime
+
+
+class ContentUpdate(BaseModel):
+    """Payload for updating a content record. All fields optional."""
+    content_type: Optional[Literal["transcript", "video_update", "race_report", "workout_update", "general_update"]] = None
+    title: Optional[str] = None
+    content_date: Optional[date] = None
+    speakers: Optional[list[ContentSpeaker]] = None
+    full_text: Optional[str] = None
+    segments: Optional[list[ContentSegment]] = None
+    source: Optional[str] = None
+    asset_ids: Optional[list[str]] = None
+    status: Optional[Literal["draft", "published"]] = None
+
+
+# ─── Holding (Digital Ledger) ──────────────────────────────────────────────────
+
+class HoldingCreate(BaseModel):
+    """Payload for creating a new holding (ownership record)."""
+    user_id: str = Field(..., description="Firebase Auth UID of the investor.")
+    hlt_id: str = Field(..., description="Reference to the HLT campaign document ID.")
+    horse_microchip: str = Field(..., pattern=r"^\d{15}$", description="Reference to the horse by microchip.")
+    shares_owned: int = Field(..., ge=1, description="Number of shares owned.")
+    percentage_owned: float = Field(..., ge=0.0, le=100.0, description="Percentage of ownership.")
+    purchase_price_cents: int = Field(..., ge=0, description="Purchase price in cents.")
+    stripe_session_id: str = Field(..., description="Stripe Checkout Session ID.")
+    document_acknowledgements: dict[str, bool] = Field(
+        default_factory=dict,
+        description="Records user's check of PDS, Term Sheet, and SA."
+    )
+
+
+class Holding(HoldingCreate):
+    """Full holding record with server-generated fields."""
+    id: str = Field(..., description="Firestore document ID")
+    status: Literal["pending", "paid", "refunded"] = Field("pending")
+    created_at: datetime
+    updated_at: datetime
 
 
 # ─── Loveracing.nz Reference ──────────────────────────────────────────────────

@@ -24,10 +24,42 @@ STATUS_TRANSITIONS = {
 }
 
 
+def _resolve_hlt_references(hlt_data):
+    """Helper to resolve and embed referenced horse, owner, and trainer documents."""
+    # Resolve horse
+    microchip = hlt_data.get("horse_microchip")
+    if microchip:
+        horse_docs = db.collection("horses").where("microchip", "==", microchip).limit(1).get()
+        if horse_docs:
+            hlt_data["horse"] = horse_docs[0].to_dict()
+        else:
+            hlt_data["horse"] = None
+
+    # Resolve owner
+    owner_id = hlt_data.get("owner_id")
+    if owner_id:
+        owner_doc = db.collection("owners").document(owner_id).get()
+        if owner_doc.exists:
+            hlt_data["owner"] = owner_doc.to_dict()
+        else:
+            hlt_data["owner"] = None
+
+    # Resolve trainer
+    trainer_id = hlt_data.get("trainer_id")
+    if trainer_id:
+        trainer_doc = db.collection("trainers").document(trainer_id).get()
+        if trainer_doc.exists:
+            hlt_data["trainer"] = trainer_doc.to_dict()
+        else:
+            hlt_data["trainer"] = None
+            
+    return hlt_data
+
+
 def handle(request: Request, hlt_id: str | None = None):
     """Route by HTTP method and presence of hlt_id."""
     if request.method == "GET" and hlt_id:
-        return get_hlt(hlt_id)
+        return get_hlt(hlt_id, request)
     if request.method == "GET":
         return list_hlts(request)
     if request.method == "POST":
@@ -78,25 +110,42 @@ def create_hlt(request: Request):
     return jsonify(doc_data), 201
 
 
-def get_hlt(hlt_id: str):
+def get_hlt(hlt_id: str, request: Request):
     """Get an HLT by document ID."""
     doc = db.collection("hlts").document(hlt_id).get()
     if not doc.exists:
         return jsonify({"error": f"HLT {hlt_id} not found"}), 404
-    return jsonify(doc.to_dict()), 200
+    
+    hlt_data = doc.to_dict()
+    resolve = request.args.get("resolve") == "true"
+    if resolve:
+        hlt_data = _resolve_hlt_references(hlt_data)
+        
+    return jsonify(hlt_data), 200
 
 
 def list_hlts(request: Request):
     """List all HLTs, optionally filtered by status or horse microchip."""
     status = request.args.get("status")
     microchip = request.args.get("horse_microchip")
+    resolve = request.args.get("resolve") == "true"
+    
     query = db.collection("hlts")
     if status:
         query = query.where("status", "==", status)
     if microchip:
         query = query.where("horse_microchip", "==", microchip)
     docs = query.get()
-    return jsonify([doc.to_dict() for doc in docs]), 200
+    
+    results = []
+    for doc in docs:
+        hlt_data = doc.to_dict()
+        if resolve:
+            hlt_data = _resolve_hlt_references(hlt_data)
+        results.append(hlt_data)
+        
+    return jsonify(results), 200
+
 
 
 def update_hlt(hlt_id: str, request: Request):

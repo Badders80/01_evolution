@@ -109,6 +109,10 @@ def handle(request: Request):
 
     doc_ref.set(asset_data)
 
+    # Convert Sentinel to ISO string for JSON serialization response
+    import datetime
+    asset_data["created_at"] = datetime.datetime.now(datetime.timezone.utc).isoformat()
+
     # Update the entity's imageUrl if it's a primary horse image
     if is_primary and entity_type == "horse" and asset_type == "image":
         horse_docs = db.collection("horses").where("microchip", "==", entity_id).limit(1).get()
