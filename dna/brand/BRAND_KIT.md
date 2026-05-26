@@ -1,6 +1,6 @@
 # Evolution Stables — Brand Kit
 
-**Version:** 2.1  
+**Version:** 2.2  
 **Status:** Central SSOT  
 **Spokes:**
 - [02_website](../../02_website/dna/brand/BRAND_KIT.md)
@@ -14,7 +14,7 @@
 Evolution operates on a strict funnel divided by a permanent wall:
 
 *   **Awareness Layer (Evolution Intelligence):** High-energy, democratic, data-led. Focuses on sectional times, odds compression, and auditing pundits. **Strict Wall:** No mention of ownership, syndication, Tokinvest, VARA, or Evolution Stables.
-*   **Ownership Layer (Evolution Stables):** Mature, refined, long-horizon, and stewardship-led. Converts self-selecting participants into regulated digital-syndication owners.
+*   **Ownership Layer (Evolution Stables):** Mature, refined, long-horizon, and tradition-led. Converts self-selecting participants into regulated digital-syndication owners.
 
 ### Regulatory State Separation Rule
 Never combine NZTR/FMA and VARA/Tokinvest claims in the same piece of content:
@@ -92,7 +92,7 @@ To write in the Private Banker Standard, translate standard marketing or tech ja
 
 | Banned Jargon (Tech-Bro / Betting) | Approved Translation (Private Banker Standard) |
 |---|---|
-| "Our platform democratizes racehorse investment using secure tokenized real-world assets on the blockchain." | "We have opened the stable gates. Through digital syndication, we invite qualified participants to share in the stewardship of elite equine assets." |
+| "Our platform democratizes racehorse investment using secure tokenized real-world assets on the blockchain." | "We have opened the stable gates. Through digital syndication, we invite qualified participants to share in the tradition and heritage of elite Thoroughbreds." |
 | "Invest in this tokenized horse now and trade fractional shares on our marketplace." | "Acquire units in the campaign. Follow her journey alongside a community of dedicated co-owners." |
 | "Check out our new Web3 dApp dashboard to manage your portfolio and claim rewards." | "We have updated MyStable. Your private dashboard now provides refined sectional timing analysis and automated settlement ledger audits." |
 | "Don't miss out on this 10x ROI opportunity! Only a few tokens left, buy now before they're gone!" | "Four units remain in the campaign for Hotta than a Fantasy. The stable is closing soon." |
@@ -101,25 +101,33 @@ To write in the Private Banker Standard, translate standard marketing or tech ja
 
 *   **How We Speak:**
     *   **Speak with Quiet Authority:** State timings, weights, track conditions, and margins. Let metrics do the talking. (e.g., *"Prudentia won by 0.8 metres on soft ground."*)
-    *   **Lead with the Stable and the Horse:** The focal point is always the animal, the trainer, and the yard. The digital ledger is simply the silent, invisible rail facilitating the connection.
+    *   **Lead with the Stable and the Thoroughbred:** The focal point is always the Thoroughbred, the trainer, and the yard. The digital ledger is simply the silent, invisible rail facilitating the connection.
     *   **Keep Prose Clean and Direct:** Use professional, mature language that respects the intelligence of a long-term owner.
 *   **How We DO NOT Speak:**
     *   **Do Not Hype or Pander:** Never use exclamation marks, caps lock, or excessive emojis.
-    *   **Do Not Sound Like a Bookmaker:** Avoid betting-app slang or speculation on financial returns (e.g., *"easy money," "locks," "sure things," "ROI multipliers"*). We are stewards of horses, not gamblers.
+    *   **Do Not Sound Like a Bookmaker:** Avoid betting-app slang or speculation on financial returns (e.g., *"easy money," "locks," "sure things," "ROI multipliers"*). We preserve the heritage of Thoroughbreds, not speculation.
     *   **Do Not Tech-Spam:** Never list underlying technical protocols (tokens, cryptography, ledgers) on customer-facing social media or general web copy.
 
-### 3.4 Approved Vocabulary vs. Banned Alternatives
+### 3.4 Updated Vocabulary Standard (v2.2)
 
 | Approved Term | Banned / Discouraged Alternative |
 |---|---|
-| **Digital-syndication** | Tokenised shares, blockchain horses, crypto |
-| **Equine Assets** | Horses, animals |
+| **Thoroughbreds / Racehorses** | Horses, animals, Equine Assets |
+| **Digital-syndication** | Tokenised shares, blockchain, crypto |
+| **Payment** | Money transfer, transaction, top-up |
 | **Fractional Ownership** | Pieces, parts, "bits of horse" |
-| **Marketplace** | Exchange, trading shop |
-| **Settlement** | Payment, money transfer |
-| **Accessible** | Democratised |
-| **Regulated / Contemporary** | Cutting-edge, disruptive, game-changing |
-| **Stewardship** | Philosophical ownership |
+| **Regulated** | Cutting-edge, disruptive, game-changing, contemporary |
+| **Tradition & Heritage** | Stewardship, philosophical ownership |
+| **Settlement** | Payout, earnings, reward |
+
+### 3.5 The Authority Mandate: "The Silent Gavel"
+
+Evolution does not explain its existence; we define the category. As the global authority on digital-syndication, our communication follows the Rule of Stated Fact:
+
+*   **No Justification:** We never explain why digital-syndication is better than traditional methods. We simply present the sectional data and the ledger as the new global standard.
+*   **The Authoritative "We":** We do not use "disruptive" or "game-changing." Those are words used by outsiders trying to get in. We speak as the incumbents of the future.
+*   **Minimalist Posture:** If the data is correct and the Thoroughbred is elite, the value is self-evident. We provide the portal; we do not provide the "pitch."
+*   **Copywriting Rule:** If a sentence feels like it is trying to "convince" the reader of our legitimacy, delete it. Authority is felt in the precision of our data, not the length of our explanations.
 
 ---
 
