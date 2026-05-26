@@ -107,18 +107,17 @@ To write in the Private Banker Standard, translate standard marketing or tech ja
     *   **Do Not Hype or Pander:** Never use exclamation marks, caps lock, or excessive emojis.
     *   **Do Not Sound Like a Bookmaker:** Avoid betting-app slang or speculation on financial returns (e.g., *"easy money," "locks," "sure things," "ROI multipliers"*). We preserve the heritage of Thoroughbreds, not speculation.
     *   **Do Not Tech-Spam:** Never list underlying technical protocols (tokens, cryptography, ledgers) on customer-facing social media or general web copy.
-
 ### 3.4 Updated Vocabulary Standard (v2.2)
 
 | Approved Term | Banned / Discouraged Alternative |
 |---|---|
-| **Thoroughbreds / Racehorses** | Horses, animals, Equine Assets |
+| **Thoroughbreds / Racehorses** | Horses, animals, Equine Assets (strictly banned; too clinical) |
 | **Digital-syndication** | Tokenised shares, blockchain, crypto |
-| **Payment** | Money transfer, transaction, top-up |
+| **Payment** *(Funds inflow / money coming in)* | Money transfer, transaction, top-up, settlement (for inflows) |
 | **Fractional Ownership** | Pieces, parts, "bits of horse" |
 | **Regulated** | Cutting-edge, disruptive, game-changing, contemporary |
 | **Tradition & Heritage** | Stewardship, philosophical ownership |
-| **Settlement** | Payout, earnings, reward |
+| **Settlement** *(Funds outflow / money moving out)* | Payout, earnings, reward, payment (for outflows; sounds more professional/legal) |
 
 ### 3.5 The Authority Mandate: "The Silent Gavel"
 
