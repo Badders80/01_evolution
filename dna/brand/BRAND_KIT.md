@@ -1,7 +1,10 @@
 # Evolution Stables — Brand Kit
 
 **Version:** 2.0  
-**Status:** Canonical  
+**Status:** Central SSOT  
+**Spokes:**
+- [02_website](../../02_website/dna/brand/BRAND_KIT.md)
+- [04_comms](../../04_comms/strategy/BRAND_KIT.md)
 **Scope:** Brand identity, Visual system, Voice & Tone, Logo rules, and CTA logic.
 
 ---
