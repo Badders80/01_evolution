@@ -139,15 +139,30 @@ Evolution does not explain its existence; we define the category. As the global 
 
 ---
 
-## 5. CTA Language Logic
+## 5. CTA Language Logic (The Authority Directive)
 
-CTAs must match the user's position in the funnel. Never blur the wall:
+We have removed state-dependent tracking for CTAs. We use direct, result-oriented language. We do not "sell"; we provide access.
 
-*   **Product CTAs (Marketplace, MyStable):**
-    *   *Onboarded:* **Buy Now** (Never "Invest Now" — implies guaranteed financial returns).
-    *   *Verified but not onboarded:* **Finish Verification**
-    *   *New / Unverified:* **Join MyStable** (Sells belonging, not transactional buy-in).
-*   **Awareness CTAs (Landing pages, marketing, top-of-funnel):**
-    *   *First Touch:* **Learn More**
-    *   *Waitlist:* **Submit Interest**
-    *   *Pitch/Decks:* **Apply to Invest**
+### 5.1 Awareness Layer (Evolution Intelligence)
+
+Focus on the data. The CTA should invite the user to validate the analysis.
+
+*   **Primary CTA:** **View Analysis**
+*   **Secondary CTA:** **Explore Data**
+
+### 5.2 Ownership Layer (Evolution Stables)
+
+Focus on the status change. Crossing the wall means moving from a spectator to a participant.
+
+*   **The Portal (Sign-up/Login/Verify):** **Enter Stable**
+*   **The Marketplace (Transaction):** **Become an Owner**
+*   **The Action:** **Acquire Units** (Used specifically within the campaign details).
+
+### 5.3 CTA Content Matrix
+
+| Objective | The Evolution Directive | Tone Note |
+|---|---|---|
+| **Data/News** | **View Analysis** | Implies the work is already done. |
+| **Onboarding** | **Enter Stable** | A definitive physical movement. |
+| **Purchase** | **Become an Owner** | Focuses on the heritage and result. |
+| **Direct Action** | **Acquire Units** | Clinical and professional. |
