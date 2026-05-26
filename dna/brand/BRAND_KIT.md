@@ -1,6 +1,6 @@
 # Evolution Stables — Brand Kit
 
-**Version:** 2.0  
+**Version:** 2.1  
 **Status:** Central SSOT  
 **Spokes:**
 - [02_website](../../02_website/dna/brand/BRAND_KIT.md)
@@ -23,9 +23,9 @@ Never combine NZTR/FMA and VARA/Tokinvest claims in the same piece of content:
 
 ---
 
-## 2. Visual System
+## 2. Visual System & Guardrails
 
-### Core Palette (Velvet Night — Default)
+### 2.1 Core Palette (Velvet Night — Default)
 *   **Background:** `#09090b` (Deep Velvet Night base)
 *   **Surface:** `#0a0a0a` (Cards, panels)
 *   **Surface Alt:** `#111111` (Alternate card fills)
@@ -36,32 +36,79 @@ Never combine NZTR/FMA and VARA/Tokinvest claims in the same piece of content:
 *   **Gold Hover:** `#c49a5a` (Hover states)
 *   **Border:** `rgba(255,255,255,0.06)` (Subtle dividers)
 
-### Backup Palettes (Opt-in per campaign. Do not mix.)
+### 2.2 Backup Palettes (Opt-in per campaign. Do not mix.)
 1.  **Navy & Cream:** Background `#0F172A`, Surface `#1E293B`, Foreground `#F8F5F0`. (Corporate/Boardroom)
 2.  **Emerald & Gold:** Background `#064E3B`, Surface `#065F46`, Foreground `#F5F5F5`. (Growth/Launches)
 3.  **Charcoal & Silver:** Background `#1a1a1a`, Surface `#2a2a2a`, Foreground `#e5e5e5`. (Technical/Data-heavy)
 
-### Typography Stack
+### 2.3 Typography Stack
 1.  **Brand Mark (Logos only):** `Bw Gradual` (Strictly for logo wordmarks; not for UI typing).
 2.  **Marketing & Editorial:** `Instrument Serif` (Pitch decks, hero campaigns).
 3.  **Web Platform (MyStable / Website UI):** `Inter Tight` (Headings, body copy, buttons).  
     *Note: The platform is currently in a transitional state using `Geist Sans` instead of `Inter Tight`. Match the active project stack to avoid discontinuity.*
 4.  **Data & Tickers:** `Geist Mono` (Odds, sectionals, timestamps, data tables).
 
-### Imagery Principles
+### 2.4 Imagery Principles
 *   Documentary-style, high-contrast monochrome or natural-light photography of real horses and connections.
 *   **Prohibited:** Stock images, AI-generated art, cartoon illustrations, gambling/betting-app aesthetics.
 
+### 2.5 Logo Do's & Don'ts (Logo Abuse Rules)
+*   **DO:** Maintain clear space around the logo equal to the height of the "E" in Evolution.
+*   **DO:** Keep the contrast high; use white/muted-grey logos on dark backgrounds and black logos on light backgrounds.
+*   **DO:** Use Gold (`#d4a964`) sparingly—strictly for standalone monograms, small structural details, or premium CTAs.
+*   **DON'T:** Stretch, compress, skew, drop-shadow, or rotate the logo.
+*   **DON'T:** Change the opacity of the logo below 15% (for watermarks) or below 100% (for primary branding).
+*   **DON'T:** Place the gold logo directly over multi-colored images without a dark-tinted overlay (e.g. `#000000` with 40-60% opacity).
+
+### 2.6 Spacing, Grid & Sizing Math
+*   **8px Grid System:** All layouts, component padding, and margins must align to an 8px grid (e.g., `8px`, `16px`, `24px`, `32px`, `48px`, `64px`).
+*   **Default Padding:**
+    *   *Card inner padding:* `24px` on desktop, `16px` on mobile.
+    *   *Section vertical spacing:* `96px` on desktop, `48px` on mobile.
+*   **Logo Sizing:**
+    *   *Primary Header (Horizontal Lockup):* Height must be exactly `32px` on desktop, `24px` on mobile.
+    *   *Standalone Monogram (Avatars, icons):* Size must be exactly `40x40px` or `48x48px`.
+
+### 2.7 Photography & Media Treatment Standard
+*   **Warmth & Contrast:** Photographic assets must feature warm midtones, high contrast, and deep natural shadows (resembling golden-hour documentary film).
+*   **Monochrome Filter Formula:** When using black-and-white photography:
+    *   *Desaturation:* 100%.
+    *   *Contrast Curve:* Boosted in the whites, crushed in the deep blacks; avoid muddy greys.
+*   **Video Safe Zones:** All lower-thirds, text overlays, and watermark logos must remain within a 10% safety margin from all frame edges.
+
 ---
 
-## 3. Voice & Tone
+## 3. Voice, Tone & Copywriting Mechanics
 
+### 3.1 Voice & Tone Philosophy
 We speak with the **Private Banker Standard**: professional but not stuffy, analytical but not cold, confident but not arrogant, and visionary but grounded.
 
 *   **Active voice always.** Plain English with British English spelling (e.g. behaviour, modernise).
 *   **No exclamation marks or hype.** Let the data and sectionals speak for themselves.
 
-### Approved Vocabulary vs. Banned Alternatives
+### 3.2 Copywriting Translation Formulas (Before & After)
+
+To write in the Private Banker Standard, translate standard marketing or tech jargon using these formulas:
+
+| Banned Jargon (Tech-Bro / Betting) | Approved Translation (Private Banker Standard) |
+|---|---|
+| "Our platform democratizes racehorse investment using secure tokenized real-world assets on the blockchain." | "We have opened the stable gates. Through digital syndication, we invite qualified participants to share in the stewardship of elite equine assets." |
+| "Invest in this tokenized horse now and trade fractional shares on our marketplace." | "Acquire units in the campaign. Follow her journey alongside a community of dedicated co-owners." |
+| "Check out our new Web3 dApp dashboard to manage your portfolio and claim rewards." | "We have updated MyStable. Your private dashboard now provides refined sectional timing analysis and automated settlement ledger audits." |
+| "Don't miss out on this 10x ROI opportunity! Only a few tokens left, buy now before they're gone!" | "Four units remain in the campaign for Hotta than a Fantasy. The stable is closing soon." |
+
+### 3.3 How We Speak vs. How We Do Not Speak
+
+*   **How We Speak:**
+    *   **Speak with Quiet Authority:** State timings, weights, track conditions, and margins. Let metrics do the talking. (e.g., *"Prudentia won by 0.8 metres on soft ground."*)
+    *   **Lead with the Stable and the Horse:** The focal point is always the animal, the trainer, and the yard. The digital ledger is simply the silent, invisible rail facilitating the connection.
+    *   **Keep Prose Clean and Direct:** Use professional, mature language that respects the intelligence of a long-term owner.
+*   **How We DO NOT Speak:**
+    *   **Do Not Hype or Pander:** Never use exclamation marks, caps lock, or excessive emojis.
+    *   **Do Not Sound Like a Bookmaker:** Avoid betting-app slang or speculation on financial returns (e.g., *"easy money," "locks," "sure things," "ROI multipliers"*). We are stewards of horses, not gamblers.
+    *   **Do Not Tech-Spam:** Never list underlying technical protocols (tokens, cryptography, ledgers) on customer-facing social media or general web copy.
+
+### 3.4 Approved Vocabulary vs. Banned Alternatives
 
 | Approved Term | Banned / Discouraged Alternative |
 |---|---|
