@@ -1,6 +1,6 @@
 # Evolution Stables — Brand Kit
 
-**Version:** 2.2  
+**Version:** 2.3  
 **Status:** Central SSOT  
 **Spokes:**
 - [02_website](../../02_website/dna/brand/BRAND_KIT.md)
@@ -41,12 +41,15 @@ Never combine NZTR/FMA and VARA/Tokinvest claims in the same piece of content:
 2.  **Emerald & Gold:** Background `#064E3B`, Surface `#065F46`, Foreground `#F5F5F5`. (Growth/Launches)
 3.  **Charcoal & Silver:** Background `#1a1a1a`, Surface `#2a2a2a`, Foreground `#e5e5e5`. (Technical/Data-heavy)
 
-### 2.3 Typography Stack
-1.  **Brand Mark (Logos only):** `Bw Gradual` (Strictly for logo wordmarks; not for UI typing).
-2.  **Marketing & Editorial:** `Instrument Serif` (Pitch decks, hero campaigns).
-3.  **Web Platform (MyStable / Website UI):** `Inter Tight` (Headings, body copy, buttons).  
-    *Note: The platform is currently in a transitional state using `Geist Sans` instead of `Inter Tight`. Match the active project stack to avoid discontinuity.*
-4.  **Data & Tickers:** `Geist Mono` (Odds, sectionals, timestamps, data tables).
+### 2.3 Updated Typography Stack
+
+The system follows a hierarchy of technical luxury, balancing editorial elegance with data-driven precision.
+
+*   **Editorial Hero:** `Instrument Serif`. Reserved for high-impact editorial headlines, pitch decks, and hero landing sections.
+*   **The Engine (UI & Body):** `Geist Sans`. This is the primary typeface for all headings, body copy, and UI elements to ensure a modern, clean build.
+*   **The Data (Numbers & Tickers):** `Geist Mono`. Specifically utilized for technical data, including odds, sectional timings, timestamps, and table data.
+*   **The Quote Style:** `Geist` (Italic). As seen in recent stable updates, featured quotes from trainers and partners should utilize the Geist family in an italicized, high-contrast format.
+*   **Brand Mark (Logos only):** `Bw Gradual`. Strictly reserved for logo wordmarks; not to be used for general UI typing.
 
 ### 2.4 Imagery Principles
 *   Documentary-style, high-contrast monochrome or natural-light photography of real horses and connections.
@@ -75,6 +78,15 @@ Never combine NZTR/FMA and VARA/Tokinvest claims in the same piece of content:
     *   *Desaturation:* 100%.
     *   *Contrast Curve:* Boosted in the whites, crushed in the deep blacks; avoid muddy greys.
 *   **Video Safe Zones:** All lower-thirds, text overlays, and watermark logos must remain within a 10% safety margin from all frame edges.
+
+### 2.8 Colour Application Refinement
+
+To maintain the Private Banker Standard, the visual system relies almost exclusively on a monochromatic foundation.
+
+*   **Primary Palette:** Content must be rendered in Black, White, and Greyscale (`#f5f5f5` foreground, `#a1a1aa` muted).
+*   **The Gold Rule:** Gold (`#d4a964`) is used sparingly and with high intentionality.
+    *   **Prohibited:** Never use Gold for general body text or standard wording.
+    *   **Permitted:** Strictly reserved for standalone monograms, small structural details (e.g., social media icons), or high-tier premium CTAs to provide a "prestige" accent without cluttering the technical interface.
 
 ---
 
