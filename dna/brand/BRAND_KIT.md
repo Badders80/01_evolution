@@ -1,6 +1,6 @@
 # Evolution Stables — Brand Kit
 
-**Version:** 2.3  
+**Version:** 2.4  
 **Status:** Central SSOT  
 **Spokes:**
 - [02_website](../../02_website/dna/brand/BRAND_KIT.md)
@@ -25,31 +25,31 @@ Never combine NZTR/FMA and VARA/Tokinvest claims in the same piece of content:
 
 ## 2. Visual System & Guardrails
 
-### 2.1 Core Palette (Velvet Night — Default)
-*   **Background:** `#09090b` (Deep Velvet Night base)
-*   **Surface:** `#0a0a0a` (Cards, panels)
-*   **Surface Alt:** `#111111` (Alternate card fills)
-*   **Foreground:** `#f5f5f5` (Primary body text)
-*   **Muted:** `#a1a1aa` (Secondary text, captions)
-*   **Muted Foreground:** `#737373` (Placeholders, tertiary text)
-*   **Gold Accent:** `#d4a964` (CTAs, key metrics, monograms ONLY. Never for body text)
-*   **Gold Hover:** `#c49a5a` (Hover states)
-*   **Border:** `rgba(255,255,255,0.06)` (Subtle dividers)
+### 2.1 Core Palette & Logo Color Standards
+
+The visual system is anchored in a monochromatic "Velvet Night" base, utilizing a specific range of greyscale and a high-contrast gold accent.
+
+*   **White:** `#ffffff` (Primary high-contrast logo and text).
+*   **Light Grey:** `#d2d2d2`.
+*   **Medium Grey:** `#969696`.
+*   **Dark Grey:** `#747474`.
+*   **Black:** `#000000` (Used for light-background applications).
+*   **Gold Accent:** `#d4a964` (Strictly for monograms and premium structural details).
 
 ### 2.2 Backup Palettes (Opt-in per campaign. Do not mix.)
 1.  **Navy & Cream:** Background `#0F172A`, Surface `#1E293B`, Foreground `#F8F5F0`. (Corporate/Boardroom)
 2.  **Emerald & Gold:** Background `#064E3B`, Surface `#065F46`, Foreground `#F5F5F5`. (Growth/Launches)
 3.  **Charcoal & Silver:** Background `#1a1a1a`, Surface `#2a2a2a`, Foreground `#e5e5e5`. (Technical/Data-heavy)
 
-### 2.3 Updated Typography Stack
+### 2.3 Final Typography Stack
 
-The system follows a hierarchy of technical luxury, balancing editorial elegance with data-driven precision.
+The stack has been consolidated to the Geist Suite to ensure a high-performance, technical-luxury feel.
 
-*   **Editorial Hero:** `Instrument Serif`. Reserved for high-impact editorial headlines, pitch decks, and hero landing sections.
-*   **The Engine (UI & Body):** `Geist Sans`. This is the primary typeface for all headings, body copy, and UI elements to ensure a modern, clean build.
-*   **The Data (Numbers & Tickers):** `Geist Mono`. Specifically utilized for technical data, including odds, sectional timings, timestamps, and table data.
-*   **The Quote Style:** `Geist` (Italic). As seen in recent stable updates, featured quotes from trainers and partners should utilize the Geist family in an italicized, high-contrast format.
-*   **Brand Mark (Logos only):** `Bw Gradual`. Strictly reserved for logo wordmarks; not to be used for general UI typing.
+*   **Editorial Hero:** `Instrument Serif`. Reserved for high-impact headlines and pitch deck hero sections.
+*   **The Engine (UI & Body):** `Geist Sans`. The primary typeface for all headings, body copy, and UI elements.
+*   **The Data (Numbers & Tickers):** `Geist Mono`. Specifically for odds, sectional timings, and data tables.
+*   **The Quote Style:** `Geist` (Italic). Utilized for featured quotes to maintain a high-contrast, professional aesthetic.
+*   **Brand Mark (Logos only):** `Bw Gradual`. Strictly for logo wordmarks; never used for UI typing.
 
 ### 2.4 Imagery Principles
 *   Documentary-style, high-contrast monochrome or natural-light photography of real horses and connections.
@@ -81,12 +81,12 @@ The system follows a hierarchy of technical luxury, balancing editorial elegance
 
 ### 2.8 Colour Application Refinement
 
-To maintain the Private Banker Standard, the visual system relies almost exclusively on a monochromatic foundation.
+To uphold the Private Banker Standard, Evolution relies almost exclusively on its monochromatic range.
 
-*   **Primary Palette:** Content must be rendered in Black, White, and Greyscale (`#f5f5f5` foreground, `#a1a1aa` muted).
-*   **The Gold Rule:** Gold (`#d4a964`) is used sparingly and with high intentionality.
-    *   **Prohibited:** Never use Gold for general body text or standard wording.
-    *   **Permitted:** Strictly reserved for standalone monograms, small structural details (e.g., social media icons), or high-tier premium CTAs to provide a "prestige" accent without cluttering the technical interface.
+*   **Monochromatic Foundation:** Content should be rendered in Black, White, and Greyscale.
+*   **The Gold Restriction:** Gold (`#d4a964`) must be used sparingly.
+    *   **Prohibited:** Never use Gold for body text or standard wording.
+    *   **Permitted:** Reserved strictly for standalone monograms, small structural details, or high-tier premium CTAs.
 
 ---
 
