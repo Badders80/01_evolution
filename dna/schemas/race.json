@@ -1,0 +1,107 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://evolution.nz/schemas/race.json",
+  "title": "Race Result",
+  "description": "A single race start for a NZ thoroughbred. One row per start. Anchored to horse by microchip and loveracing_id.",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "Auto-generated Firestore document ID"
+    },
+    "horseMicrochip": {
+      "type": "string",
+      "pattern": "^\\d{15}$",
+      "description": "NZ microchip number (15 digits). Durable anchor."
+    },
+    "loveracingId": {
+      "type": "integer",
+      "description": "HorseID on loveracing.nz. Used for URL construction."
+    },
+    "raceDate": {
+      "type": "string",
+      "format": "date",
+      "description": "Date of the race."
+    },
+    "venue": {
+      "type": "string",
+      "description": "Race track / venue. e.g. 'Te Rapa'"
+    },
+    "raceName": {
+      "type": "string",
+      "description": "Official race name. e.g. 'Maiden 1200'"
+    },
+    "raceClass": {
+      "type": "string",
+      "description": "Class or grade. e.g. 'Maiden', 'Open', 'Group 3', 'Group 1'"
+    },
+    "distanceMetres": {
+      "type": "integer",
+      "description": "Race distance in metres."
+    },
+    "fieldSize": {
+      "type": "integer",
+      "description": "Number of starters."
+    },
+    "barrier": {
+      "type": ["integer", "null"],
+      "description": "Barrier draw number. null if unknown."
+    },
+    "jockey": {
+      "type": ["string", "null"],
+      "description": "Jockey name."
+    },
+    "trainer": {
+      "type": ["string", "null"],
+      "description": "Trainer name at time of race."
+    },
+    "startingPrice": {
+      "type": ["string", "null"],
+      "description": "Starting price (e.g., '$8.20')."
+    },
+    "rating": {
+      "type": ["integer", "null"],
+      "description": "Official rating at time of race."
+    },
+    "weight": {
+      "type": ["number", "null"],
+      "description": "Weight carried in kg."
+    },
+    "gear": {
+      "type": ["string", "null"],
+      "description": "Raceday gear (e.g., 'Approved Plates, Lugging Bit')."
+    },
+    "finishPosition": {
+      "type": "integer",
+      "description": "Finishing position. 1 = win."
+    },
+    "prizeMoneyNzd": {
+      "type": "integer",
+      "description": "Prize money earned in NZD cents (stored as cents to avoid float issues). 12500 = $125.00"
+    },
+    "stakeType": {
+      "type": "string",
+      "enum": ["win", "place", "unplaced"],
+      "description": "Derived from finish position and race stakes rules."
+    },
+    "sourceUrl": {
+      "type": "string",
+      "description": "Direct link to the race entry on loveracing.nz."
+    },
+    "scrapedAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When this record was scraped."
+    },
+    "scraperVersion": {
+      "type": "string",
+      "description": "Version string for traceability. e.g. 'racing-data/loveracing/v0.1'"
+    },
+    "rawHtmlChecksum": {
+      "type": ["string", "null"],
+      "description": "SHA256 of the raw HTML for detecting source changes."
+    }
+  },
+  "required": ["horseMicrochip", "loveracingId", "raceDate", "venue", "raceName", "finishPosition", "prizeMoneyNzd"],
+  "additionalProperties": false
+}
