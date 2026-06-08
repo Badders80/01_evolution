@@ -9,7 +9,13 @@ from flask import Request, jsonify
 from google.cloud import firestore
 from models import TrainerCreate, TrainerUpdate
 
-db = firestore.Client()
+_DB = None
+
+def _get_db():
+    global _DB
+    if _DB is None:
+        _DB = firestore.Client()
+    return _DB
 
 
 def handle(request: Request, trainer_id: str | None = None):
@@ -35,7 +41,7 @@ def create_trainer(request: Request):
     except Exception as e:
         return jsonify({"error": f"Validation error: {str(e)}"}), 400
 
-    doc_ref = db.collection("trainers").document()
+    doc_ref = _get_db().collection("trainers").document()
     doc_data = trainer.model_dump()
     doc_data["id"] = doc_ref.id
     doc_data["created_at"] = firestore.SERVER_TIMESTAMP
@@ -47,7 +53,7 @@ def create_trainer(request: Request):
 
 def get_trainer(trainer_id: str):
     """Get a trainer by document ID."""
-    doc = db.collection("trainers").document(trainer_id).get()
+    doc = _get_db().collection("trainers").document(trainer_id).get()
     if not doc.exists:
         return jsonify({"error": f"Trainer {trainer_id} not found"}), 404
     return jsonify(doc.to_dict()), 200
@@ -56,7 +62,7 @@ def get_trainer(trainer_id: str):
 def list_trainers(request: Request):
     """List all trainers, optionally filtered by location."""
     location = request.args.get("location")
-    query = db.collection("trainers")
+    query = _get_db().collection("trainers")
     if location:
         query = query.where("location", "==", location)
     docs = query.get()
@@ -71,7 +77,7 @@ def update_trainer(trainer_id: str, request: Request):
     except Exception as e:
         return jsonify({"error": f"Validation error: {str(e)}"}), 400
 
-    doc_ref = db.collection("trainers").document(trainer_id)
+    doc_ref = _get_db().collection("trainers").document(trainer_id)
     if not doc_ref.get().exists:
         return jsonify({"error": f"Trainer {trainer_id} not found"}), 404
 
@@ -83,11 +89,11 @@ def update_trainer(trainer_id: str, request: Request):
 
 def delete_trainer(trainer_id: str):
     """Delete a trainer. Only if no horses reference it."""
-    horses = db.collection("horses").where("trainer_id", "==", trainer_id).limit(1).get()
+    horses = _get_db().collection("horses").where("trainer_id", "==", trainer_id).limit(1).get()
     if horses:
         return jsonify({"error": f"Cannot delete trainer {trainer_id}: horses reference it"}), 409
 
-    doc_ref = db.collection("trainers").document(trainer_id)
+    doc_ref = _get_db().collection("trainers").document(trainer_id)
     if not doc_ref.get().exists:
         return jsonify({"error": f"Trainer {trainer_id} not found"}), 404
 

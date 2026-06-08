@@ -1,8 +1,8 @@
 # Evolution — Game Plan
 
-**Status:** 🟢 Phase 1 — Building MVP
+**Status:** 🟢 Phase 1 — Building MVP | 🟡 Phase 2 — Scoping locked
 **Created:** 2026-05-19
-**Last Updated:** 2026-05-20
+**Last Updated:** 2026-06-06
 
 ---
 
@@ -156,10 +156,74 @@
 
 ---
 
+## 🎯 Phase 2: NZ Racing Data Corpus (New — Locked 2026-06-06)
+
+**Goal:** Build a canonical, queryable dataset of NZ thoroughbred race histories and prize-money earnings. This is the financial foundation for all syndication pricing, modelling, and investor returns analysis.
+
+**Scope:**
+- Scrape full race histories from `loveracing.nz` for all horses active in the last 10 years
+- Structured per-race records (date, venue, class, distance, finish, prize money)
+- Per-horse aggregates (career earnings, win/place rates, earnings by age/class)
+- Two-horse pilot: **Prudentia (427416)** + **First Gear (428364)**
+- Year-by-year iteration backward from 2024/25
+
+**Non-Goals:**
+- Full pedigree trees (sire + dam only)
+- Trial/workout data (Tier 2 — documented but not scraped yet)
+- Sectional times / performance analytics (Tier 2)
+- Real-time / live race streaming
+
+### Architecture Decisions (Locked)
+
+| Decision | Choice | Rationale | Date |
+|----------|--------|-----------|------|
+| Dataset anchor | `loveracing_id` (integer) | Universal across loveracing.nz URLs; already in horse schema | 2026-06-06 |
+| Storage | Firestore subcollection `horses/{microchip}/races` | Natural query root; no JOINs needed | 2026-06-06 |
+| Schema | JSON Schema `race.json` + Pydantic `RaceResult` | Same dual-validation as horse/owner/hlt | 2026-06-06 |
+| Scraping stack | Webclaw Cloud + Scrapling StealthyFetcher | Already proven in Evolution_Content pipeline | 2026-06-06 |
+| Pilot scope | 2 horses, full careers | Validate scraper repeatability before batching | 2026-06-06 |
+| Batch scope | Year-by-year backward from 2024/25 | Validate data quality per season before proceeding | 2026-06-06 |
+
+### Phase 2 Checklist
+
+#### Pilot (2 horses)
+- [ ] **2.1** Scrape Prudentia breeding page → validate `loveracing_id` mapping
+- [ ] **2.2** Scrape Prudentia full race history → raw HTML/JSON
+- [ ] **2.3** Parse into `RaceResult` schema → structured dataset
+- [ ] **2.4** Scrape First Gear breeding page + full race history
+- [ ] **2.5** Parse First Gear into `RaceResult` schema
+- [ ] **2.6** Validate: career totals match published stakes data (if available)
+- [ ] **2.7** Write `RaceResult` Pydantic model + `race.json` JSON Schema
+- [ ] **2.8** Design `horses/{microchip}/races` Firestore subcollection layout
+- [ ] **2.9** API route: `GET /racing-data/horses/{loveracing_id}` → race history
+- [ ] **2.10** API route: `GET /racing-data/horses/{loveracing_id}/summary` → aggregates
+
+#### Year 1 (2024/25 season)
+- [ ] **2.11** Enumerate all horse IDs with ≥1 start in 2024/25
+- [ ] **2.12** Batch scrape all identified horses
+- [ ] **2.13** Ingest into Firestore; validate row counts
+- [ ] **2.14** Cross-check season total prize money against NZTR season summary
+
+#### Years 2–10 (2022/23 → 2015/16)
+- [ ] **2.15** Repeat 2.11–2.14 per season
+- [ ] **2.16** Monitor for schema drift across seasons
+- [ ] **2.17** Final dataset: ~4,000–6,000 horses, tens of thousands of race starts
+
+### Tiered Data Boundary
+
+**Tier 1 (Core — scrape now):**
+- Per-race: date, venue, race name, class/grade, distance, field size, barrier, jockey, trainer, finish position, prize money NZD
+- Per-horse: static profile + computed aggregates
+
+**Tier 2 (Deferred — document sources only):**
+- Trial/jumpout results, sectional times, stewards reports, nomination patterns, ownership changes
+
+---
+
 ## Related Documents
 
-- **Current status:** [`docs/PROGRESS.md`](docs/PROGRESS.md) — Live build tracker
 - **Overview:** [`docs/BUILD_SUMMARY.md`](docs/BUILD_SUMMARY.md) — High-level summary
 - **Blockers:** [`BLOCKERS.md`](BLOCKERS.md) — Resolved issues + credentials
 - **Laws:** [`AGENTS.md`](AGENTS.md) — Core architecture rules
 - **Audit:** [`docs/audit/AUDIT.md`](docs/audit/AUDIT.md) — Quality assessments
+- **Phase 2 Detail:** [`docs/RACING_DATA_PLAN.md`](docs/RACING_DATA_PLAN.md) — Full scraper architecture, module design, migration notes

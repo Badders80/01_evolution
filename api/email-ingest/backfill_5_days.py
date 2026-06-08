@@ -7,13 +7,9 @@ import requests
 import imaplib
 import email
 import logging
+import re
 from datetime import datetime
 from dotenv import load_dotenv
-
-# Import our unified pipeline modules
-from parser import parse_email
-from transcriber import Transcriber
-from main import _download_video
 
 # Set up logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -21,6 +17,11 @@ logger = logging.getLogger(__name__)
 
 # Load environment variables
 load_dotenv("/home/evo/.env")
+
+# Import our unified pipeline modules
+from parser import parse_email
+from transcriber import Transcriber
+from main import _download_video
 
 # APIs config
 SSOT_API_URL = "https://australia-southeast1-evolution-engine.cloudfunctions.net/ssot"
@@ -74,7 +75,7 @@ def upload_to_assets_api(video_path, microchip, parsed):
                     "entity_id": microchip,
                     "tags": tags,
                     "alt": f"Video update for {parsed.horse_name} — {parsed.title}",
-                    "uploaded_by": "email-ingest-local",
+                    "uploaded_by": "email-ingest-local-backfill",
                 },
                 timeout=30,
             )
@@ -147,12 +148,13 @@ def store_content_api(parsed, microchip, asset_id, transcript):
 
 
 def store_in_local_sqlite(parsed, transcript):
-    """Insert parsed email and transcript into local SQLite."""
-    if not os.path.exists(DB_PATH):
-        logger.warning(f"SQLite DB not found at: {DB_PATH}")
-        return
-        
+    """Insert the parsed email and transcript into local SQLite."""
     try:
+        if not os.path.exists(DB_PATH):
+            logger.warning(f"SQLite DB not found at: {DB_PATH}")
+            return
+            
+        logger.info(f"Connecting to SQLite database: {DB_PATH}...")
         conn = sqlite3.connect(DB_PATH)
         c = conn.cursor()
         
@@ -176,7 +178,7 @@ def store_in_local_sqlite(parsed, transcript):
         
         row = c.execute("SELECT id FROM emails WHERE message_id = ?", (parsed.message_id,)).fetchone()
         if row:
-            logger.info(f"Email already exists in SQLite DB (ID: {row[0]}). Skipping.")
+            logger.info(f"Email '{parsed.subject}' already exists in SQLite DB (ID: {row[0]}). Skipping duplicate.")
             conn.close()
             return
             
@@ -193,7 +195,7 @@ def store_in_local_sqlite(parsed, transcript):
                 for s in transcript.segments[:3]
             ],
             "sentiment": "positive",
-            "content_type": "video_update"
+            "content_type": "video_update" if parsed.video_url else "text_update"
         }
         
         c.execute("""
@@ -212,9 +214,9 @@ def store_in_local_sqlite(parsed, transcript):
         
         conn.commit()
         last_id = c.lastrowid
-        logger.info(f"Successfully inserted backfill email and transcript (ID: {last_id})!")
+        logger.info(f"Successfully inserted email (ID: {last_id})!")
         
-        # Append to catalog
+        # Also append to ndjson catalog
         catalog_path = os.path.join(os.path.dirname(DB_PATH), "..", "catalog", "content-index.ndjson")
         if os.path.exists(os.path.dirname(catalog_path)):
             catalog_entry = {
@@ -227,78 +229,127 @@ def store_in_local_sqlite(parsed, transcript):
                     "date": parsed.date_received.isoformat(),
                     "extracted": extracted_data,
                     "status": "unread",
-                    "ingested_by": "backfill_local"
+                    "ingested_by": "backfill_5_days_local"
                 }
             }
             with open(catalog_path, "a") as cat_f:
                 cat_f.write(json.dumps(catalog_entry) + "\n")
-            logger.info("Successfully appended backfill event to catalog.")
+            logger.info("Successfully appended event to catalog/content-index.ndjson.")
             
         conn.close()
     except Exception as e:
-        logger.error(f"Error storing in local SQLite during backfill: {e}")
+        logger.error(f"Error storing in local SQLite: {e}")
 
 
 def main():
-    logger.info("=== Starting Wexford Email Backfill Automation (Modular) ===")
+    logger.info("=== Wexford/Prudentia Email Backfill (Last 5 Days) ===")
     
+    if not WEXFORD_APP_PASSWORD:
+        raise ValueError("WEXFORD_APP_PASSWORD is not set in environment")
+        
     logger.info(f"Connecting to Gmail IMAP as {WEXFORD_EMAIL_USER}...")
     mail = imaplib.IMAP4_SSL('imap.gmail.com')
     mail.login(WEXFORD_EMAIL_USER, WEXFORD_APP_PASSWORD)
-    mail.select('inbox')
     
-    status, response = mail.search(None, '(FROM "info@wexfordstables.co.nz")')
-    if status != 'OK':
-        logger.error("IMAP search failed")
-        sys.exit(1)
-        
-    msg_ids = response[0].split()
-    if not msg_ids:
-        logger.info("No emails found from Wexford Stables.")
-        sys.exit(0)
-        
-    # We will backfill the last 10 emails
-    last_10_ids = msg_ids[-10:]
-    logger.info(f"Checking the last {len(last_10_ids)} emails for backfill...")
+    folders = ["INBOX", "[Gmail]/Sent Mail"]
+    search_query = 'SINCE "28-May-2026" (OR FROM "info@wexfordstables.co.nz" TEXT "Prudentia")'
     
-    if not os.path.exists(DB_PATH):
-        logger.error(f"Local SQLite database not found at {DB_PATH}")
-        sys.exit(1)
+    # 1. Fetch metadata for matching messages from both folders
+    all_emails = []
+    
+    for folder in folders:
+        logger.info(f"Searching folder: {folder}...")
+        status, select_data = mail.select(f'"{folder}"', readonly=True)
+        if status != 'OK':
+            logger.warning(f"Could not select folder '{folder}'. Skipping...")
+            continue
+            
+        status, response = mail.search(None, search_query)
+        if status != 'OK':
+            logger.warning(f"Search failed in folder '{folder}'. Skipping...")
+            continue
+            
+        msg_ids = response[0].split()
+        if not msg_ids:
+            logger.info(f"No matching emails found in '{folder}'.")
+            continue
+            
+        logger.info(f"Found {len(msg_ids)} matches in '{folder}'. Fetching message headers...")
+        for msg_id in msg_ids:
+            status, data = mail.fetch(msg_id, '(RFC822)')
+            if status != 'OK':
+                logger.warning(f"Failed to fetch content for ID {msg_id.decode()} in '{folder}'")
+                continue
+                
+            raw_email_bytes = data[0][1]
+            msg = email.message_from_bytes(raw_email_bytes)
+            
+            # Parse received date
+            date_str = msg.get('Date', '')
+            try:
+                from email.utils import parsedate_to_datetime
+                dt = parsedate_to_datetime(date_str)
+            except Exception as e:
+                logger.warning(f"Failed to parse email date '{date_str}': {e}. Skipping...")
+                continue
+                
+            subject = msg.get('Subject', 'No Subject')
+            decoded_subject = ""
+            for part, encoding in email.header.decode_header(subject):
+                if isinstance(part, bytes):
+                    decoded_subject += part.decode(encoding or 'utf-8', errors='replace')
+                else:
+                    decoded_subject += part
+            
+            # Clean HTML tags out of subject line
+            decoded_subject = re.sub(r'<[^>]*>', '', decoded_subject).strip()
+            
+            # Filter automatic replies
+            if decoded_subject.lower().startswith("automatic reply:") or decoded_subject.lower().startswith("out of office:"):
+                logger.info(f"Skipping automatic reply/OOF: '{decoded_subject}'")
+                continue
+                
+            all_emails.append({
+                "folder": folder,
+                "msg_id": msg_id,
+                "datetime": dt,
+                "subject": decoded_subject,
+                "msg": msg
+            })
+            
+    if not all_emails:
+        logger.info("No candidate emails found to process in the last 5 days.")
+        return
         
+    # Sort chronological (oldest to newest) to backfill sequentially
+    all_emails.sort(key=lambda x: x["datetime"])
+    logger.info(f"Total candidate emails found to process: {len(all_emails)}")
+    
+    # 2. Re-establish connection for writable operations (or select table)
+    # Connect database deduplication
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
+    c.execute("CREATE TABLE IF NOT EXISTS emails (message_id TEXT PRIMARY KEY)")
+    conn.commit()
     
-    # Initialize transcriber
-    transcriber = Transcriber()
+    transcriber = None
     
-    for i, msg_id in enumerate(last_10_ids, 1):
-        status, data = mail.fetch(msg_id, '(RFC822)')
-        if status != 'OK':
-            logger.warning(f"Failed to fetch msg_id: {msg_id.decode()}")
-            continue
-            
-        raw_email_bytes = data[0][1]
-        msg = email.message_from_bytes(raw_email_bytes)
-        
-        message_id = msg.get('Message-ID', f"imap-{msg_id.decode()}")
+    for idx, item in enumerate(all_emails, 1):
+        folder = item["folder"]
+        msg_id = item["msg_id"]
+        dt = item["datetime"]
+        subject = item["subject"]
+        msg = item["msg"]
         
         # Deduplication check
+        message_id = msg.get('Message-ID', f"imap-{folder.replace('/', '_')}-{msg_id.decode()}")
         row = c.execute("SELECT id FROM emails WHERE message_id = ?", (message_id,)).fetchone()
         if row:
-            logger.info(f"[{i}/10] Skipping already ingested email: '{msg.get('Subject')}'")
+            logger.info(f"[{idx}/{len(all_emails)}] Skipping already ingested email (ID {row[0]}): '{subject}'")
             continue
             
-        logger.info(f"[{i}/10] Ingesting missing email: '{msg.get('Subject')}'")
+        logger.info(f"[{idx}/{len(all_emails)}] Processing missing email: '{subject}' ({dt.isoformat()}) from '{folder}'")
         
-        # Parse subject headers
-        subject = msg.get('Subject', '')
-        decoded_subject = ""
-        for part, encoding in email.header.decode_header(subject):
-            if isinstance(part, bytes):
-                decoded_subject += part.decode(encoding or 'utf-8', errors='replace')
-            else:
-                decoded_subject += part
-                
         # Parse body
         body_text = ""
         body_html = ""
@@ -316,57 +367,92 @@ def main():
         raw_email_dict = {
             "message_id": message_id,
             "thread_id": msg.get('Thread-Index', ''),
-            "subject": decoded_subject,
+            "subject": subject,
             "from_address": msg.get('From', 'info@wexfordstables.co.nz'),
-            "date_received": datetime.now(),
+            "date_received": dt,
             "body_text": body_text,
             "body_html": body_html or body_text
         }
         
-        # Parse using unified parser
         parsed = parse_email(raw_email_dict)
-        if not parsed.video_url:
-            logger.warning(f"  No video URL found for '{parsed.horse_name}', skipping...")
-            continue
-            
+        
         try:
             # Resolve horse microchip
             microchip = resolve_horse_microchip(parsed.horse_name)
-            
-            # Download video
-            video_path = _download_video(parsed.video_url)
-            
-            try:
-                # Transcribe using unified Transcriber (engine="auto" — Google STT first, free)
-                transcriber.speaker_count = parsed.speaker_count
-                transcriber.speaker_names = transcriber._get_speaker_names()
-                # Transcribe using unified Transcriber (engine="auto" so it tries cheap Google STT first)
-                logger.info(f"  Transcribing video via auto-selected engine...")
-                transcript = transcriber.transcribe_video(
-                    video_path=video_path,
-                    engine="auto",
-                    horse_name=parsed.horse_name
-                )
-                
-                # Upload to Assets API
-                asset_id = upload_to_assets_api(video_path, microchip, parsed)
-                
-                # Store in SSOT API
-                content_id = store_content_api(parsed, microchip, asset_id, transcript)
-                
-                # Store in local SQLite DB
-                store_in_local_sqlite(parsed, transcript)
-                logger.info(f"  Successfully backfilled: Asset ID: {asset_id}, Content ID: {content_id}")
-                
-            finally:
-                if os.path.exists(video_path):
-                    os.unlink(video_path)
-                    
         except Exception as e:
-            logger.error(f"  Failed to process backfill email: {e}")
+            logger.error(f"  Failed to resolve microchip for '{parsed.horse_name}': {e}. Skipping.")
+            continue
             
+        # Ingest text-only
+        if not parsed.video_url:
+            logger.info("  No video URL found. Ingesting as text-only update...")
+            # Determine speakers based on sender
+            if "alex@evolutionstables.nz" in parsed.from_address.lower():
+                speakers = ["Alex Baddeley"]
+            elif "andrew" in parsed.from_address.lower() or "scott" in parsed.from_address.lower():
+                speakers = ["Andrew Scott"]
+            elif "lance" in parsed.from_address.lower() or "sullivan" in parsed.from_address.lower():
+                speakers = ["Lance O'Sullivan"]
+            else:
+                speakers = ["Andrew Scott"] if parsed.speaker_count == 1 else ["Lance O'Sullivan", "Andrew Scott"]
+                
+            class TextTranscript:
+                def __init__(self, text, speakers):
+                    self.full_text = text
+                    self.speakers = speakers
+                    self.segments = []
+                    self.source = "email"
+                    self.confidence = 1.0
+                    self.needs_human_review = False
+                    self.review_reason = ""
+                    self.reconciliation_changes = []
+                    
+            transcript = TextTranscript(parsed.body_text, speakers)
+            
+            # Store in SSOT API
+            content_id = store_content_api(parsed, microchip, "text-only", transcript)
+            
+            # Store in local SQLite
+            store_in_local_sqlite(parsed, transcript)
+            logger.info(f"  Successfully processed text update (Content ID: {content_id})")
+            continue
+            
+        # Ingest video-based update
+        logger.info(f"  Video URL found: {parsed.video_url}. Commencing video-update flow...")
+        video_path = _download_video(parsed.video_url)
+        try:
+            if transcriber is None:
+                transcriber = Transcriber()
+                
+            transcriber.speaker_count = parsed.speaker_count
+            transcriber.speaker_names = transcriber._get_speaker_names()
+            
+            logger.info("  Transcribing video via auto-selected engine...")
+            transcript = transcriber.transcribe_video(
+                video_path=video_path,
+                engine="auto",
+                horse_name=parsed.horse_name
+            )
+            
+            # Upload to Assets API
+            asset_id = upload_to_assets_api(video_path, microchip, parsed)
+            
+            # Store in SSOT API
+            content_id = store_content_api(parsed, microchip, asset_id, transcript)
+            
+            # Store in local SQLite
+            store_in_local_sqlite(parsed, transcript)
+            logger.info(f"  Successfully processed video update (Asset ID: {asset_id}, Content ID: {content_id})")
+            
+        except Exception as ex:
+            logger.error(f"  Failed during transcription/ingestion: {ex}")
+        finally:
+            if os.path.exists(video_path):
+                os.unlink(video_path)
+                logger.info("  Cleaned up local video file.")
+                
     conn.close()
-    logger.info("=== Backfill Completed ===")
+    logger.info("=== Backfill of Last 5 Days Completed Successfully! ===")
 
 
 if __name__ == "__main__":

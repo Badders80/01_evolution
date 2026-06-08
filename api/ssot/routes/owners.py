@@ -10,7 +10,13 @@ from flask import Request, jsonify
 from google.cloud import firestore
 from models import OwnerCreate, OwnerUpdate
 
-db = firestore.Client()
+_DB = None
+
+def _get_db():
+    global _DB
+    if _DB is None:
+        _DB = firestore.Client()
+    return _DB
 
 
 def handle(request: Request, owner_id: str | None = None):
@@ -36,7 +42,7 @@ def create_owner(request: Request):
     except Exception as e:
         return jsonify({"error": f"Validation error: {str(e)}"}), 400
 
-    doc_ref = db.collection("owners").document()
+    doc_ref = _get_db().collection("owners").document()
     doc_data = owner.model_dump()
     doc_data["id"] = doc_ref.id
     doc_data["created_at"] = firestore.SERVER_TIMESTAMP
@@ -48,7 +54,7 @@ def create_owner(request: Request):
 
 def get_owner(owner_id: str):
     """Get an owner by document ID."""
-    doc = db.collection("owners").document(owner_id).get()
+    doc = _get_db().collection("owners").document(owner_id).get()
     if not doc.exists:
         return jsonify({"error": f"Owner {owner_id} not found"}), 404
     return jsonify(doc.to_dict()), 200
@@ -57,7 +63,7 @@ def get_owner(owner_id: str):
 def list_owners(request: Request):
     """List all owners, optionally filtered by type."""
     owner_type = request.args.get("type")
-    query = db.collection("owners")
+    query = _get_db().collection("owners")
     if owner_type:
         query = query.where("type", "==", owner_type)
     docs = query.get()
@@ -72,7 +78,7 @@ def update_owner(owner_id: str, request: Request):
     except Exception as e:
         return jsonify({"error": f"Validation error: {str(e)}"}), 400
 
-    doc_ref = db.collection("owners").document(owner_id)
+    doc_ref = _get_db().collection("owners").document(owner_id)
     if not doc_ref.get().exists:
         return jsonify({"error": f"Owner {owner_id} not found"}), 404
 
@@ -84,11 +90,11 @@ def update_owner(owner_id: str, request: Request):
 
 def delete_owner(owner_id: str):
     """Delete an owner. Only if no HLTs reference it."""
-    hlts = db.collection("hlts").where("owner_id", "==", owner_id).limit(1).get()
+    hlts = _get_db().collection("hlts").where("owner_id", "==", owner_id).limit(1).get()
     if hlts:
         return jsonify({"error": f"Cannot delete owner {owner_id}: HLTs reference it"}), 409
 
-    doc_ref = db.collection("owners").document(owner_id)
+    doc_ref = _get_db().collection("owners").document(owner_id)
     if not doc_ref.get().exists:
         return jsonify({"error": f"Owner {owner_id} not found"}), 404
 

@@ -103,6 +103,10 @@
       "type": ["string", "null"],
       "description": "Reference to the current trainer document ID."
     },
+    "trainer": {
+      "type": ["string", "null"],
+      "description": "Current trainer name (from loveracing.nz breeding page)."
+    },
     "imageUrl": {
       "type": ["string", "null"],
       "description": "Primary image GCS URL. null if no image uploaded yet."

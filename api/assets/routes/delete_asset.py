@@ -7,7 +7,14 @@ Also unsets the entity's imageUrl if this was the primary image.
 from flask import Request, jsonify
 from google.cloud import firestore, storage
 
-db = firestore.Client()
+_DB = None
+
+def _get_db():
+    global _DB
+    if _DB is None:
+        _DB = firestore.Client()
+    return _DB
+
 storage_client = storage.Client()
 
 
@@ -21,7 +28,7 @@ def handle(request: Request):
         return jsonify({"error": "asset_id is required"}), 400
 
     # Fetch asset metadata
-    doc_ref = db.collection("assets").document(asset_id)
+    doc_ref = _get_db().collection("assets").document(asset_id)
     doc = doc_ref.get()
     if not doc.exists:
         return jsonify({"error": f"Asset {asset_id} not found"}), 404
@@ -51,9 +58,9 @@ def handle(request: Request):
 
     # If this was the primary image, unset the entity's imageUrl
     if asset_data.get("is_primary") and asset_data["entity_type"] == "horse":
-        horse_docs = db.collection("horses").where("microchip", "==", asset_data["entity_id"]).limit(1).get()
-        if horse_docs:
-            horse_docs[0].reference.update({"image_url": None})
+        horse_ref = _get_db().collection("horses").document(asset_data["entity_id"])
+        if horse_ref.get().exists:
+            horse_ref.update({"image_url": None})
 
     # Delete from Firestore
     doc_ref.delete()

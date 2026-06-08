@@ -33,32 +33,78 @@ WEXFORD_APP_PASSWORD = os.getenv("WEXFORD_APP_PASSWORD")
 
 
 def get_latest_wexford_email():
-    """Fetch the absolute latest email from Wexford Stables via IMAP."""
+    """Fetch the absolute latest email from Wexford Stables or matching keyword Prudentia via IMAP.
+    
+    Searches both INBOX and [Gmail]/Sent Mail, choosing the newest overall.
+    """
+    import re
     if not WEXFORD_APP_PASSWORD:
         raise ValueError("WEXFORD_APP_PASSWORD is not set in environment")
         
     logger.info(f"Connecting to Gmail IMAP as {WEXFORD_EMAIL_USER}...")
     mail = imaplib.IMAP4_SSL('imap.gmail.com')
     mail.login(WEXFORD_EMAIL_USER, WEXFORD_APP_PASSWORD)
-    mail.select('inbox')
     
-    status, response = mail.search(None, '(FROM "info@wexfordstables.co.nz")')
-    if status != 'OK':
-        raise RuntimeError("IMAP search failed")
-        
-    msg_ids = response[0].split()
-    if not msg_ids:
-        raise RuntimeError("No emails found from info@wexfordstables.co.nz")
-        
-    latest_id = msg_ids[-1]
-    logger.info(f"Fetching email with IMAP ID: {latest_id.decode()}")
+    folders = ["INBOX", "[Gmail]/Sent Mail"]
+    search_query = '(OR FROM "info@wexfordstables.co.nz" TEXT "Prudentia")'
+    candidate_emails = []
     
-    status, data = mail.fetch(latest_id, '(RFC822)')
-    if status != 'OK':
-        raise RuntimeError("Failed to fetch email content")
+    for folder in folders:
+        logger.info(f"Searching folder: {folder}...")
+        status, select_data = mail.select(f'"{folder}"', readonly=True)
+        if status != 'OK':
+            logger.warning(f"Could not select folder '{folder}'. Skipping...")
+            continue
+            
+        status, response = mail.search(None, search_query)
+        if status != 'OK':
+            logger.warning(f"Search failed in folder '{folder}'. Skipping...")
+            continue
+            
+        msg_ids = response[0].split()
+        if not msg_ids:
+            logger.info(f"No matching emails found in '{folder}'.")
+            continue
+            
+        latest_id = msg_ids[-1]
+        logger.info(f"Found {len(msg_ids)} matches in '{folder}'. Fetching latest ID: {latest_id.decode()}")
         
-    raw_email_bytes = data[0][1]
-    msg = email.message_from_bytes(raw_email_bytes)
+        status, data = mail.fetch(latest_id, '(RFC822)')
+        if status != 'OK':
+            logger.warning(f"Failed to fetch content for ID {latest_id.decode()} in '{folder}'")
+            continue
+            
+        raw_email_bytes = data[0][1]
+        msg = email.message_from_bytes(raw_email_bytes)
+        
+        # Parse received date
+        date_str = msg.get('Date', '')
+        try:
+            from email.utils import parsedate_to_datetime
+            dt = parsedate_to_datetime(date_str)
+        except Exception as e:
+            logger.warning(f"Failed to parse email date '{date_str}': {e}. Using current local time.")
+            dt = datetime.now()
+            
+        candidate_emails.append({
+            "folder": folder,
+            "msg_id": latest_id,
+            "datetime": dt,
+            "msg": msg
+        })
+        
+    if not candidate_emails:
+        raise RuntimeError("No matching emails found from Wexford or about Prudentia in INBOX or [Gmail]/Sent Mail")
+        
+    # Pick the newer of the candidates
+    candidate_emails.sort(key=lambda x: x["datetime"], reverse=True)
+    winner = candidate_emails[0]
+    
+    msg = winner["msg"]
+    latest_id = winner["msg_id"]
+    folder = winner["folder"]
+    
+    logger.info(f"Absolute newest matching email found in '{folder}' (Date: {winner['datetime']})")
     
     # Parse headers
     subject = msg.get('Subject', 'No Subject')
@@ -68,6 +114,9 @@ def get_latest_wexford_email():
             decoded_subject += part.decode(encoding or 'utf-8', errors='replace')
         else:
             decoded_subject += part
+            
+    # Clean HTML tags out of subject line to meet strict log standards
+    decoded_subject = re.sub(r'<[^>]*>', '', decoded_subject).strip()
             
     from_addr = msg.get('From', 'info@wexfordstables.co.nz')
     date_str = msg.get('Date', '')
@@ -86,16 +135,16 @@ def get_latest_wexford_email():
     else:
         body_text = msg.get_payload(decode=True).decode('utf-8', errors='replace')
         
-    message_id = msg.get('Message-ID', f"imap-{latest_id.decode()}")
+    message_id = msg.get('Message-ID', f"imap-{folder.replace('/', '_')}-{latest_id.decode()}")
     
-    logger.info(f"Successfully fetched Wexford email: '{decoded_subject}' ({date_str})")
+    logger.info(f"Successfully fetched email: '{decoded_subject}' ({date_str}) from '{folder}'")
     
     return {
         "message_id": message_id,
         "thread_id": msg.get('Thread-Index', ''),
         "subject": decoded_subject,
         "from_address": from_addr,
-        "date_received": datetime.now(),
+        "date_received": winner["datetime"],
         "body_text": body_text,
         "body_html": body_html or body_text,
     }
@@ -321,16 +370,41 @@ def main():
     # 2. Parse email using unified parser
     parsed = parse_email(raw_email)
     
-    if not parsed.video_url:
-        logger.error("No video URL found in email")
-        sys.exit(1)
-        
     # 3. Resolve horse microchip
     try:
         microchip = resolve_horse_microchip(parsed.horse_name)
     except Exception as e:
         logger.error(f"Failed to resolve horse microchip: {e}")
         sys.exit(1)
+        
+    if not parsed.video_url:
+        logger.info("No video URL found in email. Ingesting text content only...")
+        # Determine sender based on from_address
+        speakers = ["Alex Baddeley"] if "alex@evolutionstables.nz" in parsed.from_address.lower() else ["Andrew Scott"]
+        
+        class TextTranscript:
+            def __init__(self, text, speakers):
+                self.full_text = text
+                self.speakers = speakers
+                self.segments = []
+                self.source = "email"
+                self.confidence = 1.0
+                self.needs_human_review = False
+                self.review_reason = ""
+                self.reconciliation_changes = []
+                
+        transcript = TextTranscript(parsed.body_text, speakers)
+        
+        # Store in SSOT content API with empty asset_id
+        content_id = store_content_api(parsed, microchip, "text-only", transcript)
+        
+        # Store in local SQLite DB
+        store_in_local_sqlite(parsed, transcript)
+        
+        logger.info("Successfully ingested text-only communication.")
+        logger.info(f"Content ID: {content_id}")
+        logger.info("=== SUCCESS (TEXT-ONLY) ===")
+        sys.exit(0)
         
     # 4. Download video using main module download helper
     video_path = _download_video(parsed.video_url)
@@ -340,7 +414,7 @@ def main():
         transcriber = Transcriber(speaker_count=parsed.speaker_count)
         transcript = transcriber.transcribe_video(
             video_path=video_path,
-            engine="gemini", # Default to premium Gemini model as specified in trigger script
+            engine="auto",
             horse_name=parsed.horse_name
         )
         

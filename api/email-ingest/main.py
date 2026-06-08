@@ -111,7 +111,7 @@ def email_ingest(request: Request):
     # Summary
     success_count = sum(1 for r in results if r["status"] == "success")
     error_count = sum(1 for r in results if r["status"] == "error")
-    skipped_count = sum(1 for r in results if r["status"] in ("skipped_duplicate", "skipped_no_horse"))
+    skipped_count = sum(1 for r in results if r["status"] in ("skipped_duplicate", "skipped_no_horse", "skipped_no_video"))
 
     summary = {
         "status": "complete",
@@ -179,11 +179,13 @@ def _process_email(raw_email: dict, gmail: GmailClient) -> IngestResult:
         result.horse_microchip = microchip
         logger.info(f"Resolved {parsed.horse_name} → microchip {microchip}")
 
-        # Step 4: Download video
+        # Step 4: Check for video URL
         if not parsed.video_url:
-            logger.warning("No video URL found in email")
-            result.status = "error"
+            logger.warning("No video URL found in email — skipping video update processing")
+            result.status = "skipped_no_video"
             result.error = "No video URL in email"
+            # Still mark as read so we don't retry forever
+            gmail.mark_read(message_id)
             return result
 
         video_path = _download_video(parsed.video_url)

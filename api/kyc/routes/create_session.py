@@ -11,7 +11,13 @@ from flask import Request, jsonify
 from google.cloud import firestore
 
 stripe.api_key = os.environ.get("STRIPE_SECRET_KEY")
-db = firestore.Client()
+_DB = None
+
+def _get_db():
+    global _DB
+    if _DB is None:
+        _DB = firestore.Client()
+    return _DB
 
 
 def handle(request: Request):
@@ -27,7 +33,7 @@ def handle(request: Request):
         return jsonify({"error": "user_id is required"}), 400
 
     # Get or create user document
-    user_ref = db.collection("users").document(user_id)
+    user_ref = _get_db().collection("users").document(user_id)
     user_doc = user_ref.get()
     
     if not user_doc.exists:

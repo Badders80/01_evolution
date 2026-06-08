@@ -8,7 +8,13 @@ from flask import Request, jsonify
 from google.cloud import firestore
 
 stripe.api_key = os.environ.get("STRIPE_SECRET_KEY")
-db = firestore.Client()
+_DB = None
+
+def _get_db():
+    global _DB
+    if _DB is None:
+        _DB = firestore.Client()
+    return _DB
 
 
 def handle(request: Request):
@@ -39,7 +45,7 @@ def handle(request: Request):
         return jsonify({"error": "shares_to_buy must be an integer"}), 400
 
     # 1. Fetch User and verify KYC
-    user_ref = db.collection("users").document(user_id)
+    user_ref = _get_db().collection("users").document(user_id)
     user_doc = user_ref.get()
     if not user_doc.exists:
         return jsonify({"error": f"User {user_id} not found"}), 404
@@ -54,7 +60,7 @@ def handle(request: Request):
             return jsonify({"error": f"User KYC status is '{kyc_status}'. Verification is required before purchase."}), 403
 
     # 2. Fetch HLT and verify availability
-    hlt_ref = db.collection("hlts").document(hlt_id)
+    hlt_ref = _get_db().collection("hlts").document(hlt_id)
     hlt_doc = hlt_ref.get()
     if not hlt_doc.exists:
         return jsonify({"error": f"HLT {hlt_id} not found"}), 404
@@ -77,10 +83,10 @@ def handle(request: Request):
 
     # Fetch horse name for checkout label
     microchip = hlt_data.get("horse_microchip")
-    horse_docs = db.collection("horses").where("microchip", "==", microchip).limit(1).get()
+    horse_doc = _get_db().collection("horses").document(microchip).get()
     horse_name = "Racehorse"
-    if horse_docs:
-        horse_name = horse_docs[0].to_dict().get("name", "Racehorse")
+    if horse_doc.exists:
+        horse_name = horse_doc.to_dict().get("name", "Racehorse")
 
     # Calculate percentages for display
     percentage_per_share = hlt_data.get("fractional_interest_per_share")

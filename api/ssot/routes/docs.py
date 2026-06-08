@@ -10,7 +10,14 @@ from google.cloud import firestore, storage
 from datetime import datetime
 import io
 
-db = firestore.Client()
+_DB = None
+
+def _get_db():
+    global _DB
+    if _DB is None:
+        _DB = firestore.Client()
+    return _DB
+
 storage_client = storage.Client()
 BUCKET_NAME = "evolution-horse-docs"
 
@@ -31,20 +38,20 @@ def handle(request: Request, doc_type: str | None = None):
         return jsonify({"error": "hlt_id is required"}), 400
 
     # Fetch HLT
-    hlt_doc = db.collection("hlts").document(hlt_id).get()
+    hlt_doc = _get_db().collection("hlts").document(hlt_id).get()
     if not hlt_doc.exists:
         return jsonify({"error": f"HLT {hlt_id} not found"}), 404
 
     hlt_data = hlt_doc.to_dict()
 
     # Fetch related entities
-    horse_docs = db.collection("horses").where("microchip", "==", hlt_data["horse_microchip"]).limit(1).get()
-    horse_data = horse_docs[0].to_dict() if horse_docs else {}
+    horse_doc = _get_db().collection("horses").document(hlt_data["horse_microchip"]).get()
+    horse_data = horse_doc.to_dict() if horse_doc.exists else {}
 
-    owner_doc = db.collection("owners").document(hlt_data["owner_id"]).get()
+    owner_doc = _get_db().collection("owners").document(hlt_data["owner_id"]).get()
     owner_data = owner_doc.to_dict() if owner_doc.exists else {}
 
-    trainer_doc = db.collection("trainers").document(hlt_data["trainer_id"]).get()
+    trainer_doc = _get_db().collection("trainers").document(hlt_data["trainer_id"]).get()
     trainer_data = trainer_doc.to_dict() if trainer_doc.exists else {}
 
     # Generate document

@@ -32,43 +32,52 @@ def ssot(request: Request):
     path = request.path.strip("/")
     segments = path.split("/") if path else []
 
+    res = None
     # Route: /horses, /horses/{microchip}
     if segments and segments[0] == "horses":
         microchip = segments[1] if len(segments) > 1 else None
-        return horses.handle(request, microchip)
+        res = horses.handle(request, microchip)
 
     # Route: /owners, /owners/{id}
-    if segments and segments[0] == "owners":
+    elif segments and segments[0] == "owners":
         owner_id = segments[1] if len(segments) > 1 else None
-        return owners.handle(request, owner_id)
+        res = owners.handle(request, owner_id)
 
     # Route: /trainers, /trainers/{id}
-    if segments and segments[0] == "trainers":
+    elif segments and segments[0] == "trainers":
         trainer_id = segments[1] if len(segments) > 1 else None
-        return trainers.handle(request, trainer_id)
+        res = trainers.handle(request, trainer_id)
 
     # Route: /hlts, /hlts/{id}
-    if segments and segments[0] == "hlts":
+    elif segments and segments[0] == "hlts":
         hlt_id = segments[1] if len(segments) > 1 else None
-        return hlts.handle(request, hlt_id)
+        res = hlts.handle(request, hlt_id)
 
     # Route: /docs/{type}?hlt_id=...
-    if segments and segments[0] == "docs":
+    elif segments and segments[0] == "docs":
         doc_type = segments[1] if len(segments) > 1 else None
-        return docs.handle(request, doc_type)
+        res = docs.handle(request, doc_type)
 
     # Route: /extract
-    if segments and segments[0] == "extract":
-        return extract.handle(request)
+    elif segments and segments[0] == "extract":
+        res = extract.handle(request)
 
     # Route: /holdings, /holdings/{id}
-    if segments and segments[0] == "holdings":
+    elif segments and segments[0] == "holdings":
         holding_id = segments[1] if len(segments) > 1 else None
-        return holdings.handle(request, holding_id)
+        res = holdings.handle(request, holding_id)
 
     # Route: /content, /content/{id}
-    if segments and segments[0] == "content":
+    elif segments and segments[0] == "content":
         content_id = segments[1] if len(segments) > 1 else None
-        return content.handle(request, content_id)
+        res = content.handle(request, content_id)
 
-    return jsonify({"error": "Not found", "path": path}), 404
+    else:
+        res = jsonify({"error": "Not found", "path": path}), 404
+
+    from flask import make_response
+    response = make_response(res)
+    response.headers.add("Access-Control-Allow-Origin", "*")
+    response.headers.add("Access-Control-Allow-Methods", "GET, POST, PATCH, DELETE, OPTIONS")
+    response.headers.add("Access-Control-Allow-Headers", "Content-Type")
+    return response

@@ -3,35 +3,47 @@
 import pytest
 from pydantic import ValidationError
 
-from models import HLTCreate, HLTUpdate
+from datetime import datetime
+from models import HLTCreate, HLTUpdate, HLT
+
+VALID_HLT_DATA = {
+    "horse_microchip": "985125000126462",
+    "owner_id": "owner-123",
+    "trainer_id": "trainer-456",
+    "lease_period_months": 36,
+    "lease_start_date": "2026-07-01",
+    "leasehold_stake_percentage": 50.0,
+    "investor_return_percentage": 10.0,
+    "syndicate_price_cents": 500000,
+    "shares_total": 50,
+    "share_price_cents": 10000,
+}
 
 
 class TestHLTCreate:
-    """Test HLTCreate Pydantic model validation."""
+    """Test HLTCreate and HLT Pydantic model validation."""
 
-    def test_valid_hlt(self):
-        hlt = HLTCreate(
-            horse_id="985125000126462",
-            owner_id="owner-123",
-            trainer_id="trainer-456",
-        )
-        assert hlt.horse_id == "985125000126462"
-        assert hlt.status == "draft"  # Default status
+    def test_valid_hlt_create(self):
+        hlt_create = HLTCreate(**VALID_HLT_DATA)
+        assert hlt_create.horse_microchip == "985125000126462"
+        assert hlt_create.lease_period_months == 36
 
-    def test_default_status_is_draft(self):
-        hlt = HLTCreate(
-            horse_id="985125000126462",
-            owner_id="owner-123",
-            trainer_id="trainer-456",
+    def test_default_status_is_draft_on_hlt(self):
+        hlt = HLT(
+            id="hlt-789",
+            created_at=datetime.utcnow(),
+            updated_at=datetime.utcnow(),
+            **VALID_HLT_DATA
         )
         assert hlt.status == "draft"
 
-    def test_custom_status_on_create(self):
-        hlt = HLTCreate(
-            horse_id="985125000126462",
-            owner_id="owner-123",
-            trainer_id="trainer-456",
+    def test_custom_status_on_hlt(self):
+        hlt = HLT(
+            id="hlt-789",
             status="reviewed",
+            created_at=datetime.utcnow(),
+            updated_at=datetime.utcnow(),
+            **VALID_HLT_DATA
         )
         assert hlt.status == "reviewed"
 

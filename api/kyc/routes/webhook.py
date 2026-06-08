@@ -15,7 +15,13 @@ from google.cloud import firestore
 
 stripe.api_key = os.environ.get("STRIPE_SECRET_KEY")
 stripe_webhook_secret = os.environ.get("STRIPE_WEBHOOK_SECRET")
-db = firestore.Client()
+_DB = None
+
+def _get_db():
+    global _DB
+    if _DB is None:
+        _DB = firestore.Client()
+    return _DB
 
 # Initialize Firebase Admin (lazy, once per cold start)
 _firebase_app = None
@@ -75,7 +81,7 @@ def handle(request: Request):
         user_id = session.get("metadata", {}).get("user_id")
 
         if user_id:
-            db.collection("users").document(user_id).update({
+            _get_db().collection("users").document(user_id).update({
                 "kyc_status": "verified",
                 "updated_at": firestore.SERVER_TIMESTAMP,
             })
@@ -87,7 +93,7 @@ def handle(request: Request):
         user_id = session.get("metadata", {}).get("user_id")
 
         if user_id:
-            db.collection("users").document(user_id).update({
+            _get_db().collection("users").document(user_id).update({
                 "kyc_status": "requires_input",
                 "updated_at": firestore.SERVER_TIMESTAMP,
             })
@@ -99,7 +105,7 @@ def handle(request: Request):
         user_id = session.get("metadata", {}).get("user_id")
 
         if user_id:
-            db.collection("users").document(user_id).update({
+            _get_db().collection("users").document(user_id).update({
                 "kyc_status": "canceled",
                 "updated_at": firestore.SERVER_TIMESTAMP,
             })

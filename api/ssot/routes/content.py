@@ -11,7 +11,13 @@ from flask import Request, jsonify
 from google.cloud import firestore
 from models import ContentCreate, ContentUpdate
 
-db = firestore.Client()
+_DB = None
+
+def _get_db():
+    global _DB
+    if _DB is None:
+        _DB = firestore.Client()
+    return _DB
 
 
 def handle(request: Request, content_id: str | None = None):
@@ -38,20 +44,20 @@ def create_content(request: Request):
         return jsonify({"error": f"Validation error: {str(e)}"}), 400
 
     # Validate horse exists
-    horse_docs = db.collection("horses").where("microchip", "==", content.horse_microchip).limit(1).get()
-    if not horse_docs:
+    horse_doc = _get_db().collection("horses").document(content.horse_microchip).get()
+    if not horse_doc.exists:
         return jsonify({"error": f"Horse with microchip {content.horse_microchip} not found"}), 400
 
     # Deduplicate by source_email_id
     if content.source_email_id:
-        existing = db.collection("content").where("source_email_id", "==", content.source_email_id).limit(1).get()
+        existing = _get_db().collection("content").where("source_email_id", "==", content.source_email_id).limit(1).get()
         if existing:
             return jsonify({
                 "error": "Content already exists for this email",
                 "existing_id": existing[0].id,
             }), 409
 
-    doc_ref = db.collection("content").document()
+    doc_ref = _get_db().collection("content").document()
     doc_data = content.model_dump()
     doc_data["id"] = doc_ref.id
     doc_data["created_at"] = firestore.SERVER_TIMESTAMP
@@ -63,7 +69,7 @@ def create_content(request: Request):
 
 def get_content(content_id: str):
     """Get a content record by document ID."""
-    doc = db.collection("content").document(content_id).get()
+    doc = _get_db().collection("content").document(content_id).get()
     if not doc.exists:
         return jsonify({"error": f"Content {content_id} not found"}), 404
     return jsonify(doc.to_dict()), 200
@@ -75,7 +81,7 @@ def list_content(request: Request):
     content_type = request.args.get("content_type")
     status = request.args.get("status")
 
-    query = db.collection("content")
+    query = _get_db().collection("content")
     if horse_microchip:
         query = query.where("horse_microchip", "==", horse_microchip)
     if content_type:
@@ -101,7 +107,7 @@ def update_content(content_id: str, request: Request):
     except Exception as e:
         return jsonify({"error": f"Validation error: {str(e)}"}), 400
 
-    doc = db.collection("content").document(content_id).get()
+    doc = _get_db().collection("content").document(content_id).get()
     if not doc.exists:
         return jsonify({"error": f"Content {content_id} not found"}), 404
 
@@ -114,7 +120,7 @@ def update_content(content_id: str, request: Request):
 
 def delete_content(content_id: str):
     """Delete a content record by document ID."""
-    doc = db.collection("content").document(content_id).get()
+    doc = _get_db().collection("content").document(content_id).get()
     if not doc.exists:
         return jsonify({"error": f"Content {content_id} not found"}), 404
 

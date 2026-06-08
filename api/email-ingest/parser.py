@@ -147,6 +147,29 @@ def _extract_video_url(body: str) -> str | None:
         for match in matches:
             url = match.strip().rstrip(".,;:!?")
             if url and len(url) > 10:
+                lower_url = url.lower()
+                
+                # Skip image assets, documents, and other static formats
+                image_and_doc_extensions = (
+                    '.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg', '.pdf', '.docx', '.csv', '.xlsx', '.css', '.js'
+                )
+                if any(lower_url.endswith(ext) for ext in image_and_doc_extensions):
+                    continue
+                
+                # Skip unsubscribe links, tracking, assets, and portal web page views
+                skip_keywords = [
+                    "/unsubscribe", "unsubscribe",
+                    "/portal",
+                    "pstmrk.it", "postmark",
+                    "w3.org",
+                    "/assets/", "/images/"
+                ]
+                if any(keyword in lower_url for keyword in skip_keywords):
+                    continue
+                
+                # Skip portal links that just end with /video or /video/
+                if lower_url.endswith('/media/video') or lower_url.endswith('/media/video/'):
+                    continue
                 return url
     return None
 

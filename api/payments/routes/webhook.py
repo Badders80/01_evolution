@@ -9,7 +9,13 @@ from google.cloud import firestore
 
 stripe.api_key = os.environ.get("STRIPE_SECRET_KEY")
 stripe_webhook_secret = os.environ.get("STRIPE_WEBHOOK_SECRET")
-db = firestore.Client()
+_DB = None
+
+def _get_db():
+    global _DB
+    if _DB is None:
+        _DB = firestore.Client()
+    return _DB
 
 
 @firestore.transactional
@@ -81,7 +87,7 @@ def handle(request: Request):
             return jsonify({"received": True, "error": f"Parse error: {str(e)}"}), 200
 
         # Build holding record
-        holding_ref = db.collection("holdings").document()
+        holding_ref = _get_db().collection("holdings").document()
         holding_data = {
             "id": holding_ref.id,
             "user_id": user_id,
@@ -102,8 +108,8 @@ def handle(request: Request):
         }
 
         # Run transaction
-        transaction = db.transaction()
-        hlt_ref = db.collection("hlts").document(hlt_id)
+        transaction = _get_db().transaction()
+        hlt_ref = _get_db().collection("hlts").document(hlt_id)
 
         try:
             process_purchase_transaction(transaction, hlt_ref, holding_ref, holding_data, shares_to_buy)

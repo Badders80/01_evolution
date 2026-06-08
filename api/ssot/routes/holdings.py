@@ -6,7 +6,13 @@ from flask import Request, jsonify
 from google.cloud import firestore
 from models import HoldingCreate
 
-db = firestore.Client()
+_DB = None
+
+def _get_db():
+    global _DB
+    if _DB is None:
+        _DB = firestore.Client()
+    return _DB
 
 
 def handle(request: Request, holding_id: str | None = None):
@@ -31,12 +37,12 @@ def create_holding(request: Request):
         return jsonify({"error": f"Validation error: {str(e)}"}), 400
 
     # Verify HLT exists
-    hlt_ref = db.collection("hlts").document(holding.hlt_id)
+    hlt_ref = _get_db().collection("hlts").document(holding.hlt_id)
     hlt_doc = hlt_ref.get()
     if not hlt_doc.exists:
         return jsonify({"error": f"HLT {holding.hlt_id} not found"}), 400
 
-    doc_ref = db.collection("holdings").document()
+    doc_ref = _get_db().collection("holdings").document()
     doc_data = holding.model_dump()
     doc_data["id"] = doc_ref.id
     doc_data["status"] = "pending"
@@ -49,7 +55,7 @@ def create_holding(request: Request):
 
 def get_holding(holding_id: str):
     """Get holding by document ID."""
-    doc = db.collection("holdings").document(holding_id).get()
+    doc = _get_db().collection("holdings").document(holding_id).get()
     if not doc.exists:
         return jsonify({"error": f"Holding {holding_id} not found"}), 404
     return jsonify(doc.to_dict()), 200
@@ -60,7 +66,7 @@ def list_holdings(request: Request):
     user_id = request.args.get("user_id")
     hlt_id = request.args.get("hlt_id")
     
-    query = db.collection("holdings")
+    query = _get_db().collection("holdings")
     if user_id:
         query = query.where("user_id", "==", user_id)
     if hlt_id:
@@ -77,7 +83,7 @@ def update_holding(holding_id: str, request: Request):
     except Exception as e:
         return jsonify({"error": f"Invalid JSON payload: {str(e)}"}), 400
 
-    doc_ref = db.collection("holdings").document(holding_id)
+    doc_ref = _get_db().collection("holdings").document(holding_id)
     doc = doc_ref.get()
     if not doc.exists:
         return jsonify({"error": f"Holding {holding_id} not found"}), 404

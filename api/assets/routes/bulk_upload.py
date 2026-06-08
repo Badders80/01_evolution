@@ -15,7 +15,14 @@ import re
 import uuid
 from datetime import datetime
 
-db = firestore.Client()
+_DB = None
+
+def _get_db():
+    global _DB
+    if _DB is None:
+        _DB = firestore.Client()
+    return _DB
+
 storage_client = storage.Client()
 
 BUCKET_MAP = {
@@ -109,25 +116,25 @@ def handle(request: Request):
     trainer_name = None
 
     if entity_type == "horse":
-        horse_docs = db.collection("horses").where("microchip", "==", entity_id).limit(1).get()
-        if horse_docs:
-            horse_data = horse_docs[0].to_dict()
+        horse_doc = _get_db().collection("horses").document(entity_id).get()
+        if horse_doc.exists:
+            horse_data = horse_doc.to_dict()
             horse_name = horse_data.get("name", "")
 
             # Resolve trainer name (direct on horse)
             trainer_id = horse_data.get("trainer_id")
             if trainer_id:
-                trainer_doc = db.collection("trainers").document(trainer_id).get()
+                trainer_doc = _get_db().collection("trainers").document(trainer_id).get()
                 if trainer_doc.exists:
                     trainer_name = trainer_doc.to_dict().get("name", "")
 
             # Resolve owner name through HLT (owner is on the HLT, not the horse)
-            hlt_docs = db.collection("hlts").where("horse_microchip", "==", entity_id).limit(1).get()
+            hlt_docs = _get_db().collection("hlts").where("horse_microchip", "==", entity_id).limit(1).get()
             if hlt_docs:
                 hlt_data = hlt_docs[0].to_dict()
                 owner_id = hlt_data.get("owner_id")
                 if owner_id:
-                    owner_doc = db.collection("owners").document(owner_id).get()
+                    owner_doc = _get_db().collection("owners").document(owner_id).get()
                     if owner_doc.exists:
                         owner_name = owner_doc.to_dict().get("name", "")
 
@@ -208,7 +215,7 @@ def handle(request: Request):
             # If primary, unset any existing primary
             if file_is_primary:
                 existing_primary = (
-                    db.collection("assets")
+                    _get_db().collection("assets")
                     .where("entity_type", "==", entity_type)
                     .where("entity_id", "==", entity_id)
                     .where("is_primary", "==", True)
@@ -225,7 +232,7 @@ def handle(request: Request):
                 alt_text = f"{alt_text} — {context}"
 
             # Write metadata to Firestore
-            doc_ref = db.collection("assets").document()
+            doc_ref = _get_db().collection("assets").document()
             asset_data = {
                 "id": doc_ref.id,
                 "entity_type": entity_type,
@@ -251,9 +258,9 @@ def handle(request: Request):
 
             # Update horse imageUrl if primary
             if file_is_primary and entity_type == "horse" and asset_type == "image":
-                horse_docs = db.collection("horses").where("microchip", "==", entity_id).limit(1).get()
-                if horse_docs:
-                    horse_docs[0].reference.update({"image_url": public_url})
+                horse_ref = _get_db().collection("horses").document(entity_id)
+                if horse_ref.get().exists:
+                    horse_ref.update({"image_url": public_url})
 
             results.append(asset_data)
 

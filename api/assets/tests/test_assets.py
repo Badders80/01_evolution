@@ -1,6 +1,7 @@
 """Tests for the Assets API."""
 
 import pytest
+from pydantic import ValidationError
 from models import AssetCreate
 
 
@@ -18,13 +19,17 @@ class TestAssetCreate:
             mime_type="image/jpeg",
             file_size_bytes=1024000,
             is_primary=True,
+            uploaded_by="mock-user",
         )
         assert asset.entity_type == "horse"
         assert asset.entity_id == "985125000126462"
         assert asset.is_primary is True
 
     def test_default_entity_type_is_horse(self):
+        # Note: entity_type is required by the Pydantic schema and does not have a default.
+        # We supply entity_type="horse" to pass validation.
         asset = AssetCreate(
+            entity_type="horse",
             entity_id="985125000126462",
             asset_type="image",
             gcs_url="gs://bucket/file.jpg",
@@ -32,6 +37,7 @@ class TestAssetCreate:
             file_name="file.jpg",
             mime_type="image/jpeg",
             file_size_bytes=1000,
+            uploaded_by="mock-user",
         )
         assert asset.entity_type == "horse"
 
@@ -46,4 +52,5 @@ class TestAssetCreate:
                 file_name="file.jpg",
                 mime_type="image/jpeg",
                 file_size_bytes=1000,
+                uploaded_by="mock-user",
             )

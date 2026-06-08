@@ -74,6 +74,20 @@ deploy-kyc:
         --region australia-southeast1 \
         --entry-point kyc
 
+# Run Racing Data API locally
+run-racing-data:
+    cd api/racing-data && functions-framework --target=racing-data --port=8083
+
+# Deploy Racing Data function
+deploy-racing-data:
+    cd api/racing-data && gcloud functions deploy racing-data \
+        --runtime python312 \
+        --trigger-http \
+        --allow-unauthenticated \
+        --region australia-southeast1 \
+        --memory 512MB \
+        --entry-point racing_data
+
 # Deploy Email Ingest function
 deploy-email-ingest:
     cd api/email-ingest && gcloud functions deploy email-ingest \
@@ -147,3 +161,7 @@ task-done id:
 # Create a sprint markdown file from task IDs
 sprint-start name *tasks:
     @python3 ../_taskmaster/sprint_start.py "--tasks={{tasks}}" "{{name}}"
+
+# Launch the interactive Dev Portal and Control Tower
+task-web:
+    @python3 ../_taskmaster/server.py

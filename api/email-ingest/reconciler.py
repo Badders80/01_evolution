@@ -7,7 +7,6 @@ and a domain-specific knowledge base.
 import os
 import json
 import logging
-import requests
 
 logger = logging.getLogger(__name__)
 
@@ -141,32 +140,19 @@ Rules:
 - Do NOT include markdown code blocks, only raw JSON
 """
 
-        models = [
-            os.getenv("OLLAMA_MODEL", "kimi-k2.6:cloud"),
-            os.getenv("OLLAMA_FALLBACK_MODEL", "qwen3.5:cloud")
-        ]
+        from model_router import get_router
+        router = get_router()
 
-        for model in models:
+        for model in [os.getenv("OLLAMA_MODEL", "kimi-k2.6:cloud"), os.getenv("OLLAMA_FALLBACK_MODEL", "qwen3.5:cloud")]:
             try:
                 logger.info(f"Reconciling transcripts using Ollama model {model}...")
-                response = requests.post(
-                    f"{OLLAMA_HOST}/api/chat",
-                    headers={"Content-Type": "application/json"},
-                    json={
-                        "model": model,
-                        "messages": [{"role": "user", "content": prompt}],
-                        "format": "json",
-                        "stream": False,
-                        "options": {"temperature": 0.1}
-                    },
-                    timeout=45
+                raw_content = router.chat(
+                    prompt=prompt,
+                    system=None,
+                    temperature=0.1,
+                    format_json=True,
+                    timeout=45,
                 )
-                
-                if response.status_code != 200:
-                    raise RuntimeError(f"Ollama API returned status {response.status_code}: {response.text}")
-                
-                data = response.json()
-                raw_content = data["message"]["content"]
                 
                 # Sanitize content if model enclosed it in markdown code blocks
                 if raw_content.startswith("```json"):

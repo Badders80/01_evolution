@@ -8,7 +8,13 @@ Supports filtering by asset_type and tags.
 from flask import Request, jsonify
 from google.cloud import firestore
 
-db = firestore.Client()
+_DB = None
+
+def _get_db():
+    global _DB
+    if _DB is None:
+        _DB = firestore.Client()
+    return _DB
 
 
 def handle(request: Request):
@@ -24,7 +30,7 @@ def handle(request: Request):
     if not entity_id:
         return jsonify({"error": "entity_id is required. For horses, use the microchip number."}), 400
 
-    query = db.collection("assets").where("entity_type", "==", entity_type).where("entity_id", "==", entity_id)
+    query = _get_db().collection("assets").where("entity_type", "==", entity_type).where("entity_id", "==", entity_id)
 
     if asset_type:
         query = query.where("asset_type", "==", asset_type)

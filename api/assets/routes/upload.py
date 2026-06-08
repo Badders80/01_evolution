@@ -12,7 +12,14 @@ from PIL import Image
 import io
 import uuid
 
-db = firestore.Client()
+_DB = None
+
+def _get_db():
+    global _DB
+    if _DB is None:
+        _DB = firestore.Client()
+    return _DB
+
 storage_client = storage.Client()
 
 BUCKET_MAP = {
@@ -80,12 +87,12 @@ def handle(request: Request):
 
     # If is_primary, unset any existing primary for this entity
     if is_primary:
-        existing_primary = db.collection("assets").where("entity_type", "==", entity_type).where("entity_id", "==", entity_id).where("is_primary", "==", True).get()
+        existing_primary = _get_db().collection("assets").where("entity_type", "==", entity_type).where("entity_id", "==", entity_id).where("is_primary", "==", True).get()
         for doc in existing_primary:
             doc.reference.update({"is_primary": False})
 
     # Write metadata to Firestore
-    doc_ref = db.collection("assets").document()
+    doc_ref = _get_db().collection("assets").document()
     asset_data = {
         "id": doc_ref.id,
         "entity_type": entity_type,
@@ -115,8 +122,8 @@ def handle(request: Request):
 
     # Update the entity's imageUrl if it's a primary horse image
     if is_primary and entity_type == "horse" and asset_type == "image":
-        horse_docs = db.collection("horses").where("microchip", "==", entity_id).limit(1).get()
-        if horse_docs:
-            horse_docs[0].reference.update({"image_url": public_url})
+        horse_ref = _get_db().collection("horses").document(entity_id)
+        if horse_ref.get().exists:
+            horse_ref.update({"image_url": public_url})
 
     return jsonify(asset_data), 201

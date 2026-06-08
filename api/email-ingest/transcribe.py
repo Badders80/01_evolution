@@ -66,7 +66,7 @@ def main():
     parser.add_argument(
         "--engine",
         default="auto",
-        choices=["auto", "google", "canary", "groq", "gemini"],
+        choices=["auto", "google", "aistudio", "canary", "groq"],
         help="Speech-to-text engine to run."
     )
     parser.add_argument(

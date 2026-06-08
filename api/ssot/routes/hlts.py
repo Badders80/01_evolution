@@ -13,7 +13,13 @@ from flask import Request, jsonify
 from google.cloud import firestore
 from models import HLTCreate, HLTUpdate
 
-db = firestore.Client()
+_DB = None
+
+def _get_db():
+    global _DB
+    if _DB is None:
+        _DB = firestore.Client()
+    return _DB
 
 # Valid status transitions
 STATUS_TRANSITIONS = {
@@ -29,16 +35,16 @@ def _resolve_hlt_references(hlt_data):
     # Resolve horse
     microchip = hlt_data.get("horse_microchip")
     if microchip:
-        horse_docs = db.collection("horses").where("microchip", "==", microchip).limit(1).get()
-        if horse_docs:
-            hlt_data["horse"] = horse_docs[0].to_dict()
+        horse_doc = _get_db().collection("horses").document(microchip).get()
+        if horse_doc.exists:
+            hlt_data["horse"] = horse_doc.to_dict()
         else:
             hlt_data["horse"] = None
 
     # Resolve owner
     owner_id = hlt_data.get("owner_id")
     if owner_id:
-        owner_doc = db.collection("owners").document(owner_id).get()
+        owner_doc = _get_db().collection("owners").document(owner_id).get()
         if owner_doc.exists:
             hlt_data["owner"] = owner_doc.to_dict()
         else:
@@ -47,7 +53,7 @@ def _resolve_hlt_references(hlt_data):
     # Resolve trainer
     trainer_id = hlt_data.get("trainer_id")
     if trainer_id:
-        trainer_doc = db.collection("trainers").document(trainer_id).get()
+        trainer_doc = _get_db().collection("trainers").document(trainer_id).get()
         if trainer_doc.exists:
             hlt_data["trainer"] = trainer_doc.to_dict()
         else:
@@ -80,21 +86,21 @@ def create_hlt(request: Request):
         return jsonify({"error": f"Validation error: {str(e)}"}), 400
 
     # Validate horse exists
-    horse_docs = db.collection("horses").where("microchip", "==", hlt.horse_microchip).limit(1).get()
-    if not horse_docs:
+    horse_doc = _get_db().collection("horses").document(hlt.horse_microchip).get()
+    if not horse_doc.exists:
         return jsonify({"error": f"Horse with microchip {hlt.horse_microchip} not found"}), 400
 
     # Validate owner exists
-    owner_doc = db.collection("owners").document(hlt.owner_id).get()
+    owner_doc = _get_db().collection("owners").document(hlt.owner_id).get()
     if not owner_doc.exists:
         return jsonify({"error": f"Owner {hlt.owner_id} not found"}), 400
 
     # Validate trainer exists
-    trainer_doc = db.collection("trainers").document(hlt.trainer_id).get()
+    trainer_doc = _get_db().collection("trainers").document(hlt.trainer_id).get()
     if not trainer_doc.exists:
         return jsonify({"error": f"Trainer {hlt.trainer_id} not found"}), 400
 
-    doc_ref = db.collection("hlts").document()
+    doc_ref = _get_db().collection("hlts").document()
     doc_data = hlt.model_dump()
     doc_data["id"] = doc_ref.id
     doc_data["status"] = "draft"
@@ -112,7 +118,7 @@ def create_hlt(request: Request):
 
 def get_hlt(hlt_id: str, request: Request):
     """Get an HLT by document ID."""
-    doc = db.collection("hlts").document(hlt_id).get()
+    doc = _get_db().collection("hlts").document(hlt_id).get()
     if not doc.exists:
         return jsonify({"error": f"HLT {hlt_id} not found"}), 404
     
@@ -130,7 +136,7 @@ def list_hlts(request: Request):
     microchip = request.args.get("horse_microchip")
     resolve = request.args.get("resolve") == "true"
     
-    query = db.collection("hlts")
+    query = _get_db().collection("hlts")
     if status:
         query = query.where("status", "==", status)
     if microchip:
@@ -156,7 +162,7 @@ def update_hlt(hlt_id: str, request: Request):
     except Exception as e:
         return jsonify({"error": f"Validation error: {str(e)}"}), 400
 
-    doc_ref = db.collection("hlts").document(hlt_id)
+    doc_ref = _get_db().collection("hlts").document(hlt_id)
     doc = doc_ref.get()
     if not doc.exists:
         return jsonify({"error": f"HLT {hlt_id} not found"}), 404
@@ -180,7 +186,7 @@ def update_hlt(hlt_id: str, request: Request):
 
 def delete_hlt(hlt_id: str):
     """Delete an HLT. Only if status is 'draft'."""
-    doc_ref = db.collection("hlts").document(hlt_id)
+    doc_ref = _get_db().collection("hlts").document(hlt_id)
     doc = doc_ref.get()
     if not doc.exists:
         return jsonify({"error": f"HLT {hlt_id} not found"}), 404

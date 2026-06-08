@@ -9,26 +9,22 @@ import os
 import json
 import re
 import uuid
-import time
 import logging
 import tempfile
 import subprocess
-import requests
 from typing import Optional
 
 from google.cloud import speech, storage
-from google import genai
-from google.genai import types
 
 from models import TranscriptResult, TranscriptSegment
 from corrections import CorrectionsApplier
 from reconciler import TranscriptReconciler
+from model_router import AI_STUDIO_ALLOWED, AI_STUDIO_API_KEY
 
 logger = logging.getLogger(__name__)
 
 TEMP_BUCKET = os.getenv("SPEECH_TEMP_BUCKET", "evolution-engine-speech-temp")
 CANARY_URL = os.getenv("CANARY_URL", "http://127.0.0.1:5005/transcribe")
-GROQ_API_URL = "https://api.groq.com/openai/v1/audio/transcriptions"
 
 
 class Transcriber:
@@ -75,7 +71,7 @@ class Transcriber:
         
         Args:
             video_path: Local path to the video file.
-            engine: 'auto', 'google', 'canary', 'groq', or 'gemini'.
+            engine: 'auto', 'google', 'canary', or 'groq'.
             force_audit: If True, run multiple backends and reconcile them with LLM.
             horse_name: Used for LLM reconciliation context and Gemini prompting.
             venue: Used for LLM reconciliation context.
@@ -83,12 +79,43 @@ class Transcriber:
         """
         logger.info(f"Starting transcription: {video_path} (engine={engine}, force_audit={force_audit})")
 
-        # Step 1: Handle direct video/audio model if Gemini is selected
+        # Step 1: Handle direct video/audio model if AI Studio or Gemini is selected
+        if engine == "aistudio":
+            if not AI_STUDIO_ALLOWED or not AI_STUDIO_API_KEY:
+                raise RuntimeError("AI Studio not configured. Set AI_STUDIO_API_KEY.")
+            logger.info("Using AI Studio free-tier transcription.")
+            audio_path = self._extract_audio(video_path)
+            try:
+                result_dict = self._transcribe_aistudio(audio_path, horse_name)
+                result = TranscriptResult(**result_dict)
+                return self.corrections_applier.apply_to_transcript_result(result)
+            finally:
+                if os.path.exists(audio_path):
+                    os.unlink(audio_path)
+
         if engine == "gemini":
-            logger.info("Using direct Gemini 2.5 Flash transcription.")
+            if os.getenv("GEMINI_ALLOW_TRANSCRIPTION", "false").lower() != "true":
+                raise RuntimeError(
+                    "Gemini transcription is disabled. Set GEMINI_ALLOW_TRANSCRIPTION=true to enable."
+                )
+            logger.info("Using direct Gemini 2.5 Flash transcription (explicitly enabled).")
             result_dict = self._transcribe_gemini(video_path, horse_name)
             result = TranscriptResult(**result_dict)
             return self.corrections_applier.apply_to_transcript_result(result)
+
+        # Step 1b: Auto engine — quota-aware fallback chain
+        if engine == "auto":
+            # Gate Google STT behind free-tier quota
+            from model_router import get_tracker
+            tracker = get_tracker()
+            if tracker.check("google_stt_free"):
+                engine = "google"
+            elif AI_STUDIO_ALLOWED and AI_STUDIO_API_KEY and tracker.check("ai_studio_stt"):
+                logger.info("Google STT quota exhausted — trying AI Studio free tier")
+                engine = "aistudio"
+            else:
+                logger.info("Google + AI Studio STT quotas exhausted — falling back to Groq")
+                engine = "groq"
 
         # Step 2: Extract audio for all other audio-based STT engines
         audio_path = self._extract_audio(video_path)
@@ -112,6 +139,13 @@ class Transcriber:
                             segments=google_segments,
                             speakers=[{"name": name, "label": f"spk{i}"} for i, name in enumerate(self.speaker_names)]
                         )
+                        # Record quota usage after success
+                        duration = google_segments[-1].end_time if google_segments else 0.0
+                        if duration > 0:
+                            from model_router import get_tracker
+                            tracker = get_tracker()
+                            tracker.consume("google_stt_free", amount=int(duration))
+                            logger.info(f"Recorded Google STT usage: {int(duration)}s")
                     finally:
                         self._delete_from_gcs(gcs_uri)
                 except Exception as e:
@@ -147,16 +181,7 @@ class Transcriber:
                 except Exception as e:
                     logger.warning(f"Canary Daemon failed: {e}")
 
-                # 3. Gemini Fallback if other methods failed and we have GEMINI_API_KEY
-                if not transcripts and os.getenv("GEMINI_API_KEY"):
-                    try:
-                        logger.info("Running Gemini 2.5 Flash as final fallback...")
-                        gemini_dict = self._transcribe_gemini(video_path, horse_name)
-                        transcripts["gemini"] = TranscriptResult(**gemini_dict)
-                    except Exception as e:
-                        logger.warning(f"Gemini fallback failed: {e}")
-
-            # If absolutely no transcripts succeeded, raise error
+            # Step 3: Raise if no transcripts yet
             if not transcripts:
                 raise RuntimeError("All transcription engines failed.")
 
@@ -386,112 +411,37 @@ class Transcriber:
             return None
 
     def _transcribe_groq(self, audio_path: str) -> Optional[TranscriptResult]:
-        """Transcribe audio using Groq Whisper API (verbose_json format)."""
-        groq_key = os.getenv("GROQ_API_KEY")
-        if not groq_key:
+        """Delegate to resilient Groq Whisper wrapper with key rotation + retry."""
+        from groq_resilient import groq_transcribe
+        result = groq_transcribe(audio_path)
+        if result is None:
             return None
-            
-        try:
-            headers = {"Authorization": f"Bearer {groq_key}"}
-            files = {"file": (os.path.basename(audio_path), open(audio_path, "rb"), "audio/wav")}
-            data = {
-                "model": "whisper-large-v3",
-                "temperature": "0.0",
-                "language": "en",
-                "response_format": "verbose_json"
-            }
-            
-            resp = requests.post(GROQ_API_URL, headers=headers, files=files, data=data, timeout=60)
-            if resp.status_code != 200:
-                logger.warning(f"Groq API returned error: {resp.text}")
-                return None
-                
-            resp_data = resp.json()
-            full_text = resp_data.get("text", "")
-            
-            # Map Groq segments into TranscriptSegments
-            segments = []
-            for seg in resp_data.get("segments", []):
-                segments.append(TranscriptSegment(
-                    start_time=float(seg.get("start", 0.0)),
-                    end_time=float(seg.get("end", 0.0)),
-                    speaker=self.speaker_names[0], # Groq doesn't diarize natively
-                    text=seg.get("text", "").strip()
-                ))
-                
-            if not segments and full_text:
-                segments = [TranscriptSegment(start_time=0.0, end_time=0.0, speaker=self.speaker_names[0], text=full_text)]
-                
-            return TranscriptResult(
-                source="groq_whisper",
-                model="whisper-large-v3",
-                full_text=full_text,
-                segments=segments,
-                speakers=[{"name": name, "label": f"spk{i}"} for i, name in enumerate(self.speaker_names)]
-            )
-        except Exception as e:
-            logger.warning(f"Failed to transcribe with Groq API: {e}")
-            return None
+
+        segments = []
+        for seg in result.get("segments", []):
+            segments.append(TranscriptSegment(
+                start_time=seg["start_time"],
+                end_time=seg["end_time"],
+                speaker=self.speaker_names[0],  # Groq doesn't diarize natively
+                text=seg["text"],
+            ))
+        if not segments and result.get("full_text"):
+            segments = [TranscriptSegment(start_time=0.0, end_time=0.0, speaker=self.speaker_names[0], text=result["full_text"])]
+
+        return TranscriptResult(
+            source=result["source"],
+            model=result["model"],
+            full_text=result["full_text"],
+            segments=segments,
+            speakers=[{"name": name, "label": f"spk{i}"} for i, name in enumerate(self.speaker_names)]
+        )
 
     def _transcribe_gemini(self, video_path: str, horse_name: str) -> dict:
-        """Transcribe video using Gemini 2.5 Flash API with structured JSON output."""
-        gemini_key = os.getenv("GEMINI_API_KEY")
-        if not gemini_key:
-            raise ValueError("GEMINI_API_KEY environment variable is not configured.")
-            
-        logger.info("Uploading video file to Gemini...")
-        client = genai.Client(vertexai=False, api_key=gemini_key)
-        uploaded_file = client.files.upload(file=video_path)
-        
-        try:
-            while uploaded_file.state.name == "PROCESSING":
-                logger.info("Waiting for Gemini video processing...")
-                time.sleep(5)
-                uploaded_file = client.files.get(name=uploaded_file.name)
-                
-            if uploaded_file.state.name == "FAILED":
-                raise RuntimeError(f"Gemini file processing failed: {uploaded_file.error.message}")
-                
-            prompt = f"""
-You are an expert audio transcription assistant.
-We have a video update of the horse '{horse_name}' from Wexford Stables.
-Expected speakers: {', '.join(self.speaker_names)}.
-Please transcribe the audio of this video with speaker diarization.
-Return ONLY a valid JSON object matching the schema below. Do not wrap in markdown block, do not include any explanatory text.
+        """Gated Gemini transcription — delegates to ModelRouter so policy is centralised."""
+        from model_router import get_router
+        return get_router().gemini_transcribe(video_path, horse_name)
 
-Schema:
-{{
-  "full_text": "the entire concatenated transcript text",
-  "segments": [
-    {{
-      "start_time": 0.0,
-      "end_time": 5.2,
-      "speaker": "speaker name (must be one of: {', '.join(self.speaker_names)})",
-      "text": "transcribed segment text"
-    }}
-  ]
-}}
-
-Format segments chronologically. Split segments whenever the speaker changes, or if there is a pause (keep segments under 15s). Make sure the transcription is highly accurate.
-"""
-            logger.info("Generating content from Gemini...")
-            response = client.models.generate_content(
-                model='gemini-2.5-flash',
-                contents=[uploaded_file, prompt],
-                config=types.GenerateContentConfig(response_mime_type="application/json")
-            )
-            
-            result_json = json.loads(response.text)
-            result_json["source"] = "gemini_2_5_flash"
-            result_json["model"] = "gemini-2.5-flash"
-            result_json["speakers"] = [
-                {"name": name, "label": f"spk{i}"}
-                for i, name in enumerate(self.speaker_names)
-            ]
-            return result_json
-            
-        finally:
-            try:
-                client.files.delete(name=uploaded_file.name)
-            except Exception as e:
-                logger.debug(f"Gemini file deletion cleanup failed: {e}")
+    def _transcribe_aistudio(self, audio_path: str, horse_name: str) -> dict:
+        """AI Studio free-tier transcription — delegates to ModelRouter."""
+        from model_router import get_router
+        return get_router().aistudio_transcribe(audio_path, horse_name)
