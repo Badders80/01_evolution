@@ -15,7 +15,7 @@ Routes:
 import functions_framework
 from flask import Request, jsonify
 
-from routes import horses, owners, trainers, hlts, docs, extract, content, holdings
+from routes import horses, owners, trainers, hlts, docs, extract, content, holdings, governing_bodies
 
 
 @functions_framework.http
@@ -71,6 +71,11 @@ def ssot(request: Request):
     elif segments and segments[0] == "content":
         content_id = segments[1] if len(segments) > 1 else None
         res = content.handle(request, content_id)
+
+    # Route: /governing-bodies, /governing-bodies/{code}
+    elif segments and segments[0] == "governing-bodies":
+        code = segments[1] if len(segments) > 1 else None
+        res = governing_bodies.handle(request, code)
 
     else:
         res = jsonify({"error": "Not found", "path": path}), 404

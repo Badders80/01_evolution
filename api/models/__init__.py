@@ -332,6 +332,37 @@ class Holding(HoldingCreate):
     updated_at: datetime
 
 
+# ─── GoverningBody ─────────────────────────────────────────────────────────────
+
+class GoverningBodyCreate(BaseModel):
+    """Payload for creating a governing body record."""
+    governing_body_code: str = Field(
+        ...,
+        examples=["NZTR"],
+        description="Short canonical code used as the Firestore document ID.",
+    )
+    governing_body_name: str = Field(..., examples=["New Zealand Thoroughbred Racing"])
+    website: Optional[str] = Field(None)
+    status: Literal["active", "inactive"] = Field("active")
+    notes: Optional[str] = Field(None)
+
+
+class GoverningBody(GoverningBodyCreate):
+    """Full governing body record with server-generated fields."""
+    id: str
+    created_at: datetime
+    updated_at: datetime
+
+
+class GoverningBodyUpdate(BaseModel):
+    """Payload for updating a governing body record. All fields optional."""
+    governing_body_code: Optional[str] = None
+    governing_body_name: Optional[str] = None
+    website: Optional[str] = None
+    status: Optional[Literal["active", "inactive"]] = None
+    notes: Optional[str] = None
+
+
 # ─── Loveracing.nz Reference ──────────────────────────────────────────────────
 
 # NOTE: LoveracingRef, RaceResult, HorseRacingSummary moved to 05_industry-data/src/models.py
