@@ -63,6 +63,85 @@ class TestHorseCreate:
         assert horse.dam_name is None
         assert horse.breeder is None
         assert horse.status == "active"
+        assert horse.breeding_url is None
+        assert horse.performance_profile_url is None
+        assert horse.country_code == "NZ"
+        assert horse.nztr_life_number is None
+        assert horse.horse_status == "active"
+        assert horse.identity_status == "pending"
+        assert horse.source_primary is None
+        assert horse.source_last_verified_at is None
+
+    def test_new_fields_accepted(self):
+        horse = HorseCreate(
+            microchip="985125000126462",
+            name="Test Horse",
+            foaling_date="2021-01-01",
+            sex="colt",
+            breeding_url="https://loveracing.nz/Breeding/123/Test.aspx",
+            performance_profile_url="https://loveracing.nz/Modal/123",
+            country_code="AU",
+            nztr_life_number="NZ00427416",
+            horse_status="sold",
+            identity_status="verified",
+            source_primary="loveracing.nz",
+            source_last_verified_at="2026-06-09",
+        )
+        assert horse.breeding_url == "https://loveracing.nz/Breeding/123/Test.aspx"
+        assert horse.horse_status == "sold"
+        assert horse.identity_status == "verified"
+        assert horse.nztr_life_number == "NZ00427416"
+
+    def test_horse_status_invalid_literal(self):
+        with pytest.raises(ValidationError):
+            HorseCreate(
+                microchip="985125000126462",
+                name="Test Horse",
+                foaling_date="2021-01-01",
+                sex="colt",
+                horse_status="invalid_status",
+            )
+
+    def test_identity_status_invalid_literal(self):
+        with pytest.raises(ValidationError):
+            HorseCreate(
+                microchip="985125000126462",
+                name="Test Horse",
+                foaling_date="2021-01-01",
+                sex="colt",
+                identity_status="bad",
+            )
+
+    def test_nztr_life_number_pattern(self):
+        with pytest.raises(ValidationError):
+            HorseCreate(
+                microchip="985125000126462",
+                name="Test Horse",
+                foaling_date="2021-01-01",
+                sex="colt",
+                nztr_life_number="bad",
+            )
+
+
+class TestHorseUpdate:
+    """Test HorseUpdate Pydantic model with new fields."""
+
+    def test_update_new_fields(self):
+        from models import HorseUpdate
+        update = HorseUpdate(
+            breeding_url="https://loveracing.nz/Breeding/123.aspx",
+            horse_status="retired",
+            identity_status="verified",
+        )
+        assert update.breeding_url == "https://loveracing.nz/Breeding/123.aspx"
+        assert update.horse_status == "retired"
+        assert update.identity_status == "verified"
+
+    def test_update_partial(self):
+        from models import HorseUpdate
+        update = HorseUpdate(country_code="AU")
+        assert update.country_code == "AU"
+        assert update.breeding_url is None
 
 
 class TestHorseRoutes:

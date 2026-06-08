@@ -4,7 +4,7 @@ import pytest
 import json
 from unittest.mock import patch, MagicMock
 
-from routes.extract import parse_loveracing_url, scrape_loveracing_page, handle
+from ssot.routes.extract import parse_loveracing_url, scrape_loveracing_page, handle
 
 
 class TestParseLoveracingUrl:
@@ -33,8 +33,8 @@ class TestParseLoveracingUrl:
 class TestScrapeProxy:
     """Test proxy to racing-data Cloud Function."""
 
-    @patch("routes.extract.RACING_DATA_URL", "http://racing-data")
-    @patch("routes.extract.requests.post")
+    @patch("ssot.routes.extract.RACING_DATA_URL", "http://racing-data")
+    @patch("ssot.routes.extract.requests.post")
     def test_scrape_success(self, mock_post):
         mock_post.return_value = MagicMock(
             status_code=200,
@@ -65,7 +65,7 @@ class TestScrapeProxy:
         assert result["loveracing_id"] == 427416
         assert result["microchip"] == "985125000126462"
 
-    @patch("routes.extract.RACING_DATA_URL", "")
+    @patch("ssot.routes.extract.RACING_DATA_URL", "")
     def test_scrape_no_config(self):
         with pytest.raises(ValueError, match="RACING_DATA_URL not configured"):
             scrape_loveracing_page("https://example.com", 1, "test")
@@ -80,7 +80,7 @@ class TestHandle:
         req.get_json.return_value = json_body
         return req
 
-    @patch("routes.extract.scrape_loveracing_page")
+    @patch("ssot.routes.extract.scrape_loveracing_page")
     def test_handle_success(self, mock_scrape):
         from flask import Flask
         app = Flask(__name__)

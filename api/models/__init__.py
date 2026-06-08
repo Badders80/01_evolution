@@ -58,6 +58,18 @@ class HorseCreate(BaseModel):
     right_shoulder_brand: Optional[str] = Field(None, examples=["85 OVER 1"])
     trainer_id: Optional[str] = Field(None, description="Reference to current trainer document ID.")
     status: Literal["active", "retired", "deceased"] = Field("active")
+    breeding_url: Optional[str] = Field(None, description="loveracing.nz breeding page URL")
+    performance_profile_url: Optional[str] = Field(None, description="loveracing.nz performance modal URL")
+    country_code: Optional[str] = Field("NZ")
+    nztr_life_number: Optional[str] = Field(
+        None,
+        pattern=r"^NZ\d{8}$",
+        description="NZTR life number. e.g. NZ00427416",
+    )
+    horse_status: Literal["active", "retired", "deceased", "sold", "transferred"] = Field("active")
+    identity_status: Literal["verified", "pending", "unverified"] = Field("pending")
+    source_primary: Optional[str] = Field(None, description="e.g. loveracing.nz")
+    source_last_verified_at: Optional[date] = Field(None)
 
 
 class Horse(HorseCreate):
@@ -90,6 +102,14 @@ class HorseUpdate(BaseModel):
     trainer_id: Optional[str] = None
     image_url: Optional[str] = None
     status: Optional[Literal["active", "retired", "deceased"]] = None
+    breeding_url: Optional[str] = None
+    performance_profile_url: Optional[str] = None
+    country_code: Optional[str] = None
+    nztr_life_number: Optional[str] = None
+    horse_status: Optional[Literal["active", "retired", "deceased", "sold", "transferred"]] = None
+    identity_status: Optional[Literal["verified", "pending", "unverified"]] = None
+    source_primary: Optional[str] = None
+    source_last_verified_at: Optional[date] = None
 
 
 # ─── Owner ────────────────────────────────────────────────────────────────────
