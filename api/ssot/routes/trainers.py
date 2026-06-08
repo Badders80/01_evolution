@@ -48,6 +48,11 @@ def create_trainer(request: Request):
     doc_data["updated_at"] = firestore.SERVER_TIMESTAMP
 
     doc_ref.set(doc_data)
+    # Replace Firestore sentinel with a real timestamp for JSON response
+    from datetime import datetime, timezone
+    now_iso = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+    doc_data["created_at"] = now_iso
+    doc_data["updated_at"] = now_iso
     return jsonify(doc_data), 201
 
 
@@ -60,11 +65,14 @@ def get_trainer(trainer_id: str):
 
 
 def list_trainers(request: Request):
-    """List all trainers, optionally filtered by location."""
+    """List all trainers, optionally filtered by location or profile_status."""
     location = request.args.get("location")
+    profile_status = request.args.get("profile_status")
     query = _get_db().collection("trainers")
     if location:
         query = query.where("location", "==", location)
+    if profile_status:
+        query = query.where("profile_status", "==", profile_status)
     docs = query.get()
     return jsonify([doc.to_dict() for doc in docs]), 200
 

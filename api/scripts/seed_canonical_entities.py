@@ -85,7 +85,7 @@ def seed_governing_bodies(db: firestore.Client) -> dict[str, str]:
 
 
 def seed_owners(db: firestore.Client) -> dict[str, str]:
-    """Seed owners from SSOT_Build owner JSON files."""
+    """Seed owners from SSOT_Build owner JSON files with canonical IDs."""
     collection = _ensure_collection(db, "owners")
     results: dict[str, str] = {}
     owners_dir = DATA_ROOT / "owners"
@@ -95,12 +95,27 @@ def seed_owners(db: firestore.Client) -> dict[str, str]:
 
     for path in sorted(owners_dir.glob("OWN-*.json")):
         data = _load_json(path)
+        canonical_id = data.get("owner_id")
+        if not canonical_id:
+            logger.error("Owner %s missing canonical owner_id — skipped", path.name)
+            results[path.name] = "missing_id"
+            continue
+
         # Map SSOT_Build fields to OwnerCreate fields
         payload = {
             "name": data.get("owner_name", data.get("name", "")),
             "email": data.get("email", "unknown@example.com"),
             "phone": data.get("phone"),
             "type": "corporate" if data.get("entity_type") == "company" else "individual",
+            "entity_type": data.get("entity_type", "individual"),
+            "contact_name": data.get("contact_name"),
+            "website": data.get("website"),
+            "x_url": data.get("x_url"),
+            "instagram_url": data.get("instagram_url"),
+            "facebook_url": data.get("facebook_url"),
+            "profile_status": data.get("profile_status", "active"),
+            "profile_origin": data.get("profile_origin"),
+            "notes": data.get("notes"),
             "address": None,
             "bank_account": None,
             "ird_number": None,
@@ -117,20 +132,25 @@ def seed_owners(db: firestore.Client) -> dict[str, str]:
             results[path.name] = "validation_error"
             continue
 
-        doc_ref = collection.document()
+        doc_ref = collection.document(canonical_id)
+        if doc_ref.get().exists:
+            logger.info("Owner %s already exists — skipped", canonical_id)
+            results[path.name] = "existed"
+            continue
+
         doc_data = owner.model_dump()
-        doc_data["id"] = doc_ref.id
+        doc_data["id"] = canonical_id
         doc_data["created_at"] = firestore.SERVER_TIMESTAMP
         doc_data["updated_at"] = firestore.SERVER_TIMESTAMP
         doc_ref.set(doc_data)
-        logger.info("Owner %s created as %s", path.name, doc_ref.id)
-        results[path.name] = f"created:{doc_ref.id}"
+        logger.info("Owner %s created", canonical_id)
+        results[path.name] = f"created:{canonical_id}"
 
     return results
 
 
 def seed_trainers(db: firestore.Client) -> dict[str, str]:
-    """Seed trainers from SSOT_Build trainer JSON files."""
+    """Seed trainers from SSOT_Build trainer JSON files with canonical IDs."""
     collection = _ensure_collection(db, "trainers")
     results: dict[str, str] = {}
     trainers_dir = DATA_ROOT / "trainers"
@@ -140,6 +160,13 @@ def seed_trainers(db: firestore.Client) -> dict[str, str]:
 
     for path in sorted(trainers_dir.glob("*.json")):
         data = _load_json(path)
+        canonical_id = data.get("trainer_id")
+        if not canonical_id:
+            logger.error("Trainer %s missing canonical trainer_id — skipped", path.name)
+            results[path.name] = "missing_id"
+            continue
+
+        social = data.get("social_links", {})
         payload = {
             "name": data.get("trainer_name", data.get("name", "")),
             "stable_name": data.get("stable_name", data.get("trainer_name", "")),
@@ -147,6 +174,15 @@ def seed_trainers(db: firestore.Client) -> dict[str, str]:
             "email": "unknown@example.com",
             "phone": None,
             "nztr_license_number": None,
+            "full_address": data.get("full_address"),
+            "bio": data.get("bio"),
+            "notable_wins": data.get("notable_wins", []),
+            "website": data.get("website"),
+            "x_url": social.get("x_url"),
+            "instagram_url": social.get("instagram_url"),
+            "facebook_url": social.get("facebook_url"),
+            "profile_status": "active",
+            "contact_name": data.get("contact_name"),
         }
         if not payload["name"]:
             logger.error("Trainer %s missing name — skipped", path.name)
@@ -160,14 +196,19 @@ def seed_trainers(db: firestore.Client) -> dict[str, str]:
             results[path.name] = "validation_error"
             continue
 
-        doc_ref = collection.document()
+        doc_ref = collection.document(canonical_id)
+        if doc_ref.get().exists:
+            logger.info("Trainer %s already exists — skipped", canonical_id)
+            results[path.name] = "existed"
+            continue
+
         doc_data = trainer.model_dump()
-        doc_data["id"] = doc_ref.id
+        doc_data["id"] = canonical_id
         doc_data["created_at"] = firestore.SERVER_TIMESTAMP
         doc_data["updated_at"] = firestore.SERVER_TIMESTAMP
         doc_ref.set(doc_data)
-        logger.info("Trainer %s created as %s", path.name, doc_ref.id)
-        results[path.name] = f"created:{doc_ref.id}"
+        logger.info("Trainer %s created", canonical_id)
+        results[path.name] = f"created:{canonical_id}"
 
     return results
 

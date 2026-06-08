@@ -49,6 +49,11 @@ def create_owner(request: Request):
     doc_data["updated_at"] = firestore.SERVER_TIMESTAMP
 
     doc_ref.set(doc_data)
+    # Replace Firestore sentinel with a real timestamp for JSON response
+    from datetime import datetime, timezone
+    now_iso = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+    doc_data["created_at"] = now_iso
+    doc_data["updated_at"] = now_iso
     return jsonify(doc_data), 201
 
 
@@ -63,9 +68,12 @@ def get_owner(owner_id: str):
 def list_owners(request: Request):
     """List all owners, optionally filtered by type."""
     owner_type = request.args.get("type")
+    entity_type = request.args.get("entity_type")
     query = _get_db().collection("owners")
     if owner_type:
         query = query.where("type", "==", owner_type)
+    if entity_type:
+        query = query.where("entity_type", "==", entity_type)
     docs = query.get()
     return jsonify([doc.to_dict() for doc in docs]), 200
 

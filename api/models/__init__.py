@@ -100,6 +100,15 @@ class OwnerCreate(BaseModel):
     email: str = Field(..., description="Primary contact email.")
     phone: Optional[str] = Field(None, examples=["+64 21 123 4567"])
     type: Literal["individual", "syndicate", "corporate"] = Field("individual")
+    entity_type: Literal["individual", "company", "syndicate"] = Field("individual")
+    contact_name: Optional[str] = Field(None)
+    website: Optional[str] = Field(None)
+    x_url: Optional[str] = Field(None)
+    instagram_url: Optional[str] = Field(None)
+    facebook_url: Optional[str] = Field(None)
+    profile_status: Literal["active", "inactive", "under_review"] = Field("active")
+    profile_origin: Optional[str] = Field(None)
+    notes: Optional[str] = Field(None)
     address: Optional[str] = Field(None, description="Physical address for legal documents.")
     bank_account: Optional[str] = Field(None, description="Bank account for distributions.")
     ird_number: Optional[str] = Field(None, description="IRD number for tax purposes.")
@@ -118,6 +127,15 @@ class OwnerUpdate(BaseModel):
     email: Optional[str] = None
     phone: Optional[str] = None
     type: Optional[Literal["individual", "syndicate", "corporate"]] = None
+    entity_type: Optional[Literal["individual", "company", "syndicate"]] = None
+    contact_name: Optional[str] = None
+    website: Optional[str] = None
+    x_url: Optional[str] = None
+    instagram_url: Optional[str] = None
+    facebook_url: Optional[str] = None
+    profile_status: Optional[Literal["active", "inactive", "under_review"]] = None
+    profile_origin: Optional[str] = None
+    notes: Optional[str] = None
     address: Optional[str] = None
     bank_account: Optional[str] = None
     ird_number: Optional[str] = None
@@ -133,6 +151,15 @@ class TrainerCreate(BaseModel):
     email: str = Field(...)
     phone: Optional[str] = Field(None)
     nztr_license_number: Optional[str] = Field(None, description="NZTR trainer license number.")
+    full_address: Optional[str] = Field(None)
+    bio: Optional[str] = Field(None)
+    notable_wins: list[str] = Field(default_factory=list)
+    website: Optional[str] = Field(None)
+    x_url: Optional[str] = Field(None)
+    instagram_url: Optional[str] = Field(None)
+    facebook_url: Optional[str] = Field(None)
+    profile_status: Literal["active", "inactive", "under_review"] = Field("active")
+    contact_name: Optional[str] = Field(None)
 
 
 class Trainer(TrainerCreate):
@@ -150,6 +177,15 @@ class TrainerUpdate(BaseModel):
     email: Optional[str] = None
     phone: Optional[str] = None
     nztr_license_number: Optional[str] = None
+    full_address: Optional[str] = None
+    bio: Optional[str] = None
+    notable_wins: Optional[list[str]] = None
+    website: Optional[str] = None
+    x_url: Optional[str] = None
+    instagram_url: Optional[str] = None
+    facebook_url: Optional[str] = None
+    profile_status: Optional[Literal["active", "inactive", "under_review"]] = None
+    contact_name: Optional[str] = None
 
 
 # ─── HLT ──────────────────────────────────────────────────────────────────────
