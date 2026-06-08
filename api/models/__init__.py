@@ -224,7 +224,7 @@ class HLTDocuments(BaseModel):
 
 
 class HLTCreate(BaseModel):
-    """Payload for creating a new HLT record."""
+    """Payload for creating a new HLT record (lean published record)."""
     horse_microchip: str = Field(
         ...,
         pattern=r"^\d{15}$",
@@ -232,16 +232,8 @@ class HLTCreate(BaseModel):
     )
     owner_id: str = Field(..., description="Reference to the owner document ID.")
     trainer_id: str = Field(..., description="Reference to the trainer document ID.")
-    lease_period_months: int = Field(..., ge=1, examples=[36])
-    lease_start_date: date = Field(...)
-    leasehold_stake_percentage: float = Field(..., ge=0, le=100)
-    investor_return_percentage: float = Field(..., ge=0, le=100)
-    syndicate_price_cents: int = Field(..., ge=0, examples=[500000])
-    shares_total: int = Field(..., ge=1, examples=[50])
-    shares_sold: int = Field(0, ge=0, description="Step 1: always 0.")
-    share_price_cents: int = Field(..., ge=0, examples=[10000])
-    fractional_interest_per_share: Optional[float] = Field(None)
-    currency: Literal["NZD"] = Field("NZD")
+    lease_id: str = Field(..., description="Reference to the lease document ID (canonical).")
+    status: Literal["draft", "reviewed", "publish_ready", "published"] = "draft"
 
 
 class HLT(HLTCreate):
@@ -255,15 +247,51 @@ class HLT(HLTCreate):
 
 class HLTUpdate(BaseModel):
     """Payload for updating an HLT record. All fields optional."""
-    lease_period_months: Optional[int] = None
-    lease_start_date: Optional[date] = None
-    leasehold_stake_percentage: Optional[float] = None
-    investor_return_percentage: Optional[float] = None
-    syndicate_price_cents: Optional[int] = None
-    shares_total: Optional[int] = None
-    share_price_cents: Optional[int] = None
-    fractional_interest_per_share: Optional[float] = None
+    lease_id: Optional[str] = None
     status: Optional[Literal["draft", "reviewed", "publish_ready", "published"]] = None
+
+
+# ─── Lease ────────────────────────────────────────────────────────────────────
+
+class LeaseCreate(BaseModel):
+    """Payload for creating a new lease record (draft commercial terms)."""
+    lease_id: str = Field(..., description="Canonical lease ID. e.g. LSE-001")
+    horse_id: str = Field(..., description="Reference to horse microchip or canonical ID.")
+    start_date: date = Field(...)
+    end_date: date = Field(...)
+    duration_months: int = Field(..., ge=1)
+    percent_leased: float = Field(..., ge=0, le=100)
+    token_count: int = Field(..., ge=1)
+    percent_per_token: float = Field(..., ge=0)
+    token_price_nzd: float = Field(..., ge=0)
+    total_issuance_value_nzd: float = Field(..., ge=0)
+    investor_share_percent: float = Field(..., ge=0, le=100)
+    owner_share_percent: float = Field(..., ge=0, le=100)
+    platform_fee_percent: float = Field(0, ge=0)
+    lease_status: Literal["draft", "review", "complete"] = "draft"
+
+
+class Lease(LeaseCreate):
+    """Full lease record with server-generated fields."""
+    id: str
+    created_at: datetime
+    updated_at: datetime
+
+
+class LeaseUpdate(BaseModel):
+    """Payload for updating a lease record. All fields optional."""
+    start_date: Optional[date] = None
+    end_date: Optional[date] = None
+    duration_months: Optional[int] = None
+    percent_leased: Optional[float] = None
+    token_count: Optional[int] = None
+    percent_per_token: Optional[float] = None
+    token_price_nzd: Optional[float] = None
+    total_issuance_value_nzd: Optional[float] = None
+    investor_share_percent: Optional[float] = None
+    owner_share_percent: Optional[float] = None
+    platform_fee_percent: Optional[float] = None
+    lease_status: Optional[Literal["draft", "review", "complete"]] = None
 
 
 # ─── Asset ─────────────────────────────────────────────────────────────────────
