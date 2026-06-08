@@ -68,6 +68,8 @@ def handle(request: Request, hlt_id: str | None = None):
         return get_hlt(hlt_id, request)
     if request.method == "GET":
         return list_hlts(request)
+    if request.method == "POST" and hlt_id == "workflow":
+        return create_hlt_workflow(request)
     if request.method == "POST":
         return create_hlt(request)
     if request.method == "PATCH" and hlt_id:
@@ -197,3 +199,104 @@ def delete_hlt(hlt_id: str):
 
     doc_ref.delete()
     return jsonify({"message": f"HLT {hlt_id} deleted"}), 200
+
+
+def create_hlt_workflow(request: Request):
+    """HLT Workflow — Create Lease + HLT in one transaction.
+
+    User provides: horse_microchip, owner_id, trainer_id
+    Plus lease pricing: percent_leased, duration_months, token_count, min_unit_size,
+    price_basis, price_period, price_amount, investor_share_percent, owner_share_percent
+
+    System:
+      1. Validates horse/owner/trainer exist
+      2. Creates Lease (auto-derived pricing)
+      3. Creates HLT linking to the new lease_id
+      4. Returns {lease, hlt}
+    """
+    try:
+        data = request.get_json(force=True)
+    except Exception:
+        return jsonify({"error": "Invalid JSON body"}), 400
+
+    # ─── Validate references ─────────────────────────────────────────
+    horse_microchip = data.get("horse_microchip")
+    owner_id = data.get("owner_id")
+    trainer_id = data.get("trainer_id")
+
+    if not all([horse_microchip, owner_id, trainer_id]):
+        return jsonify({"error": "horse_microchip, owner_id, trainer_id are required"}), 400
+
+    horse_doc = _get_db().collection("horses").document(horse_microchip).get()
+    if not horse_doc.exists:
+        return jsonify({"error": f"Horse {horse_microchip} not found"}), 400
+
+    owner_doc = _get_db().collection("owners").document(owner_id).get()
+    if not owner_doc.exists:
+        return jsonify({"error": f"Owner {owner_id} not found"}), 400
+
+    trainer_doc = _get_db().collection("trainers").document(trainer_id).get()
+    if not trainer_doc.exists:
+        return jsonify({"error": f"Trainer {trainer_id} not found"}), 400
+
+    # ─── Extract lease fields ──────────────────────────────────────
+    from models import LeaseCreate
+    lease_fields = [
+        "lease_id", "start_date", "end_date", "duration_months",
+        "percent_leased", "token_count", "min_unit_size",
+        "price_basis", "price_period", "price_amount",
+        "investor_share_percent", "owner_share_percent",
+    ]
+    lease_data = {k: data.get(k) for k in lease_fields if data.get(k) is not None}
+    lease_data["horse_id"] = horse_microchip
+    lease_data.setdefault("platform_fee_percent", 0)
+    lease_data.setdefault("lease_status", "draft")
+
+    try:
+        lease = LeaseCreate(**lease_data)
+    except Exception as e:
+        return jsonify({"error": f"Lease validation error: {str(e)}"}), 400
+
+    # Check lease_id uniqueness
+    doc_ref = _get_db().collection("leases").document(lease.lease_id)
+    if doc_ref.get().exists:
+        return jsonify({"error": f"Lease {lease.lease_id} already exists"}), 409
+
+    # ─── Create Lease ──────────────────────────────────────────────
+    lease_doc = lease.model_dump()
+    lease_doc["id"] = lease.lease_id
+    lease_doc["created_at"] = firestore.SERVER_TIMESTAMP
+    lease_doc["updated_at"] = firestore.SERVER_TIMESTAMP
+    doc_ref.set(lease_doc)
+
+    # ─── Create HLT ───────────────────────────────────────────────
+    from models import HLTCreate
+    hlt_create = HLTCreate(
+        horse_microchip=horse_microchip,
+        owner_id=owner_id,
+        trainer_id=trainer_id,
+        lease_id=lease.lease_id,
+    )
+
+    hlt_ref = _get_db().collection("hlts").document()
+    hlt_doc = hlt_create.model_dump()
+    hlt_doc["id"] = hlt_ref.id
+    hlt_doc["status"] = "draft"
+    hlt_doc["documents"] = {
+        "term_sheet": {"status": "pending", "gcs_url": None},
+        "pds": {"status": "pending", "gcs_url": None},
+        "sa": {"status": "pending", "gcs_url": None},
+    }
+    hlt_doc["created_at"] = firestore.SERVER_TIMESTAMP
+    hlt_doc["updated_at"] = firestore.SERVER_TIMESTAMP
+    hlt_ref.set(hlt_doc)
+
+    # ─── Replace timestamps for JSON response ────────────────────
+    from datetime import datetime, timezone
+    now_iso = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+    lease_doc["created_at"] = now_iso
+    lease_doc["updated_at"] = now_iso
+    hlt_doc["created_at"] = now_iso
+    hlt_doc["updated_at"] = now_iso
+
+    return jsonify({"lease": lease_doc, "hlt": hlt_doc}), 201
