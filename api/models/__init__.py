@@ -334,27 +334,4 @@ class Holding(HoldingCreate):
 
 # ─── Loveracing.nz Reference ──────────────────────────────────────────────────
 
-class LoveracingRef(BaseModel):
-    """
-    Reference data extracted from a loveracing.nz Stud Book page.
-    This is the rosetta stone — every NZ horse has one.
-    URL pattern: https://loveracing.nz/Breeding/{loveracingId}/{nameSlug}.aspx
-    """
-    loveracing_id: int = Field(..., description="HorseID from loveracing.nz URL.")
-    name: str = Field(..., examples=["Prudentia (NZ) 2021"])
-    name_slug: str = Field(..., examples=["Prudentia-NZ-2021"])
-    microchip: str = Field(..., pattern=r"^\d{15}$", examples=["985125000126462"])
-    life_number: str = Field(..., pattern=r"^NZ\d{8}$", examples=["NZ00427416"])
-    foaling_date: date
-    sex: str
-    colour: Optional[str] = None
-    sire_name: Optional[str] = None
-    sire_loveracing_id: Optional[int] = None
-    dam_name: Optional[str] = None
-    dam_loveracing_id: Optional[int] = None
-    family_number: Optional[str] = None
-    dna_typed: bool = False
-    pv: bool = False
-    breeder: Optional[str] = None
-    left_shoulder_brand: Optional[str] = None
-    right_shoulder_brand: Optional[str] = None
+# NOTE: LoveracingRef, RaceResult, HorseRacingSummary moved to 05_industry-data/src/models.py
