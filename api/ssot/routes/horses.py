@@ -13,7 +13,13 @@ from flask import Request, jsonify
 from google.cloud import firestore
 from models import HorseCreate, HorseUpdate
 
-db = firestore.Client()
+_DB = None
+
+def _get_db():
+    global _DB
+    if _DB is None:
+        _DB = firestore.Client()
+    return _DB
 
 
 def handle(request: Request, microchip: str | None = None):
@@ -39,9 +45,9 @@ def create_horse(request: Request):
     except Exception as e:
         return jsonify({"error": f"Validation error: {str(e)}"}), 400
 
-    # Check microchip uniqueness
-    existing = db.collection("horses").where("microchip", "==", horse.microchip).limit(1).get()
-    if existing:
+    # Check microchip uniqueness (direct document get)
+    doc_ref = _get_db().collection("horses").document(horse.microchip)
+    if doc_ref.get().exists:
         return jsonify({"error": f"Horse with microchip {horse.microchip} already exists"}), 409
 
     # Compute age from foaling_date
@@ -51,30 +57,36 @@ def create_horse(request: Request):
     # Compute name_slug if not provided
     name_slug = horse.name_slug or horse.name.replace(" ", "-")
 
-    doc_ref = db.collection("horses").document()
     doc_data = horse.model_dump()
-    doc_data["id"] = doc_ref.id
+    doc_data["id"] = horse.microchip
     doc_data["age"] = age
     doc_data["name_slug"] = name_slug
     doc_data["created_at"] = firestore.SERVER_TIMESTAMP
     doc_data["updated_at"] = firestore.SERVER_TIMESTAMP
 
     doc_ref.set(doc_data)
+    # Replace Firestore sentinel with a real timestamp for JSON response
+    from datetime import datetime, timezone
+    now_iso = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+    doc_data["created_at"] = now_iso
+    doc_data["updated_at"] = now_iso
     return jsonify(doc_data), 201
 
 
 def get_horse(microchip: str):
     """Get a horse by microchip number."""
-    docs = db.collection("horses").where("microchip", "==", microchip).limit(1).get()
-    if not docs:
+    doc = _get_db().collection("horses").document(microchip).get()
+    if not doc.exists:
         return jsonify({"error": f"Horse with microchip {microchip} not found"}), 404
-    return jsonify(docs[0].to_dict()), 200
+    data = doc.to_dict()
+    data["id"] = doc.id
+    return jsonify(data), 200
 
 
 def list_horses(request: Request):
     """List all horses, optionally filtered by status."""
     status = request.args.get("status")
-    query = db.collection("horses")
+    query = _get_db().collection("horses")
     if status:
         query = query.where("status", "==", status)
     docs = query.get()
@@ -89,37 +101,35 @@ def update_horse(microchip: str, request: Request):
     except Exception as e:
         return jsonify({"error": f"Validation error: {str(e)}"}), 400
 
-    docs = db.collection("horses").where("microchip", "==", microchip).limit(1).get()
-    if not docs:
+    doc_ref = _get_db().collection("horses").document(microchip)
+    if not doc_ref.get().exists:
         return jsonify({"error": f"Horse with microchip {microchip} not found"}), 404
 
-    doc_ref = docs[0].reference
-    update_data = {k: v for k, v in update.model_dump().items() if v is not None}
-    update_data["updated_at"] = firestore.SERVER_TIMESTAMP
+    update_dict = update.model_dump(exclude_none=True)
+    update_dict["updated_at"] = firestore.SERVER_TIMESTAMP
 
     # Recompute age if foaling_date changed
-    if "foaling_date" in update_data:
-        from datetime import date
-        foaling = update_data["foaling_date"]
+    if "foaling_date" in update_dict:
+        from datetime import date, datetime
+        foaling = update_dict["foaling_date"]
         if isinstance(foaling, str):
-            from datetime import datetime
             foaling = datetime.fromisoformat(foaling).date()
-        update_data["age"] = (date.today() - foaling).days // 365
+        update_dict["age"] = (date.today() - foaling).days // 365
 
-    doc_ref.update(update_data)
-    return jsonify({"message": f"Horse {microchip} updated"}), 200
+    doc_ref.update(update_dict)
+    return jsonify({"updated": True, "microchip": microchip}), 200
 
 
 def delete_horse(microchip: str):
     """Delete a horse by microchip number. Only if no HLTs reference it."""
     # Check for HLTs referencing this horse
-    hlts = db.collection("hlts").where("horse_microchip", "==", microchip).limit(1).get()
+    hlts = _get_db().collection("hlts").where("horse_microchip", "==", microchip).limit(1).get()
     if hlts:
         return jsonify({"error": f"Cannot delete horse {microchip}: HLTs reference it"}), 409
 
-    docs = db.collection("horses").where("microchip", "==", microchip).limit(1).get()
-    if not docs:
+    doc_ref = _get_db().collection("horses").document(microchip)
+    if not doc_ref.get().exists:
         return jsonify({"error": f"Horse with microchip {microchip} not found"}), 404
 
-    docs[0].reference.delete()
-    return jsonify({"message": f"Horse {microchip} deleted"}), 200
+    doc_ref.delete()
+    return jsonify({"deleted": True, "microchip": microchip}), 200

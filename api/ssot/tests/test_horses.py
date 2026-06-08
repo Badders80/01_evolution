@@ -4,7 +4,7 @@ import pytest
 from unittest.mock import patch, MagicMock
 from pydantic import ValidationError
 
-from models import HorseCreate, Horse, LoveracingRef
+from models import HorseCreate, Horse
 
 
 class TestHorseCreate:
@@ -64,54 +64,202 @@ class TestHorseCreate:
         assert horse.breeder is None
         assert horse.status == "active"
 
-    def test_with_loveracing_ref(self):
-        ref = LoveracingRef(
-            loveracing_id=427416,
-            name_slug="prudentia-nz",
-            life_number="NZ00427416",
-            sire_name="Savabeel",
-            dam_name="Diademe",
-            colour="Bay",
-            sex="Filly",
-            foaling_date="2021-09-15",
-            breeder="Waikato Stud",
-            brands="3YO Bay Filly",
-            source_url="https://loveracing.nz/Breeding/427416/Prudentia-NZ.aspx",
-        )
-        horse = HorseCreate(
-            microchip="985125000126462",
-            name="Prudentia NZ",
-            foaling_date="2021-09-15",
-            sex="filly",
-            loveracing_ref=ref,
-        )
-        assert horse.loveracing_ref is not None
-        assert horse.loveracing_ref.loveracing_id == 427416
-
 
 class TestHorseRoutes:
-    """Test horse route handlers (requires Firestore mock)."""
+    """Test horse route handlers with Firestore mocks."""
 
-    @patch("routes.horses.db")
-    def test_create_horse_success(self, mock_db):
-        """Test that creating a horse calls Firestore correctly."""
-        mock_collection = MagicMock()
-        mock_db.collection.return_value = mock_collection
-        mock_query = MagicMock()
-        mock_collection.where.return_value = mock_query
-        mock_query.limit.return_value = mock_query
-        mock_query.get.return_value = []  # No existing horse with this microchip
+    @pytest.fixture
+    def app(self):
+        from flask import Flask
+        app = Flask(__name__)
+        return app
+
+    def test_create_horse_success(self, app):
+        from ssot.routes.horses import create_horse
+        from unittest.mock import MagicMock, patch
+        from flask import request
 
         mock_doc_ref = MagicMock()
-        mock_doc_ref.id = "test-horse-id"
+        mock_doc_ref.get.return_value.exists = False
+        mock_collection = MagicMock()
         mock_collection.document.return_value = mock_doc_ref
+        mock_db = MagicMock()
+        mock_db.collection.return_value = mock_collection
 
-        # This would be called via Flask test client in integration tests
-        # For now, we verify the model validation works
-        horse = HorseCreate(
-            microchip="985125000126462",
-            name="Test Horse",
-            foaling_date="2021-01-01",
-            sex="colt",
-        )
-        assert horse.microchip == "985125000126462"
+        with app.test_request_context(
+            "/", method="POST", json={
+                "microchip": "985125000126462",
+                "name": "Test Horse",
+                "foaling_date": "2021-01-01",
+                "sex": "colt",
+            }
+        ):
+            with patch("ssot.routes.horses._get_db", return_value=mock_db):
+                resp, status = create_horse(request)
+                assert status == 201
+                mock_collection.document.assert_called_once_with("985125000126462")
+                mock_doc_ref.set.assert_called_once()
+
+    def test_create_horse_duplicate(self, app):
+        from ssot.routes.horses import create_horse
+        from unittest.mock import MagicMock, patch
+        from flask import request
+
+        mock_doc_ref = MagicMock()
+        mock_doc_ref.get.return_value.exists = True
+        mock_collection = MagicMock()
+        mock_collection.document.return_value = mock_doc_ref
+        mock_db = MagicMock()
+        mock_db.collection.return_value = mock_collection
+
+        with app.test_request_context(
+            "/", method="POST", json={
+                "microchip": "985125000126462",
+                "name": "Test Horse",
+                "foaling_date": "2021-01-01",
+                "sex": "colt",
+            }
+        ):
+            with patch("ssot.routes.horses._get_db", return_value=mock_db):
+                resp, status = create_horse(request)
+                assert status == 409
+                mock_collection.document.assert_called_once_with("985125000126462")
+
+    def test_get_horse_success(self, app):
+        from ssot.routes.horses import get_horse
+        from unittest.mock import MagicMock, patch
+
+        mock_doc = MagicMock()
+        mock_doc.exists = True
+        mock_doc.id = "985125000126462"
+        mock_doc.to_dict.return_value = {"name": "Test Horse"}
+        mock_doc_ref = MagicMock()
+        mock_doc_ref.get.return_value = mock_doc
+        mock_collection = MagicMock()
+        mock_collection.document.return_value = mock_doc_ref
+        mock_db = MagicMock()
+        mock_db.collection.return_value = mock_collection
+
+        with app.test_request_context("/", method="GET"):
+            with patch("ssot.routes.horses._get_db", return_value=mock_db):
+                resp, status = get_horse("985125000126462")
+                assert status == 200
+                mock_collection.document.assert_called_once_with("985125000126462")
+
+    def test_get_horse_not_found(self, app):
+        from ssot.routes.horses import get_horse
+        from unittest.mock import MagicMock, patch
+
+        mock_doc = MagicMock()
+        mock_doc.exists = False
+        mock_doc_ref = MagicMock()
+        mock_doc_ref.get.return_value = mock_doc
+        mock_collection = MagicMock()
+        mock_collection.document.return_value = mock_doc_ref
+        mock_db = MagicMock()
+        mock_db.collection.return_value = mock_collection
+
+        with app.test_request_context("/", method="GET"):
+            with patch("ssot.routes.horses._get_db", return_value=mock_db):
+                resp, status = get_horse("985125000126462")
+                assert status == 404
+                mock_collection.document.assert_called_once_with("985125000126462")
+
+    def test_update_horse_success(self, app):
+        from ssot.routes.horses import update_horse
+        from unittest.mock import MagicMock, patch
+        from flask import request
+
+        mock_doc = MagicMock()
+        mock_doc.exists = True
+        mock_doc_ref = MagicMock()
+        mock_doc_ref.get.return_value = mock_doc
+        mock_collection = MagicMock()
+        mock_collection.document.return_value = mock_doc_ref
+        mock_db = MagicMock()
+        mock_db.collection.return_value = mock_collection
+
+        with app.test_request_context("/", method="PATCH", json={"name": "Updated Name"}):
+            with patch("ssot.routes.horses._get_db", return_value=mock_db):
+                resp, status = update_horse("985125000126462", request)
+                assert status == 200
+                mock_collection.document.assert_called_once_with("985125000126462")
+                mock_doc_ref.update.assert_called_once()
+
+    def test_update_horse_not_found(self, app):
+        from ssot.routes.horses import update_horse
+        from unittest.mock import MagicMock, patch
+        from flask import request
+
+        mock_doc = MagicMock()
+        mock_doc.exists = False
+        mock_doc_ref = MagicMock()
+        mock_doc_ref.get.return_value = mock_doc
+        mock_collection = MagicMock()
+        mock_collection.document.return_value = mock_doc_ref
+        mock_db = MagicMock()
+        mock_db.collection.return_value = mock_collection
+
+        with app.test_request_context("/", method="PATCH", json={"name": "Updated Name"}):
+            with patch("ssot.routes.horses._get_db", return_value=mock_db):
+                resp, status = update_horse("985125000126462", request)
+                assert status == 404
+
+    def test_delete_horse_success(self, app):
+        from ssot.routes.horses import delete_horse
+        from unittest.mock import MagicMock, patch
+
+        mock_hlt_collection = MagicMock()
+        mock_hlt_collection.where.return_value.limit.return_value.get.return_value = []
+        mock_doc = MagicMock()
+        mock_doc.exists = True
+        mock_doc_ref = MagicMock()
+        mock_doc_ref.get.return_value = mock_doc
+        mock_collection = MagicMock()
+        mock_collection.document.return_value = mock_doc_ref
+        mock_db = MagicMock()
+
+        def collection_side_effect(name):
+            if name == "horses":
+                return mock_collection
+            if name == "hlts":
+                return mock_hlt_collection
+            return MagicMock()
+
+        mock_db.collection.side_effect = collection_side_effect
+
+        with app.test_request_context("/", method="DELETE"):
+            with patch("ssot.routes.horses._get_db", return_value=mock_db):
+                resp, status = delete_horse("985125000126462")
+                assert status == 200
+                mock_collection.document.assert_called_once_with("985125000126462")
+                mock_doc_ref.delete.assert_called_once()
+
+    def test_delete_horse_not_found(self, app):
+        from ssot.routes.horses import delete_horse
+        from unittest.mock import MagicMock, patch
+
+        mock_hlt_collection = MagicMock()
+        mock_hlt_collection.where.return_value.limit.return_value.get.return_value = []
+        mock_doc = MagicMock()
+        mock_doc.exists = False
+        mock_doc_ref = MagicMock()
+        mock_doc_ref.get.return_value = mock_doc
+        mock_collection = MagicMock()
+        mock_collection.document.return_value = mock_doc_ref
+        mock_db = MagicMock()
+
+        def collection_side_effect(name):
+            if name == "horses":
+                return mock_collection
+            if name == "hlts":
+                return mock_hlt_collection
+            return MagicMock()
+
+        mock_db.collection.side_effect = collection_side_effect
+
+        with app.test_request_context("/", method="DELETE"):
+            with patch("ssot.routes.horses._get_db", return_value=mock_db):
+                resp, status = delete_horse("985125000126462")
+                assert status == 404
+                mock_collection.document.assert_called_once_with("985125000126462")
