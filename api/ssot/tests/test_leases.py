@@ -1,4 +1,4 @@
-"""Tests for the SSOT Lease API."""
+"""Tests for the SSOT Lease Calculator model + API."""
 
 import pytest
 from pydantic import ValidationError
@@ -7,28 +7,123 @@ from datetime import date
 from models import LeaseCreate, LeaseUpdate
 
 
-class TestLeaseCreate:
-    """Test LeaseCreate Pydantic model validation."""
+class TestLeaseCreateCalculator:
+    """Test the pricing calculator logic."""
 
-    def test_valid_lease(self):
+    def test_prudentia_per_1pct_month(self):
+        """Prudentia: 5% leased, 18 months, $65 per 1% per month."""
+        lease = LeaseCreate(
+            lease_id="LSE-002",
+            horse_id="985125000126462",
+            start_date="2026-01-01",
+            end_date="2027-06-30",
+            duration_months=18,
+            percent_leased=5,
+            token_count=20,
+            min_unit_size=0.25,
+            price_basis="per_1pct",
+            price_period="month",
+            price_amount=65,
+            investor_share_percent=75,
+            owner_share_percent=25,
+        )
+        assert lease.price_per_1pct_per_month == 65.0
+        assert lease.price_per_1pct_per_year == 780.0
+        assert lease.monthly_stake_price == 325.0
+        assert lease.annual_stake_price == 3900.0
+        assert lease.total_issuance_value_nzd == 5850.0
+        assert lease.percent_per_token == 0.25
+        assert lease.token_price_nzd == 292.5
+
+    def test_hottathanafantasy_per_1pct_year(self):
+        """Hottathanafantasy: 5% leased, 16 months, $840 per 1% per year."""
+        lease = LeaseCreate(
+            lease_id="LSE-003",
+            horse_id="985125000139165",
+            start_date="2025-03-01",
+            end_date="2026-06-30",
+            duration_months=16,
+            percent_leased=5,
+            token_count=20,
+            min_unit_size=0.25,
+            price_basis="per_1pct",
+            price_period="year",
+            price_amount=840,
+            investor_share_percent=75,
+            owner_share_percent=25,
+        )
+        assert lease.price_per_1pct_per_month == 70.0
+        assert lease.total_issuance_value_nzd == 5600.0
+        assert lease.percent_per_token == 0.25
+        assert lease.token_price_nzd == 280.0
+
+    def test_first_gear_full_stake_total(self):
+        """First Gear: 10% leased, 12 months, $4,800 total for full stake."""
         lease = LeaseCreate(
             lease_id="LSE-001",
+            horse_id="985125000126713",
+            start_date="2025-07-01",
+            end_date="2026-06-30",
+            duration_months=12,
+            percent_leased=10,
+            token_count=20,
+            min_unit_size=0.50,
+            price_basis="full_stake",
+            price_period="total",
+            price_amount=4800,
+            investor_share_percent=80,
+            owner_share_percent=20,
+        )
+        assert lease.price_per_1pct_per_month == 40.0
+        assert lease.total_issuance_value_nzd == 4800.0
+        assert lease.percent_per_token == 0.5
+        assert lease.token_price_nzd == 240.0
+
+    def test_full_stake_month(self):
+        """Full stake priced per month. 10% leased, $400/month for full stake."""
+        lease = LeaseCreate(
+            lease_id="LSE-TEST",
             horse_id="985125000126462",
             start_date="2025-07-01",
             end_date="2026-06-30",
             duration_months=12,
             percent_leased=10,
             token_count=20,
-            percent_per_token=0.5,
-            token_price_nzd=240,
-            total_issuance_value_nzd=4800,
+            min_unit_size=0.50,
+            price_basis="full_stake",
+            price_period="month",
+            price_amount=400,
             investor_share_percent=80,
             owner_share_percent=20,
         )
-        assert lease.lease_id == "LSE-001"
-        assert lease.lease_status == "draft"
+        assert lease.price_per_1pct_per_month == 40.0
+        assert lease.total_issuance_value_nzd == 4800.0
 
-    def test_lease_status_must_be_valid(self):
+    def test_per_1pct_total(self):
+        """Per 1% priced for total duration. 5% leased, 18 months, $5,850 per 1% for total."""
+        lease = LeaseCreate(
+            lease_id="LSE-TEST2",
+            horse_id="985125000126462",
+            start_date="2026-01-01",
+            end_date="2027-06-30",
+            duration_months=18,
+            percent_leased=5,
+            token_count=20,
+            min_unit_size=0.25,
+            price_basis="per_1pct",
+            price_period="total",
+            price_amount=5850,
+            investor_share_percent=75,
+            owner_share_percent=25,
+        )
+        assert lease.price_per_1pct_per_month == 325.0
+        assert lease.total_issuance_value_nzd == 29250.0
+
+
+class TestLeaseCreateValidation:
+    """Test LeaseCreate model validation errors."""
+
+    def test_invalid_lease_status(self):
         with pytest.raises(ValidationError):
             LeaseCreate(
                 lease_id="LSE-001",
@@ -38,9 +133,10 @@ class TestLeaseCreate:
                 duration_months=12,
                 percent_leased=10,
                 token_count=20,
-                percent_per_token=0.5,
-                token_price_nzd=240,
-                total_issuance_value_nzd=4800,
+                min_unit_size=0.50,
+                price_basis="per_1pct",
+                price_period="month",
+                price_amount=65,
                 investor_share_percent=80,
                 owner_share_percent=20,
                 lease_status="invalid",
@@ -54,11 +150,87 @@ class TestLeaseCreate:
                 start_date="2025-07-01",
                 end_date="2026-06-30",
                 duration_months=12,
-                percent_leased=110,  # Invalid
+                percent_leased=110,
                 token_count=20,
-                percent_per_token=0.5,
-                token_price_nzd=240,
-                total_issuance_value_nzd=4800,
+                min_unit_size=0.50,
+                price_basis="per_1pct",
+                price_period="month",
+                price_amount=65,
+                investor_share_percent=80,
+                owner_share_percent=20,
+            )
+
+    def test_share_split_must_sum_100(self):
+        with pytest.raises(ValidationError, match="Share split must sum to 100%"):
+            LeaseCreate(
+                lease_id="LSE-001",
+                horse_id="985125000126462",
+                start_date="2025-07-01",
+                end_date="2026-06-30",
+                duration_months=12,
+                percent_leased=10,
+                token_count=20,
+                min_unit_size=0.50,
+                price_basis="per_1pct",
+                price_period="month",
+                price_amount=65,
+                investor_share_percent=70,
+                owner_share_percent=20,
+                platform_fee_percent=5,
+            )
+
+    def test_unit_divisibility_fail(self):
+        with pytest.raises(ValidationError, match="evenly divisible"):
+            LeaseCreate(
+                lease_id="LSE-001",
+                horse_id="985125000126462",
+                start_date="2025-07-01",
+                end_date="2026-06-30",
+                duration_months=12,
+                percent_leased=10,
+                token_count=20,
+                min_unit_size=0.30,  # 10 / 0.30 = 33.33 — not even
+                price_basis="per_1pct",
+                price_period="month",
+                price_amount=65,
+                investor_share_percent=80,
+                owner_share_percent=20,
+            )
+
+    def test_unit_divisibility_pass(self):
+        """10 / 0.25 = 40 — even."""
+        lease = LeaseCreate(
+            lease_id="LSE-001",
+            horse_id="985125000126462",
+            start_date="2025-07-01",
+            end_date="2026-06-30",
+            duration_months=12,
+            percent_leased=10,
+            token_count=40,
+            min_unit_size=0.25,
+            price_basis="per_1pct",
+            price_period="month",
+            price_amount=65,
+            investor_share_percent=80,
+            owner_share_percent=20,
+        )
+        assert lease.percent_per_token == 0.25
+        assert lease.token_price_nzd == 195.0
+
+    def test_min_unit_size_zero(self):
+        with pytest.raises(ValidationError, match="min_unit_size"):
+            LeaseCreate(
+                lease_id="LSE-001",
+                horse_id="985125000126462",
+                start_date="2025-07-01",
+                end_date="2026-06-30",
+                duration_months=12,
+                percent_leased=10,
+                token_count=20,
+                min_unit_size=0,
+                price_basis="per_1pct",
+                price_period="month",
+                price_amount=65,
                 investor_share_percent=80,
                 owner_share_percent=20,
             )
@@ -72,9 +244,10 @@ class TestLeaseCreate:
             duration_months=12,
             percent_leased=10,
             token_count=20,
-            percent_per_token=0.5,
-            token_price_nzd=240,
-            total_issuance_value_nzd=4800,
+            min_unit_size=0.50,
+            price_basis="per_1pct",
+            price_period="month",
+            price_amount=65,
             investor_share_percent=80,
             owner_share_percent=20,
         )
@@ -88,7 +261,7 @@ class TestLeaseUpdate:
     def test_partial_update(self):
         update = LeaseUpdate(lease_status="review")
         assert update.lease_status == "review"
-        assert update.token_price_nzd is None
+        assert update.price_amount is None
 
     def test_all_fields_optional(self):
         update = LeaseUpdate()
@@ -125,9 +298,10 @@ class TestLeaseRoutes:
             "duration_months": 12,
             "percent_leased": 10,
             "token_count": 20,
-            "percent_per_token": 0.5,
-            "token_price_nzd": 240,
-            "total_issuance_value_nzd": 4800,
+            "min_unit_size": 0.50,
+            "price_basis": "per_1pct",
+            "price_period": "month",
+            "price_amount": 40,
             "investor_share_percent": 80,
             "owner_share_percent": 20,
         }):
@@ -157,9 +331,10 @@ class TestLeaseRoutes:
             "duration_months": 12,
             "percent_leased": 10,
             "token_count": 20,
-            "percent_per_token": 0.5,
-            "token_price_nzd": 240,
-            "total_issuance_value_nzd": 4800,
+            "min_unit_size": 0.50,
+            "price_basis": "per_1pct",
+            "price_period": "month",
+            "price_amount": 40,
             "investor_share_percent": 80,
             "owner_share_percent": 20,
         }):

@@ -8,7 +8,7 @@ Every Cloud Function imports from this package.
 
 from datetime import date, datetime
 from typing import Literal, Optional
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 import re
 
 
@@ -254,21 +254,114 @@ class HLTUpdate(BaseModel):
 # ─── Lease ────────────────────────────────────────────────────────────────────
 
 class LeaseCreate(BaseModel):
-    """Payload for creating a new lease record (draft commercial terms)."""
+    """Payload for creating a new lease record with auto-calculated pricing.
+
+    Core inputs: percentage_leased + duration_months + min_unit_size.
+    Pricing inputs: price_basis + price_period + price_amount.
+    System derives all other commercial fields.
+    """
+    # ─── Identity ─────────────────────────────────────
     lease_id: str = Field(..., description="Canonical lease ID. e.g. LSE-001")
     horse_id: str = Field(..., description="Reference to horse microchip or canonical ID.")
+
+    # ─── Term ─────────────────────────────────────────
     start_date: date = Field(...)
     end_date: date = Field(...)
     duration_months: int = Field(..., ge=1)
-    percent_leased: float = Field(..., ge=0, le=100)
-    token_count: int = Field(..., ge=1)
-    percent_per_token: float = Field(..., ge=0)
-    token_price_nzd: float = Field(..., ge=0)
-    total_issuance_value_nzd: float = Field(..., ge=0)
+
+    # ─── Stake ────────────────────────────────────────
+    percent_leased: float = Field(..., ge=0, le=100, description="Total % of horse being leased. e.g. 5, 10")
+    token_count: int = Field(..., ge=1, description="Number of tokens issued.")
+    min_unit_size: float = Field(
+        ..., gt=0, le=100,
+        description="Minimum purchasable unit (%). e.g. 0.25, 0.50. Must divide evenly into percent_leased."
+    )
+
+    # ─── Pricing (3 inputs → derive rest) ─────────────
+    price_basis: Literal["per_1pct", "full_stake"] = Field(
+        ..., description="per_1pct = price is per 1%. full_stake = price is for the whole percent_leased stake."
+    )
+    price_period: Literal["month", "year", "total"] = Field(
+        ..., description="Is the price_amount per month, per year, or for the total duration?"
+    )
+    price_amount: float = Field(..., ge=0, description="Dollar amount matching basis + period.")
+
+    # ─── Split ────────────────────────────────────────
     investor_share_percent: float = Field(..., ge=0, le=100)
     owner_share_percent: float = Field(..., ge=0, le=100)
     platform_fee_percent: float = Field(0, ge=0)
+
+    # ─── Status ───────────────────────────────────────
     lease_status: Literal["draft", "review", "complete"] = "draft"
+
+    # ─── Derived (auto-populated) ─────────────────────
+    price_per_1pct_per_month: float = Field(0, ge=0, description="Canonical unit. All other prices derive from this.")
+    price_per_1pct_per_year: float = Field(0, ge=0)
+    monthly_stake_price: float = Field(0, ge=0, description="price_per_1pct_per_month × percent_leased")
+    annual_stake_price: float = Field(0, ge=0, description="price_per_1pct_per_year × percent_leased")
+    total_issuance_value_nzd: float = Field(0, ge=0, description="Full value for the lease duration.")
+    percent_per_token: float = Field(0, ge=0, description="percent_leased ÷ token_count")
+    token_price_nzd: float = Field(0, ge=0, description="total_issuance_value_nzd ÷ token_count")
+
+    @model_validator(mode="after")
+    def compute_prices(self):
+        """Derive canonical price_per_1pct_per_month from the 3 pricing inputs,
+        then populate all other derived fields."""
+        pct = self.percent_leased
+        months = self.duration_months
+        amount = self.price_amount
+        basis = self.price_basis
+        period = self.price_period
+
+        # Step 1: Compute price_per_1pct_per_month
+        if basis == "per_1pct":
+            if period == "month":
+                self.price_per_1pct_per_month = amount
+            elif period == "year":
+                self.price_per_1pct_per_month = amount / 12.0
+            elif period == "total":
+                self.price_per_1pct_per_month = amount / months
+        elif basis == "full_stake":
+            if period == "month":
+                self.price_per_1pct_per_month = amount / pct
+            elif period == "year":
+                self.price_per_1pct_per_month = (amount / 12.0) / pct
+            elif period == "total":
+                self.price_per_1pct_per_month = (amount / months) / pct
+
+        # Step 2: Derive all other fields
+        self.price_per_1pct_per_year = self.price_per_1pct_per_month * 12.0
+        self.monthly_stake_price = self.price_per_1pct_per_month * pct
+        self.annual_stake_price = self.price_per_1pct_per_year * pct
+        self.total_issuance_value_nzd = self.price_per_1pct_per_month * months * pct
+        self.percent_per_token = pct / self.token_count
+        self.token_price_nzd = self.total_issuance_value_nzd / self.token_count
+
+        return self
+
+    @model_validator(mode="after")
+    def check_splits(self):
+        """Investor + owner + platform must equal 100%."""
+        total = self.investor_share_percent + self.owner_share_percent + self.platform_fee_percent
+        if abs(total - 100.0) > 0.01:
+            raise ValueError(
+                f"Share split must sum to 100%. Got investor={self.investor_share_percent}, "
+                f"owner={self.owner_share_percent}, platform={self.platform_fee_percent} = {total}"
+            )
+        return self
+
+    @model_validator(mode="after")
+    def check_unit_divisibility(self):
+        """percent_leased must divide evenly by min_unit_size (no fractional cents allowed)."""
+        if self.min_unit_size <= 0:
+            raise ValueError("min_unit_size must be > 0")
+        remainder = self.percent_leased % self.min_unit_size
+        if abs(remainder) > 1e-9:
+            raise ValueError(
+                f"percent_leased ({self.percent_leased}) must be evenly divisible by "
+                f"min_unit_size ({self.min_unit_size}). Remainder: {remainder}"
+            )
+        return self
 
 
 class Lease(LeaseCreate):
@@ -279,15 +372,17 @@ class Lease(LeaseCreate):
 
 
 class LeaseUpdate(BaseModel):
-    """Payload for updating a lease record. All fields optional."""
+    """Payload for updating a lease record. Only core/pricing inputs allowed.
+    Derived fields are auto-recalculated by the system."""
     start_date: Optional[date] = None
     end_date: Optional[date] = None
     duration_months: Optional[int] = None
     percent_leased: Optional[float] = None
     token_count: Optional[int] = None
-    percent_per_token: Optional[float] = None
-    token_price_nzd: Optional[float] = None
-    total_issuance_value_nzd: Optional[float] = None
+    min_unit_size: Optional[float] = None
+    price_basis: Optional[Literal["per_1pct", "full_stake"]] = None
+    price_period: Optional[Literal["month", "year", "total"]] = None
+    price_amount: Optional[float] = None
     investor_share_percent: Optional[float] = None
     owner_share_percent: Optional[float] = None
     platform_fee_percent: Optional[float] = None
