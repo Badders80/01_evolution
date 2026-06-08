@@ -1,3 +1,0 @@
-"""
-Racing Data — Tests
-"""
