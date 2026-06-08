@@ -5,6 +5,7 @@ SQLAlchemy ORM models that mirror the existing Pydantic models
 in models/__init__.py for local dev use.
 """
 
+import os
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -14,7 +15,7 @@ from sqlalchemy.orm import declarative_base, sessionmaker
 Base = declarative_base()
 
 # Path relative to this file → admin/ssot_local.db
-DB_PATH = Path(__file__).parent / "ssot_local.db"
+DB_PATH = os.environ.get("ADMIN_DB_PATH") or str(Path(__file__).parent / "ssot_local.db")
 ENGINE = create_engine(f"sqlite:///{DB_PATH}", echo=False, future=True)
 SessionLocal = sessionmaker(bind=ENGINE)
 
