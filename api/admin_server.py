@@ -5,10 +5,12 @@ Flask app on port 5000 serving static SPA from admin/static/.
 SQLite auto-initialised on startup.
 """
 
+import io
 import os
 import uuid
-from datetime import date
-from flask import Flask, send_from_directory, jsonify, request
+from datetime import date, datetime
+
+from flask import Flask, send_from_directory, send_file, jsonify, request
 from flask_cors import CORS
 from pydantic import ValidationError
 
@@ -793,6 +795,37 @@ def get_hlt(hlt_id):
                 "phone": trainer.phone,
             } if trainer else None,
         })
+    finally:
+        db.close()
+
+
+# ─── Term Sheet Download ────────────────────────────────────────────────────────
+
+@app.route("/api/hlts/<hlt_id>/term-sheet.docx", methods=["GET"])
+def download_term_sheet(hlt_id):
+    db = SessionLocal()
+    try:
+        from admin.db import HLT as HLTORM
+        hlt = db.query(HLTORM).filter_by(id=hlt_id).first()
+        if not hlt:
+            return _err("HLT not found", 404)
+
+        from admin.generators.term_sheet import generate_term_sheet_docx
+        docx_bytes = generate_term_sheet_docx(hlt_id, db)
+
+        # Mark term sheet status complete
+        hlt.term_sheet_status = "complete"
+        db.commit()
+
+        return send_file(
+            io.BytesIO(docx_bytes),
+            mimetype="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            as_attachment=True,
+            download_name=f"term-sheet-{hlt_id}.docx",
+        )
+    except Exception as e:
+        db.rollback()
+        return _err(f"Term sheet generation failed: {e}", 500)
     finally:
         db.close()
 

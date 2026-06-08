@@ -466,3 +466,72 @@ class TestHLTWorkflow:
         assert d["owner"]["name"] == "B.A.X Bloodstock"
         assert d["trainer"]["name"] == "Wexford Stables"
         assert d["lease"]["total_issuance_value_nzd"] == 5850.0
+
+
+# ─── Term Sheet Generation ────────────────────────────────────────────────────
+
+class TestTermSheetGeneration:
+    def test_term_sheet_404_missing_hlt(self, client):
+        r = client.get("/api/hlts/nope/term-sheet.docx")
+        assert r.status_code == 404
+        assert r.json["success"] is False
+
+    def test_term_sheet_download_and_status_update(self, client):
+        # Seed entities (same pattern as HLT workflow test)
+        client.post("/api/horses", json={
+            "microchip": "985125000126463",
+            "name": "Term Sheet Test Horse",
+            "foaling_date": "2022-01-01",
+            "sex": "colt",
+            "sire_name": "Test Sire",
+            "dam_name": "Test Dam",
+        })
+        ro = client.post("/api/owners", json={
+            "name": "Term Sheet Owner",
+            "email": "ts@example.com",
+            "entity_type": "company",
+        })
+        oid = ro.json["data"]["id"]
+        rt = client.post("/api/trainers", json={
+            "name": "Term Sheet Trainer",
+            "stable_name": "TS Stables",
+            "location": "Auckland",
+            "email": "ts-trainer@example.com",
+        })
+        tid = rt.json["data"]["id"]
+
+        # Create HLT via workflow
+        r = client.post("/api/hlts/workflow", json={
+            "horse_microchip": "985125000126463",
+            "owner_id": oid,
+            "trainer_id": tid,
+            "lease_id": "LSE-TS-001",
+            "start_date": "2024-01-01",
+            "end_date": "2024-12-31",
+            "duration_months": 12,
+            "percent_leased": 10,
+            "token_count": 40,
+            "min_unit_size": 0.25,
+            "price_basis": "per_1pct",
+            "price_period": "month",
+            "price_amount": 100,
+            "investor_share_percent": 75,
+            "owner_share_percent": 20,
+            "platform_fee_percent": 5,
+        })
+        assert r.status_code == 200
+        hlt_id = r.json["data"]["hlt"]["id"]
+
+        # Verify initial status
+        r2 = client.get(f"/api/hlts/{hlt_id}")
+        assert r2.json["data"]["term_sheet_status"] == "pending"
+
+        # Download term sheet
+        r3 = client.get(f"/api/hlts/{hlt_id}/term-sheet.docx")
+        assert r3.status_code == 200
+        assert r3.content_type == "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        assert len(r3.data) > 5000  # Reasonable DOCX size
+
+        # Verify status flipped to complete
+        r4 = client.get(f"/api/hlts/{hlt_id}")
+        assert r4.json["data"]["term_sheet_status"] == "complete"

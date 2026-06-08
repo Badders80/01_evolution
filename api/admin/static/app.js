@@ -846,7 +846,7 @@ window.renderHltDetail = async function(id) {
       </div>
 
       <div class="flex gap-2 mb-6">
-        <button onclick="alert('Term sheet generation coming in Sprint 4')" class="bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium">Generate Term Sheet</button>
+        <button onclick="generateTermSheet('${h.id}')" class="bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium">Generate Term Sheet</button>
         <button onclick="alert('Document upload coming in Sprint 5')" class="bg-gray-600 text-white px-4 py-2 rounded-md text-sm font-medium">Upload Documents</button>
       </div>
 
@@ -875,6 +875,28 @@ window.renderHltDetail = async function(id) {
 };
 
 // ─── Route with dynamic HLT id ─────────────────────────────────────────────
+
+// ─── Term Sheet Generation ────────────────────────────────────────────────────
+
+window.generateTermSheet = async function(hltId) {
+  try {
+    const res = await fetch(`/api/hlts/${hltId}/term-sheet.docx`);
+    if (!res.ok) throw new Error(await res.text());
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `term-sheet-${hltId}.docx`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+    // Refresh detail view to show updated status badge
+    renderHltDetail(hltId);
+  } catch (e) {
+    alert("Term sheet generation failed: " + e.message);
+  }
+};
 
 const oldRender = render;
 window.render = function() {
