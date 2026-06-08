@@ -12,9 +12,9 @@ from flask import Flask, send_from_directory, jsonify, request
 from flask_cors import CORS
 from pydantic import ValidationError
 
-from admin.db import init_db, SessionLocal, Horse as HorseORM, Owner as OwnerORM, Trainer as TrainerORM
+from admin.db import init_db, SessionLocal, Horse as HorseORM, Owner as OwnerORM, Trainer as TrainerORM, Lease as LeaseORM, HLT as HLTORM
 from admin.horse_lookup import lookup_microchip
-from admin.models import HorseCreate, HorseUpdate, OwnerCreate, OwnerUpdate, TrainerCreate, TrainerUpdate
+from admin.models import HorseCreate, HorseUpdate, OwnerCreate, OwnerUpdate, TrainerCreate, TrainerUpdate, LeaseCreate
 
 app = Flask(__name__, static_folder="admin/static")
 CORS(app)
@@ -436,6 +436,363 @@ def delete_trainer(trainer_id):
         db.delete(row)
         db.commit()
         return _ok({"deleted": True, "id": trainer_id})
+    finally:
+        db.close()
+
+
+# ─── Lease CRUD ──────────────────────────────────────────────────────────────
+
+@app.route("/api/leases", methods=["GET"])
+def list_leases():
+    db = SessionLocal()
+    try:
+        rows = db.query(LeaseORM).order_by(LeaseORM.created_at.desc()).all()
+        data = [
+            {
+                "lease_id": r.lease_id,
+                "horse_id": r.horse_id,
+                "start_date": r.start_date,
+                "end_date": r.end_date,
+                "duration_months": r.duration_months,
+                "percent_leased": r.percent_leased,
+                "token_count": r.token_count,
+                "min_unit_size": r.min_unit_size,
+                "price_basis": r.price_basis,
+                "price_period": r.price_period,
+                "price_amount": r.price_amount,
+                "price_per_1pct_per_month": r.price_per_1pct_per_month,
+                "price_per_1pct_per_year": r.price_per_1pct_per_year,
+                "monthly_stake_price": r.monthly_stake_price,
+                "annual_stake_price": r.annual_stake_price,
+                "total_issuance_value_nzd": r.total_issuance_value_nzd,
+                "percent_per_token": r.percent_per_token,
+                "token_price_nzd": r.token_price_nzd,
+                "investor_share_percent": r.investor_share_percent,
+                "owner_share_percent": r.owner_share_percent,
+                "platform_fee_percent": r.platform_fee_percent,
+                "lease_status": r.lease_status,
+                "created_at": r.created_at,
+                "updated_at": r.updated_at,
+            }
+            for r in rows
+        ]
+        return _ok(data)
+    finally:
+        db.close()
+
+
+@app.route("/api/leases", methods=["POST"])
+def create_lease():
+    body = request.get_json(force=True, silent=True) or {}
+    try:
+        payload = LeaseCreate(**body)
+    except ValidationError as exc:
+        return _err(exc.errors())
+    db = SessionLocal()
+    try:
+        if db.query(LeaseORM).filter_by(lease_id=payload.lease_id).first():
+            return _err("Lease with this ID already exists.", 409)
+        orm = LeaseORM(
+            lease_id=payload.lease_id,
+            horse_id=payload.horse_id,
+            start_date=payload.start_date.isoformat(),
+            end_date=payload.end_date.isoformat(),
+            duration_months=payload.duration_months,
+            percent_leased=payload.percent_leased,
+            token_count=payload.token_count,
+            min_unit_size=payload.min_unit_size,
+            price_basis=payload.price_basis,
+            price_period=payload.price_period,
+            price_amount=payload.price_amount,
+            price_per_1pct_per_month=payload.price_per_1pct_per_month,
+            price_per_1pct_per_year=payload.price_per_1pct_per_year,
+            monthly_stake_price=payload.monthly_stake_price,
+            annual_stake_price=payload.annual_stake_price,
+            total_issuance_value_nzd=payload.total_issuance_value_nzd,
+            percent_per_token=payload.percent_per_token,
+            token_price_nzd=payload.token_price_nzd,
+            investor_share_percent=payload.investor_share_percent,
+            owner_share_percent=payload.owner_share_percent,
+            platform_fee_percent=payload.platform_fee_percent,
+            lease_status=payload.lease_status,
+        )
+        db.add(orm)
+        db.commit()
+        return _ok({"lease_id": orm.lease_id, "horse_id": orm.horse_id})
+    finally:
+        db.close()
+
+
+@app.route("/api/leases/<lease_id>", methods=["GET"])
+def get_lease(lease_id):
+    db = SessionLocal()
+    try:
+        row = db.query(LeaseORM).filter_by(lease_id=lease_id).first()
+        if not row:
+            return _err("Lease not found", 404)
+        return _ok({
+            "lease_id": row.lease_id,
+            "horse_id": row.horse_id,
+            "start_date": row.start_date,
+            "end_date": row.end_date,
+            "duration_months": row.duration_months,
+            "percent_leased": row.percent_leased,
+            "token_count": row.token_count,
+            "min_unit_size": row.min_unit_size,
+            "price_basis": row.price_basis,
+            "price_period": row.price_period,
+            "price_amount": row.price_amount,
+            "price_per_1pct_per_month": row.price_per_1pct_per_month,
+            "price_per_1pct_per_year": row.price_per_1pct_per_year,
+            "monthly_stake_price": row.monthly_stake_price,
+            "annual_stake_price": row.annual_stake_price,
+            "total_issuance_value_nzd": row.total_issuance_value_nzd,
+            "percent_per_token": row.percent_per_token,
+            "token_price_nzd": row.token_price_nzd,
+            "investor_share_percent": row.investor_share_percent,
+            "owner_share_percent": row.owner_share_percent,
+            "platform_fee_percent": row.platform_fee_percent,
+            "lease_status": row.lease_status,
+            "created_at": row.created_at,
+            "updated_at": row.updated_at,
+        })
+    finally:
+        db.close()
+
+
+# ─── HLT Workflow ──────────────────────────────────────────────────────────────
+
+@app.route("/api/hlts/workflow", methods=["POST"])
+def create_hlt_workflow():
+    """
+    Body:
+      horse_microchip, owner_id, trainer_id,
+      lease_id, start_date, end_date, duration_months,
+      percent_leased, token_count, min_unit_size,
+      price_basis, price_period, price_amount,
+      investor_share_percent, owner_share_percent, platform_fee_percent
+    Validates all references exist, creates Lease (calculator auto-derives),
+    creates HLT linking lease, returns {lease, hlt}.
+    """
+    body = request.get_json(force=True, silent=True) or {}
+
+    horse_microchip = body.get("horse_microchip", "").strip()
+    owner_id = body.get("owner_id", "").strip()
+    trainer_id = body.get("trainer_id", "").strip()
+
+    if not horse_microchip or not owner_id or not trainer_id:
+        return _err("horse_microchip, owner_id, and trainer_id are required.")
+
+    db = SessionLocal()
+    try:
+        horse = db.query(HorseORM).filter_by(microchip=horse_microchip).first()
+        if not horse:
+            return _err(f"Horse with microchip {horse_microchip} not found.", 404)
+        owner = db.query(OwnerORM).filter_by(id=owner_id).first()
+        if not owner:
+            return _err(f"Owner {owner_id} not found.", 404)
+        trainer = db.query(TrainerORM).filter_by(id=trainer_id).first()
+        if not trainer:
+            return _err(f"Trainer {trainer_id} not found.", 404)
+
+        # Build lease payload from body, injecting horse_id
+        lease_payload = {k: v for k, v in body.items() if k not in ("horse_microchip", "owner_id", "trainer_id")}
+        lease_payload["horse_id"] = horse_microchip
+
+        try:
+            lease_data = LeaseCreate(**lease_payload)
+        except ValidationError as exc:
+            return _err(exc.errors())
+        except ValueError as exc:
+            return _err(str(exc))
+
+        if db.query(LeaseORM).filter_by(lease_id=lease_data.lease_id).first():
+            return _err("Lease with this ID already exists.", 409)
+
+        lease_orm = LeaseORM(
+            lease_id=lease_data.lease_id,
+            horse_id=lease_data.horse_id,
+            start_date=lease_data.start_date.isoformat(),
+            end_date=lease_data.end_date.isoformat(),
+            duration_months=lease_data.duration_months,
+            percent_leased=lease_data.percent_leased,
+            token_count=lease_data.token_count,
+            min_unit_size=lease_data.min_unit_size,
+            price_basis=lease_data.price_basis,
+            price_period=lease_data.price_period,
+            price_amount=lease_data.price_amount,
+            price_per_1pct_per_month=lease_data.price_per_1pct_per_month,
+            price_per_1pct_per_year=lease_data.price_per_1pct_per_year,
+            monthly_stake_price=lease_data.monthly_stake_price,
+            annual_stake_price=lease_data.annual_stake_price,
+            total_issuance_value_nzd=lease_data.total_issuance_value_nzd,
+            percent_per_token=lease_data.percent_per_token,
+            token_price_nzd=lease_data.token_price_nzd,
+            investor_share_percent=lease_data.investor_share_percent,
+            owner_share_percent=lease_data.owner_share_percent,
+            platform_fee_percent=lease_data.platform_fee_percent,
+            lease_status=lease_data.lease_status,
+        )
+        db.add(lease_orm)
+        db.flush()
+
+        hlt_id = str(uuid.uuid4())[:8]
+        hlt_orm = HLTORM(
+            id=hlt_id,
+            horse_microchip=horse_microchip,
+            owner_id=owner_id,
+            trainer_id=trainer_id,
+            lease_id=lease_data.lease_id,
+            status="draft",
+            term_sheet_status="pending",
+            pds_status="pending",
+            sa_status="pending",
+        )
+        db.add(hlt_orm)
+        db.commit()
+
+        return _ok({
+            "lease": {
+                "lease_id": lease_orm.lease_id,
+                "horse_id": lease_orm.horse_id,
+                "start_date": lease_orm.start_date,
+                "end_date": lease_orm.end_date,
+                "duration_months": lease_orm.duration_months,
+                "percent_leased": lease_orm.percent_leased,
+                "token_count": lease_orm.token_count,
+                "min_unit_size": lease_orm.min_unit_size,
+                "price_basis": lease_orm.price_basis,
+                "price_period": lease_orm.price_period,
+                "price_amount": lease_orm.price_amount,
+                "price_per_1pct_per_month": lease_orm.price_per_1pct_per_month,
+                "price_per_1pct_per_year": lease_orm.price_per_1pct_per_year,
+                "monthly_stake_price": lease_orm.monthly_stake_price,
+                "annual_stake_price": lease_orm.annual_stake_price,
+                "total_issuance_value_nzd": lease_orm.total_issuance_value_nzd,
+                "percent_per_token": lease_orm.percent_per_token,
+                "token_price_nzd": lease_orm.token_price_nzd,
+                "investor_share_percent": lease_orm.investor_share_percent,
+                "owner_share_percent": lease_orm.owner_share_percent,
+                "platform_fee_percent": lease_orm.platform_fee_percent,
+                "lease_status": lease_orm.lease_status,
+                "created_at": lease_orm.created_at,
+            },
+            "hlt": {
+                "id": hlt_orm.id,
+                "horse_microchip": hlt_orm.horse_microchip,
+                "owner_id": hlt_orm.owner_id,
+                "trainer_id": hlt_orm.trainer_id,
+                "lease_id": hlt_orm.lease_id,
+                "status": hlt_orm.status,
+                "term_sheet_status": hlt_orm.term_sheet_status,
+                "pds_status": hlt_orm.pds_status,
+                "sa_status": hlt_orm.sa_status,
+                "created_at": hlt_orm.created_at,
+            },
+        })
+    finally:
+        db.close()
+
+
+@app.route("/api/hlts", methods=["GET"])
+def list_hlts():
+    db = SessionLocal()
+    try:
+        rows = db.query(HLTORM).order_by(HLTORM.created_at.desc()).all()
+        data = [
+            {
+                "id": r.id,
+                "horse_microchip": r.horse_microchip,
+                "owner_id": r.owner_id,
+                "trainer_id": r.trainer_id,
+                "lease_id": r.lease_id,
+                "status": r.status,
+                "term_sheet_status": r.term_sheet_status,
+                "pds_status": r.pds_status,
+                "sa_status": r.sa_status,
+                "created_at": r.created_at,
+                "updated_at": r.updated_at,
+            }
+            for r in rows
+        ]
+        return _ok(data)
+    finally:
+        db.close()
+
+
+@app.route("/api/hlts/<hlt_id>", methods=["GET"])
+def get_hlt(hlt_id):
+    db = SessionLocal()
+    try:
+        hlt = db.query(HLTORM).filter_by(id=hlt_id).first()
+        if not hlt:
+            return _err("HLT not found", 404)
+        lease = db.query(LeaseORM).filter_by(lease_id=hlt.lease_id).first()
+        horse = db.query(HorseORM).filter_by(microchip=hlt.horse_microchip).first()
+        owner = db.query(OwnerORM).filter_by(id=hlt.owner_id).first()
+        trainer = db.query(TrainerORM).filter_by(id=hlt.trainer_id).first()
+        return _ok({
+            "id": hlt.id,
+            "horse_microchip": hlt.horse_microchip,
+            "owner_id": hlt.owner_id,
+            "trainer_id": hlt.trainer_id,
+            "lease_id": hlt.lease_id,
+            "status": hlt.status,
+            "term_sheet_status": hlt.term_sheet_status,
+            "pds_status": hlt.pds_status,
+            "sa_status": hlt.sa_status,
+            "created_at": hlt.created_at,
+            "updated_at": hlt.updated_at,
+            "lease": {
+                "lease_id": lease.lease_id,
+                "horse_id": lease.horse_id,
+                "start_date": lease.start_date,
+                "end_date": lease.end_date,
+                "duration_months": lease.duration_months,
+                "percent_leased": lease.percent_leased,
+                "token_count": lease.token_count,
+                "min_unit_size": lease.min_unit_size,
+                "price_basis": lease.price_basis,
+                "price_period": lease.price_period,
+                "price_amount": lease.price_amount,
+                "price_per_1pct_per_month": lease.price_per_1pct_per_month,
+                "price_per_1pct_per_year": lease.price_per_1pct_per_year,
+                "monthly_stake_price": lease.monthly_stake_price,
+                "annual_stake_price": lease.annual_stake_price,
+                "total_issuance_value_nzd": lease.total_issuance_value_nzd,
+                "percent_per_token": lease.percent_per_token,
+                "token_price_nzd": lease.token_price_nzd,
+                "investor_share_percent": lease.investor_share_percent,
+                "owner_share_percent": lease.owner_share_percent,
+                "platform_fee_percent": lease.platform_fee_percent,
+                "lease_status": lease.lease_status,
+            } if lease else None,
+            "horse": {
+                "microchip": horse.microchip,
+                "name": horse.name,
+                "sex": horse.sex,
+                "colour": horse.colour,
+                "sire_name": horse.sire_name,
+                "dam_name": horse.dam_name,
+                "breeder": horse.breeder,
+                "foaling_date": horse.foaling_date,
+            } if horse else None,
+            "owner": {
+                "id": owner.id,
+                "name": owner.name,
+                "email": owner.email,
+                "phone": owner.phone,
+                "entity_type": owner.entity_type,
+            } if owner else None,
+            "trainer": {
+                "id": trainer.id,
+                "name": trainer.name,
+                "stable_name": trainer.stable_name,
+                "location": trainer.location,
+                "email": trainer.email,
+                "phone": trainer.phone,
+            } if trainer else None,
+        })
     finally:
         db.close()
 

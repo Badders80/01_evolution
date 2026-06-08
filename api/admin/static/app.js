@@ -506,6 +506,105 @@ window.editTrainer = async function(id) {
 
 window.deleteTrainer = deleteTrainer;
 
+// ─── Leases / HLTs ───────────────────────────────────────────────────────────
+
+async function loadLeases() {
+  const resp = await fetch(`${API}/leases`);
+  const json = await resp.json();
+  return json.success ? json.data : [];
+}
+
+async function loadHlts() {
+  const resp = await fetch(`${API}/hlts`);
+  const json = await resp.json();
+  return json.success ? json.data : [];
+}
+
+async function getHlt(id) {
+  const resp = await fetch(`${API}/hlts/${id}`);
+  return await resp.json();
+}
+
+async function createHltWorkflow(payload) {
+  const resp = await fetch(`${API}/hlts/workflow`, {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify(payload),
+  });
+  return await resp.json();
+}
+
+window.createHltWorkflow = createHltWorkflow;
+
+window.previewHlt = function() {
+  const percentLeased = parseFloat(document.getElementById("h-percent_leased").value) || 0;
+  const durationMonths = parseInt(document.getElementById("h-duration_months").value) || 0;
+  const tokenCount = parseInt(document.getElementById("h-token_count").value) || 1;
+  const minUnitSize = parseFloat(document.getElementById("h-min_unit_size").value) || 0.25;
+  const priceBasis = document.getElementById("h-price_basis").value;
+  const pricePeriod = document.getElementById("h-price_period").value;
+  const priceAmount = parseFloat(document.getElementById("h-price_amount").value) || 0;
+
+  // Derive canonical price_per_1pct_per_month
+  let pricePer1pctPerMonth = 0;
+  if (priceBasis === "per_1pct") {
+    if (pricePeriod === "month") pricePer1pctPerMonth = priceAmount;
+    else if (pricePeriod === "year") pricePer1pctPerMonth = priceAmount / 12;
+    else if (pricePeriod === "total") pricePer1pctPerMonth = priceAmount / durationMonths;
+  } else if (priceBasis === "full_stake") {
+    if (pricePeriod === "month") pricePer1pctPerMonth = priceAmount / percentLeased;
+    else if (pricePeriod === "year") pricePer1pctPerMonth = (priceAmount / 12) / percentLeased;
+    else if (pricePeriod === "total") pricePer1pctPerMonth = (priceAmount / durationMonths) / percentLeased;
+  }
+
+  const pricePer1pctPerYear = pricePer1pctPerMonth * 12;
+  const monthlyStakePrice = pricePer1pctPerMonth * percentLeased;
+  const annualStakePrice = pricePer1pctPerYear * percentLeased;
+  const totalIssuanceValue = pricePer1pctPerMonth * durationMonths * percentLeased;
+  const percentPerToken = percentLeased / tokenCount;
+  const tokenPrice = totalIssuanceValue / tokenCount;
+
+  document.getElementById("preview-area").classList.remove("hidden");
+  document.getElementById("preview-fields").innerHTML = `
+    <div class="bg-white rounded p-2 border"><div class="text-gray-500 text-xs">Price / 1% / Month</div><div class="font-semibold">$${pricePer1pctPerMonth.toFixed(2)}</div></div>
+    <div class="bg-white rounded p-2 border"><div class="text-gray-500 text-xs">Total Value</div><div class="font-semibold">$${totalIssuanceValue.toFixed(2)} NZD</div></div>
+    <div class="bg-white rounded p-2 border"><div class="text-gray-500 text-xs">Token Price</div><div class="font-semibold">$${tokenPrice.toFixed(2)}</div></div>
+    <div class="bg-white rounded p-2 border"><div class="text-gray-500 text-xs">% Per Token</div><div class="font-semibold">${percentPerToken.toFixed(2)}%</div></div>
+    <div class="bg-white rounded p-2 border"><div class="text-gray-500 text-xs">Monthly Stake</div><div class="font-semibold">$${monthlyStakePrice.toFixed(2)}</div></div>
+    <div class="bg-white rounded p-2 border"><div class="text-gray-500 text-xs">Annual Stake</div><div class="font-semibold">$${annualStakePrice.toFixed(2)}</div></div>
+    <div class="bg-white rounded p-2 border"><div class="text-gray-500 text-xs">Min Unit</div><div class="font-semibold">${minUnitSize}%</div></div>
+    <div class="bg-white rounded p-2 border"><div class="text-gray-500 text-xs">Tokens</div><div class="font-semibold">${tokenCount}</div></div>
+  `;
+};
+
+window.submitHlt = async function() {
+  const payload = {
+    horse_microchip: document.getElementById("h-horse").value,
+    owner_id: document.getElementById("h-owner").value,
+    trainer_id: document.getElementById("h-trainer").value,
+    lease_id: document.getElementById("h-lease_id").value.trim(),
+    start_date: document.getElementById("h-start_date").value,
+    end_date: document.getElementById("h-end_date").value,
+    duration_months: parseInt(document.getElementById("h-duration_months").value),
+    percent_leased: parseFloat(document.getElementById("h-percent_leased").value),
+    token_count: parseInt(document.getElementById("h-token_count").value),
+    min_unit_size: parseFloat(document.getElementById("h-min_unit_size").value),
+    price_basis: document.getElementById("h-price_basis").value,
+    price_period: document.getElementById("h-price_period").value,
+    price_amount: parseFloat(document.getElementById("h-price_amount").value),
+    investor_share_percent: parseFloat(document.getElementById("h-investor_share").value),
+    owner_share_percent: parseFloat(document.getElementById("h-owner_share").value),
+  };
+
+  const resp = await createHltWorkflow(payload);
+  if (!resp.success) {
+    alert("Error: " + (resp.error || JSON.stringify(resp)));
+    return;
+  }
+  window.location.hash = "#/hlts";
+  render();
+};
+
 // ─── Views ───────────────────────────────────────────────────────────────────
 
 const views = {
@@ -554,11 +653,132 @@ const views = {
     `;
     window.trainerAddMode = false;
   },
-  "create-hlt": () => {
+  "create-hlt": async () => {
+    setLoading(true);
+    const [horses, owners, trainers] = await Promise.all([loadHorses(), loadOwners(), loadTrainers()]);
+    const horseOptions = horses.map(h => `<option value="${h.microchip}">${h.name} (${h.microchip})</option>`).join("");
+    const ownerOptions = owners.map(o => `<option value="${o.id}">${o.name} (${o.id})</option>`).join("");
+    const trainerOptions = trainers.map(t => `<option value="${t.id}">${t.name} — ${t.stable_name} (${t.id})</option>`).join("");
+    app.innerHTML = `
+      <div class="bg-white shadow rounded-lg p-6 max-w-4xl mx-auto">
+        <div class="flex justify-between items-center mb-6">
+          <h2 class="text-xl font-bold">Create HLT</h2>
+          <button onclick="window.location.hash='#/hlts';render()" class="bg-gray-800 text-white px-3 py-2 rounded-md text-sm">Back</button>
+        </div>
+        <form id="hlt-form" onsubmit="event.preventDefault(); submitHlt();">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700">Horse</label>
+              <select id="h-horse" class="mt-1 w-full border rounded-md px-3 py-2 text-sm">${horseOptions}</select>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700">Owner</label>
+              <select id="h-owner" class="mt-1 w-full border rounded-md px-3 py-2 text-sm">${ownerOptions}</select>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700">Trainer / Stable</label>
+              <select id="h-trainer" class="mt-1 w-full border rounded-md px-3 py-2 text-sm">${trainerOptions}</select>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700">Lease ID</label>
+              <input id="h-lease_id" type="text" placeholder="e.g. LSE-002" class="mt-1 w-full border rounded-md px-3 py-2 text-sm" required />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700">Start Date</label>
+              <input id="h-start_date" type="date" class="mt-1 w-full border rounded-md px-3 py-2 text-sm" required />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700">End Date</label>
+              <input id="h-end_date" type="date" class="mt-1 w-full border rounded-md px-3 py-2 text-sm" required />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700">Duration (months)</label>
+              <input id="h-duration_months" type="number" min="1" class="mt-1 w-full border rounded-md px-3 py-2 text-sm" required />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700">% Leased</label>
+              <input id="h-percent_leased" type="number" step="0.01" class="mt-1 w-full border rounded-md px-3 py-2 text-sm" required />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700">Token Count</label>
+              <input id="h-token_count" type="number" min="1" class="mt-1 w-full border rounded-md px-3 py-2 text-sm" required />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700">Min Unit Size (%)</label>
+              <input id="h-min_unit_size" type="number" step="0.01" placeholder="0.25" class="mt-1 w-full border rounded-md px-3 py-2 text-sm" required />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700">Price Basis</label>
+              <select id="h-price_basis" class="mt-1 w-full border rounded-md px-3 py-2 text-sm">
+                <option value="per_1pct">Per 1%</option>
+                <option value="full_stake">Full Stake</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700">Price Period</label>
+              <select id="h-price_period" class="mt-1 w-full border rounded-md px-3 py-2 text-sm">
+                <option value="month">Per Month</option>
+                <option value="year">Per Year</option>
+                <option value="total">Total Duration</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700">Price Amount (NZD)</label>
+              <input id="h-price_amount" type="number" step="0.01" class="mt-1 w-full border rounded-md px-3 py-2 text-sm" required />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700">Investor Share %</label>
+              <input id="h-investor_share" type="number" step="0.01" class="mt-1 w-full border rounded-md px-3 py-2 text-sm" required />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700">Owner Share %</label>
+              <input id="h-owner_share" type="number" step="0.01" class="mt-1 w-full border rounded-md px-3 py-2 text-sm" required />
+            </div>
+          </div>
+          <div class="flex gap-2 mb-4">
+            <button type="button" onclick="previewHlt()" class="bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium">Preview Pricing</button>
+            <button type="submit" class="bg-green-600 text-white px-4 py-2 rounded-md text-sm font-medium">Create HLT</button>
+          </div>
+          <div id="preview-area" class="hidden bg-gray-50 rounded-lg p-4 border">
+            <h3 class="text-sm font-bold text-gray-700 mb-2">Derived Pricing</h3>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm" id="preview-fields"></div>
+          </div>
+        </form>
+      </div>
+    `;
+  },
+  hlts: async () => {
+    setLoading(true);
+    const hlts = await loadHlts();
+    const rows = hlts.map(h => `
+      <tr class="border-b hover:bg-gray-50 cursor-pointer" onclick="window.location.hash='#/hlt/${h.id}';render()">
+        <td class="px-4 py-2 font-mono text-sm">${h.id}</td>
+        <td class="px-4 py-2">${h.horse_microchip}</td>
+        <td class="px-4 py-2">${h.owner_id}</td>
+        <td class="px-4 py-2">${h.trainer_id}</td>
+        <td class="px-4 py-2">${h.lease_id}</td>
+        <td class="px-4 py-2"><span class="rounded-full px-2 py-0.5 text-xs font-semibold bg-gray-100 text-gray-700">${h.status}</span></td>
+      </tr>
+    `).join("");
     app.innerHTML = `
       <div class="bg-white shadow rounded-lg p-6">
-        <h2 class="text-xl font-bold mb-4">Create HLT</h2>
-        <p class="text-gray-600">HLT creation workflow coming in Sprint 3.</p>
+        <div class="flex justify-between items-center mb-4">
+          <h2 class="text-xl font-bold">HLTs</h2>
+          <button onclick="window.location.hash='#/create-hlt';render()" class="bg-green-600 text-white px-3 py-2 rounded-md text-sm font-medium">Create HLT</button>
+        </div>
+        <table class="w-full text-left border mt-2">
+          <thead class="bg-gray-100">
+            <tr>
+              <th class="px-4 py-2">ID</th>
+              <th class="px-4 py-2">Horse</th>
+              <th class="px-4 py-2">Owner</th>
+              <th class="px-4 py-2">Trainer</th>
+              <th class="px-4 py-2">Lease</th>
+              <th class="px-4 py-2">Status</th>
+            </tr>
+          </thead>
+          <tbody>${rows || '<tr><td colspan="6" class="px-4 py-4 text-gray-500">No HLTs yet.</td></tr>'}</tbody>
+        </table>
       </div>
     `;
   },
@@ -570,6 +790,105 @@ const views = {
       </div>
     `;
   }
+};
+
+// ─── HLT Detail View (dynamic route) ─────────────────────────────────────────
+
+window.renderHltDetail = async function(id) {
+  setLoading(true);
+  const json = await getHlt(id);
+  if (!json.success) {
+    app.innerHTML = `<div class="p-6 text-red-600">HLT not found.</div>`;
+    return;
+  }
+  const h = json.data;
+  app.innerHTML = `
+    <div class="bg-white shadow rounded-lg p-6 max-w-4xl mx-auto">
+      <div class="flex justify-between items-center mb-6">
+        <div>
+          <h2 class="text-xl font-bold">HLT ${h.id}</h2>
+          <p class="text-sm text-gray-500">Status: <span class="rounded-full px-2 py-0.5 text-xs font-semibold bg-gray-100 text-gray-700">${h.status}</span></p>
+        </div>
+        <button onclick="window.location.hash='#/hlts';render()" class="bg-gray-800 text-white px-3 py-2 rounded-md text-sm">Back</button>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <div class="bg-gray-50 rounded-lg p-4 border">
+          <h3 class="text-xs font-bold text-gray-500 uppercase mb-2">Horse</h3>
+          <p class="font-semibold">${h.horse?.name || h.horse_microchip}</p>
+          <p class="text-sm text-gray-500">${h.horse?.sex || ''} • ${h.horse?.colour || ''}</p>
+          <p class="text-sm text-gray-500 font-mono">${h.horse_microchip}</p>
+        </div>
+        <div class="bg-gray-50 rounded-lg p-4 border">
+          <h3 class="text-xs font-bold text-gray-500 uppercase mb-2">Owner</h3>
+          <p class="font-semibold">${h.owner?.name || h.owner_id}</p>
+          <p class="text-sm text-gray-500">${h.owner?.email || ''}</p>
+        </div>
+        <div class="bg-gray-50 rounded-lg p-4 border">
+          <h3 class="text-xs font-bold text-gray-500 uppercase mb-2">Trainer</h3>
+          <p class="font-semibold">${h.trainer?.name || h.trainer_id}</p>
+          <p class="text-sm text-gray-500">${h.trainer?.stable_name || ''}</p>
+        </div>
+      </div>
+
+      <div class="bg-gray-50 rounded-lg p-4 border mb-6">
+        <h3 class="text-xs font-bold text-gray-500 uppercase mb-3">Lease Terms</h3>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+          <div><div class="text-gray-500 text-xs">Lease ID</div><div class="font-semibold">${h.lease?.lease_id || h.lease_id}</div></div>
+          <div><div class="text-gray-500 text-xs">% Leased</div><div class="font-semibold">${h.lease?.percent_leased || ''}%</div></div>
+          <div><div class="text-gray-500 text-xs">Duration</div><div class="font-semibold">${h.lease?.duration_months || ''} months</div></div>
+          <div><div class="text-gray-500 text-xs">Tokens</div><div class="font-semibold">${h.lease?.token_count || ''}</div></div>
+          <div><div class="text-gray-500 text-xs">Min Unit</div><div class="font-semibold">${h.lease?.min_unit_size || ''}%</div></div>
+          <div><div class="text-gray-500 text-xs">Price / 1% / Mo</div><div class="font-semibold">$${h.lease?.price_per_1pct_per_month || ''}</div></div>
+          <div><div class="text-gray-500 text-xs">Total Value</div><div class="font-semibold">$${h.lease?.total_issuance_value_nzd || ''} NZD</div></div>
+          <div><div class="text-gray-500 text-xs">Token Price</div><div class="font-semibold">$${h.lease?.token_price_nzd || ''}</div></div>
+        </div>
+      </div>
+
+      <div class="flex gap-2 mb-6">
+        <button onclick="alert('Term sheet generation coming in Sprint 4')" class="bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium">Generate Term Sheet</button>
+        <button onclick="alert('Document upload coming in Sprint 5')" class="bg-gray-600 text-white px-4 py-2 rounded-md text-sm font-medium">Upload Documents</button>
+      </div>
+
+      <div class="grid grid-cols-3 gap-4 text-sm">
+        <div class="border rounded-lg p-3">
+          <div class="flex justify-between items-center">
+            <span class="font-semibold">Term Sheet</span>
+            <span class="rounded-full px-2 py-0.5 text-xs font-semibold ${h.term_sheet_status === 'complete' ? 'bg-emerald-50 text-emerald-700' : 'bg-gray-100 text-gray-700'}">${h.term_sheet_status}</span>
+          </div>
+        </div>
+        <div class="border rounded-lg p-3">
+          <div class="flex justify-between items-center">
+            <span class="font-semibold">PDS</span>
+            <span class="rounded-full px-2 py-0.5 text-xs font-semibold ${h.pds_status === 'complete' ? 'bg-emerald-50 text-emerald-700' : 'bg-gray-100 text-gray-700'}">${h.pds_status}</span>
+          </div>
+        </div>
+        <div class="border rounded-lg p-3">
+          <div class="flex justify-between items-center">
+            <span class="font-semibold">SA</span>
+            <span class="rounded-full px-2 py-0.5 text-xs font-semibold ${h.sa_status === 'complete' ? 'bg-emerald-50 text-emerald-700' : 'bg-gray-100 text-gray-700'}">${h.sa_status}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+};
+
+// ─── Route with dynamic HLT id ─────────────────────────────────────────────
+
+const oldRender = render;
+window.render = function() {
+  const hash = window.location.hash.replace("#/", "").replace("#", "");
+  if (hash.startsWith("hlt/")) {
+    const id = hash.replace("hlt/", "");
+    renderHltDetail(id);
+    return;
+  }
+  const viewFn = views[hash] || views.default;
+  viewFn();
+  document.querySelectorAll(".nav-link").forEach(link => {
+    link.classList.toggle("active", link.dataset.route === hash);
+  });
 };
 
 window.addEventListener("hashchange", render);

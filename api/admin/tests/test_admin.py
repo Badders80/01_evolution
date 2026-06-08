@@ -296,3 +296,173 @@ class TestTrainerCrud:
         assert r2.status_code == 200
         r3 = client.get(f"/api/trainers/{tid}")
         assert r3.status_code == 404
+
+
+# ─── Lease CRUD ──────────────────────────────────────────────────────────────
+
+class TestLeaseCrud:
+    def test_list_leases_empty(self, client):
+        r = client.get("/api/leases")
+        assert r.status_code == 200
+        assert r.json["success"] is True
+        assert r.json["data"] == []
+
+    def test_create_lease(self, client):
+        # need a horse first
+        client.post("/api/horses", json={
+            "microchip": "985125000126462",
+            "name": "Prudentia (NZ) 2021",
+            "foaling_date": "2021-10-01",
+            "sex": "filly",
+        })
+        payload = {
+            "lease_id": "LSE-002",
+            "horse_id": "985125000126462",
+            "start_date": "2024-01-01",
+            "end_date": "2025-06-30",
+            "duration_months": 18,
+            "percent_leased": 5,
+            "token_count": 20,
+            "min_unit_size": 0.25,
+            "price_basis": "per_1pct",
+            "price_period": "month",
+            "price_amount": 65,
+            "investor_share_percent": 75,
+            "owner_share_percent": 25,
+            "platform_fee_percent": 0,
+        }
+        r = client.post("/api/leases", json=payload)
+        assert r.status_code == 200
+        assert r.json["success"] is True
+        assert r.json["data"]["lease_id"] == "LSE-002"
+
+    def test_create_lease_duplicate(self, client):
+        client.post("/api/horses", json={
+            "microchip": "985125000126462",
+            "name": "Prudentia (NZ) 2021",
+            "foaling_date": "2021-10-01",
+            "sex": "filly",
+        })
+        payload = {
+            "lease_id": "LSE-002",
+            "horse_id": "985125000126462",
+            "start_date": "2024-01-01",
+            "end_date": "2025-06-30",
+            "duration_months": 18,
+            "percent_leased": 5,
+            "token_count": 20,
+            "min_unit_size": 0.25,
+            "price_basis": "per_1pct",
+            "price_period": "month",
+            "price_amount": 65,
+            "investor_share_percent": 75,
+            "owner_share_percent": 25,
+            "platform_fee_percent": 0,
+        }
+        r1 = client.post("/api/leases", json=payload)
+        assert r1.status_code == 200
+        r2 = client.post("/api/leases", json=payload)
+        assert r2.status_code == 409
+
+    def test_get_lease(self, client):
+        client.post("/api/horses", json={
+            "microchip": "985125000126462",
+            "name": "Prudentia (NZ) 2021",
+            "foaling_date": "2021-10-01",
+            "sex": "filly",
+        })
+        payload = {
+            "lease_id": "LSE-002",
+            "horse_id": "985125000126462",
+            "start_date": "2024-01-01",
+            "end_date": "2025-06-30",
+            "duration_months": 18,
+            "percent_leased": 5,
+            "token_count": 20,
+            "min_unit_size": 0.25,
+            "price_basis": "per_1pct",
+            "price_period": "month",
+            "price_amount": 65,
+            "investor_share_percent": 75,
+            "owner_share_percent": 25,
+            "platform_fee_percent": 0,
+        }
+        client.post("/api/leases", json=payload)
+        r = client.get("/api/leases/LSE-002")
+        assert r.status_code == 200
+        d = r.json["data"]
+        assert d["total_issuance_value_nzd"] == 5850.0
+        assert d["token_price_nzd"] == 292.5
+        assert d["percent_per_token"] == 0.25
+
+    def test_get_lease_not_found(self, client):
+        r = client.get("/api/leases/NONE")
+        assert r.status_code == 404
+
+
+# ─── HLT Workflow ─────────────────────────────────────────────────────────────
+
+class TestHLTWorkflow:
+    def test_hlt_workflow_missing_refs(self, client):
+        r = client.post("/api/hlts/workflow", json={
+            "horse_microchip": "000000000000000",
+            "owner_id": "no-one",
+            "trainer_id": "no-one",
+        })
+        assert r.status_code == 404
+        assert r.json["success"] is False
+
+    def test_hlt_workflow_success(self, client):
+        # Seed entities
+        client.post("/api/horses", json={
+            "microchip": "985125000126462",
+            "name": "Prudentia (NZ) 2021",
+            "foaling_date": "2021-10-01",
+            "sex": "filly",
+        })
+        ro = client.post("/api/owners", json={"name": "B.A.X Bloodstock", "email": "info@bax.nz"})
+        oid = ro.json["data"]["id"]
+        rt = client.post("/api/trainers", json={
+            "name": "Wexford Stables",
+            "stable_name": "Wexford Stables",
+            "location": "Cambridge, NZ",
+            "email": "info@wexford.nz",
+        })
+        tid = rt.json["data"]["id"]
+
+        r = client.post("/api/hlts/workflow", json={
+            "horse_microchip": "985125000126462",
+            "owner_id": oid,
+            "trainer_id": tid,
+            "lease_id": "LSE-002",
+            "start_date": "2024-01-01",
+            "end_date": "2025-06-30",
+            "duration_months": 18,
+            "percent_leased": 5,
+            "token_count": 20,
+            "min_unit_size": 0.25,
+            "price_basis": "per_1pct",
+            "price_period": "month",
+            "price_amount": 65,
+            "investor_share_percent": 75,
+            "owner_share_percent": 25,
+            "platform_fee_percent": 0,
+        })
+        assert r.status_code == 200
+        assert r.json["success"] is True
+        lease = r.json["data"]["lease"]
+        hlt = r.json["data"]["hlt"]
+        assert lease["total_issuance_value_nzd"] == 5850.0
+        assert lease["token_price_nzd"] == 292.5
+        assert lease["percent_per_token"] == 0.25
+        assert hlt["status"] == "draft"
+        assert hlt["lease_id"] == "LSE-002"
+
+        # verify GET /api/hlts/<id> returns full graph
+        r2 = client.get(f"/api/hlts/{hlt['id']}")
+        assert r2.status_code == 200
+        d = r2.json["data"]
+        assert d["horse"]["name"] == "Prudentia (NZ) 2021"
+        assert d["owner"]["name"] == "B.A.X Bloodstock"
+        assert d["trainer"]["name"] == "Wexford Stables"
+        assert d["lease"]["total_issuance_value_nzd"] == 5850.0
