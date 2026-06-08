@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HLT Mission Control</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .nav-link { @apply px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:bg-gray-700 hover:text-white cursor-pointer; }
+    .nav-link.active { @apply bg-gray-900 text-white; }
+  </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+  <nav class="bg-gray-800">
+    <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      <div class="flex h-16 items-center justify-between">
+        <div class="flex items-center">
+          <span class="text-white text-lg font-bold">HLT Mission Control</span>
+        </div>
+        <div class="flex space-x-4">
+          <a href="#/horses" class="nav-link" data-route="horses">Horses</a>
+          <a href="#/owners" class="nav-link" data-route="owners">Owners</a>
+          <a href="#/trainers" class="nav-link" data-route="trainers">Trainers</a>
+          <a href="#/create-hlt" class="nav-link" data-route="create-hlt">Create HLT</a>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <main id="app" class="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+    <!-- views injected here -->
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
