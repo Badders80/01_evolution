@@ -78,6 +78,8 @@ class Trainer(Base):
     phone = Column(Text)
     nztr_license_number = Column(Text)
     bio = Column(Text)
+    contact_name = Column(Text)
+    website = Column(Text)
     profile_status = Column(Text, default="active")
     created_at = Column(Text, default=utc_now)
     updated_at = Column(Text, default=utc_now, onupdate=utc_now)

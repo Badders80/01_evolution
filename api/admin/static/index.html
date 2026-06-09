@@ -6,31 +6,74 @@
   <title>HLT Mission Control</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    .nav-link { @apply px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:bg-gray-700 hover:text-white cursor-pointer; }
-    .nav-link.active { @apply bg-gray-900 text-white; }
+    .nav-item { @apply flex items-center px-4 py-3 text-sm font-medium text-gray-300 hover:bg-gray-700 hover:text-white cursor-pointer transition-colors; }
+    .nav-item.active { @apply bg-gray-900 text-white border-l-4 border-green-500; }
+    .nav-item:not(.active) { border-left: 4px solid transparent; }
+    .card { @apply bg-white rounded-lg shadow p-6; }
+    .badge { @apply rounded-full px-2 py-0.5 text-xs font-semibold; }
+    .badge-gray { @apply bg-gray-100 text-gray-700; }
+    .badge-green { @apply bg-emerald-50 text-emerald-700; }
+    .badge-blue { @apply bg-blue-50 text-blue-700; }
+    .badge-amber { @apply bg-amber-50 text-amber-700; }
+    .badge-purple { @apply bg-purple-50 text-purple-700; }
+    .label { @apply text-xs font-medium text-gray-500 uppercase tracking-wide; }
+    .value { @apply text-sm font-semibold text-gray-900; }
+    .tag { @apply text-xs text-gray-400 font-mono; }
+    .data-row { @apply py-2 border-b border-gray-100 last:border-0; }
+    .data-label { @apply text-gray-500 text-sm w-40 shrink-0; }
+    .data-value { @apply text-sm font-medium text-gray-900; }
+    .entity-card { @apply bg-gray-50 rounded-lg p-4 border; }
+    .entity-card h4 { @apply text-xs font-bold text-gray-500 uppercase mb-2; }
+    .entity-card .name { @apply font-semibold text-lg text-gray-900; }
+    .entity-card .detail { @apply text-sm text-gray-500 mt-1; }
+    .entity-card .tagline { @apply text-xs text-gray-400 font-mono mt-2; }
+    a.breeding-url { @apply text-blue-600 hover:underline text-sm; }
   </style>
 </head>
 <body class="bg-gray-100 min-h-screen">
-  <nav class="bg-gray-800">
-    <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-      <div class="flex h-16 items-center justify-between">
-        <div class="flex items-center">
-          <span class="text-white text-lg font-bold">HLT Mission Control</span>
-        </div>
-        <div class="flex space-x-4">
-          <a href="#/horses" class="nav-link" data-route="horses">Horses</a>
-          <a href="#/owners" class="nav-link" data-route="owners">Owners</a>
-          <a href="#/trainers" class="nav-link" data-route="trainers">Trainers</a>
-          <a href="#/hlts" class="nav-link" data-route="hlts">HLTs</a>
-          <a href="#/create-hlt" class="nav-link" data-route="create-hlt">Create HLT</a>
-        </div>
+  <div class="flex min-h-screen">
+    <!-- Sidebar -->
+    <aside class="w-64 bg-gray-800 flex flex-col shrink-0">
+      <div class="px-4 py-5 border-b border-gray-700">
+        <h1 class="text-white text-lg font-bold">HLT Mission Control</h1>
+        <p class="text-gray-400 text-xs mt-1">Evolution Stables</p>
       </div>
-    </div>
-  </nav>
+      <nav class="flex-1 py-4 space-y-1">
+        <a href="#/" class="nav-item active" data-route="">
+          <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg>
+          Dashboard
+        </a>
+        <a href="#/horses" class="nav-item" data-route="horses">
+          <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+          Horses
+        </a>
+        <a href="#/owners" class="nav-item" data-route="owners">
+          <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+          Owners
+        </a>
+        <a href="#/trainers" class="nav-item" data-route="trainers">
+          <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+          Trainers / Stables
+        </a>
+        <a href="#/hlts" class="nav-item" data-route="hlts">
+          <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+          HLTs
+        </a>
+        <a href="#/create-hlt" class="nav-item" data-route="create-hlt">
+          <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
+          Create HLT
+        </a>
+      </nav>
+      <div class="px-4 py-4 border-t border-gray-700">
+        <p class="text-gray-500 text-xs">SSOT Build — Canonical Data</p>
+      </div>
+    </aside>
 
-  <main id="app" class="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-    <!-- views injected here -->
-  </main>
+    <!-- Main -->
+    <main id="app" class="flex-1 p-6 overflow-auto">
+      <!-- views injected here -->
+    </main>
+  </div>
 
   <script src="app.js"></script>
 </body>

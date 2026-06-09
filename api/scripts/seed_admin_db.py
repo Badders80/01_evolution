@@ -1,9 +1,13 @@
-"""Seed canonical entities into admin SQLite DB from SSOT_Build HLT JSONs.
+"""Seed admin SQLite with full canonical data from SSOT_Build.
 
-Wipes everything first. 0 HLTs.
+Sources:
+- Horses: HLT JSONs + i-stole-a-manolo.json + seed_canonical_entities.py
+- Owners: OWN-001.json, OWN-002.json
+- Trainers: wexford-stables.json, stephen-gray-racing.json
+
+Wipes everything. 0 HLTs. 0 leases.
 """
 
-import json
 import sys
 from pathlib import Path
 
@@ -11,108 +15,133 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from admin.db import init_db, SessionLocal, Horse, Owner, Trainer, Lease, HLT
 
-SSOT_ROOT = Path("/home/evo/workspace/projects/SSOT_Build/data")
-
-HLT_FILES = [
-    "hlt/LSE-001.json",
-    "hlt/LSE-002.json",
-    "hlt/LSE-003.json",
-    "hlt/LSE-004.json",
-]
-
-OWNER_FILES = [
-    "owners/OWN-001.json",
-    "owners/OWN-002.json",
-]
-
-TRAINER_FILES = [
-    "trainers/wexford-stables.json",
-    "trainers/stephen-gray-racing.json",
-]
-
-
-def _load(path: Path) -> dict:
-    with path.open("r", encoding="utf-8") as f:
-        return json.load(f)
-
-
-def _wipe(db):
-    from sqlalchemy import text
-    for tbl in ["documents", "hlts", "leases", "horses", "owners", "trainers"]:
-        db.execute(text(f"DELETE FROM {tbl}"))
-    db.commit()
-
 
 def seed():
     init_db()
     db = SessionLocal()
     try:
-        _wipe(db)
+        from sqlalchemy import text
+        for tbl in ["documents", "hlts", "leases", "horses", "owners", "trainers"]:
+            db.execute(text(f"DELETE FROM {tbl}"))
+        db.commit()
         print("Wiped all tables.")
 
-        # ─── Horses ───────────────────────────────────────────────────────
-        seen_chips = set()
-        for fname in HLT_FILES:
-            path = SSOT_ROOT / fname
-            if not path.exists():
-                print(f"  SKIP: {fname} not found")
-                continue
-            data = _load(path)
-            chip = data.get("horse_microchip")
-            if not chip or chip in seen_chips:
-                continue
-            seen_chips.add(chip)
-            name = data.get("horse_name", "")
-            year = data.get("horse_year", "")
-            full_name = f"{name} (NZ) {year}" if year else name
-            h = Horse(
-                microchip=chip,
-                name=full_name,
-                name_slug=f"{name}-{year}".replace(" ", "-").lower() if year else name.replace(" ", "-").lower(),
-                sex="",
-                colour="",
-                status="active",
-            )
-            db.merge(h)
-            print(f"  Horse: {full_name} ({chip})")
+        # ─── Horses (full data from SSOT_Build canonical records) ─────────
+        horses = [
+            {
+                "microchip": "985125000126713",
+                "name": "First Gear (NZ) 2021",
+                "name_slug": "first-gear-nz-2021",
+                "foaling_date": "2021-09-15",
+                "sex": "filly",
+                "colour": "Bay",
+                "sire_name": "Contributer (IRE)",
+                "dam_name": "Whiffle (USA)",
+                "breeder": None,
+                "status": "active",
+                "loveracing_id": 428364,
+                "breeding_url": "https://loveracing.nz/Breeding/428364/First-Gear-NZ-2021.aspx",
+            },
+            {
+                "microchip": "985125000126462",
+                "name": "Prudentia (NZ) 2021",
+                "name_slug": "prudentia-nz-2021",
+                "foaling_date": "2021-09-15",
+                "sex": "filly",
+                "colour": "Bay",
+                "sire_name": "Proisir",
+                "dam_name": "Prudent",
+                "breeder": "B.A.X Bloodstock Ltd",
+                "status": "active",
+                "loveracing_id": 427416,
+                "breeding_url": "https://loveracing.nz/Breeding/427416/Prudentia-NZ-2021.aspx",
+            },
+            {
+                "microchip": "985125000139165",
+                "name": "Hottathanafantasy (NZ) 2023",
+                "name_slug": "hottathanafantasy-nz-2023",
+                "foaling_date": "2023-08-30",
+                "sex": "filly",
+                "colour": "Bay",
+                "sire_name": "Contributer (IRE)",
+                "dam_name": "Whiffle (USA)",
+                "breeder": None,
+                "status": "active",
+                "loveracing_id": 452052,
+                "breeding_url": "https://loveracing.nz/Breeding/452052/Hottathanafantasy-NZ-2023.aspx",
+            },
+            {
+                "microchip": "985125000139219",
+                "name": "I Stole A Manolo (NZ) 2023",
+                "name_slug": "i-stole-a-manolo-nz-2023",
+                "foaling_date": "2023-08-30",
+                "sex": "filly",
+                "colour": "Bay",
+                "sire_name": "Satono Aladdin (JPN)",
+                "dam_name": "Canuhandleajandal (NZ)",
+                "breeder": None,
+                "status": "active",
+                "loveracing_id": 451442,
+                "breeding_url": "https://loveracing.nz/Breeding/451442/I-Stole-A-Manolo-NZ-2023.aspx",
+            },
+        ]
+        for h in horses:
+            db.merge(Horse(**h))
+            print(f"  Horse: {h['name']} ({h['microchip']})")
 
-        # ─── Owners ───────────────────────────────────────────────────────
-        for fname in OWNER_FILES:
-            path = SSOT_ROOT / fname
-            if not path.exists():
-                print(f"  SKIP: {fname} not found")
-                continue
-            data = _load(path)
-            o = Owner(
-                id=data.get("owner_id", ""),
-                name=data.get("owner_name", ""),
-                email=data.get("email"),
-                phone=data.get("phone"),
-                entity_type=data.get("entity_type", "individual"),
-                contact_name=data.get("contact_name"),
-                website=data.get("website"),
-            )
-            db.merge(o)
-            print(f"  Owner: {o.name} ({o.id})")
+        # ─── Owners (from OWN-001.json, OWN-002.json) ────────────────────
+        owners = [
+            {
+                "id": "OWN-001",
+                "name": "B.A.X Bloodstock Achieving Xcellence Limited",
+                "email": "baxltd@yahoo.com",
+                "phone": "+64 21 557 045",
+                "entity_type": "company",
+                "contact_name": "Kylie Bax",
+                "website": "https://www.baxltd.com",
+            },
+            {
+                "id": "OWN-002",
+                "name": "Stephen Gray Racing",
+                "email": "stephen@stephengrayracing.com",
+                "phone": "+64 21 933 183",
+                "entity_type": "company",
+                "contact_name": "Stephen Gray",
+                "website": "https://www.stephengrayracing.com",
+            },
+        ]
+        for o in owners:
+            db.merge(Owner(**o))
+            print(f"  Owner: {o['name']} ({o['id']})")
 
-        # ─── Trainers ─────────────────────────────────────────────────────
-        for fname in TRAINER_FILES:
-            path = SSOT_ROOT / fname
-            if not path.exists():
-                print(f"  SKIP: {fname} not found")
-                continue
-            data = _load(path)
-            t = Trainer(
-                id=data.get("trainer_id", ""),
-                name=data.get("trainer_name", ""),
-                stable_name=data.get("stable_name"),
-                location=data.get("location"),
-                email=None,
-                phone=None,
-                bio=data.get("bio"),
-            )
-            db.merge(t)
-            print(f"  Trainer: {t.name} ({t.id})")
+        # ─── Trainers (from wexford-stables.json, stephen-gray-racing.json) ─
+        trainers = [
+            {
+                "id": "TRN-001",
+                "name": "Wexford Stables",
+                "stable_name": "Wexford Stables",
+                "location": "Matamata, New Zealand",
+                "email": "info@wexfordstables.co.nz",
+                "phone": "+64 7 888 7371",
+                "contact_name": "Andrew Scott",
+                "website": "https://www.wexfordstables.co.nz",
+                "bio": "Wexford Stables is one of New Zealand's most iconic racing operations, established in 1961 by Hall of Fame trainer Dave O'Sullivan. Now led by Lance O'Sullivan ONZM and Andrew Scott, the stable continues a legacy of excellence from its world-class training facility in Matamata.",
+            },
+            {
+                "id": "TRN-002",
+                "name": "Stephen Gray",
+                "stable_name": "Copper Belt Lodge",
+                "location": "Cambridge, New Zealand",
+                "email": "stephen@stephengrayracing.com",
+                "phone": "+64 21 933 183",
+                "contact_name": "Stephen Gray",
+                "website": "https://www.stephengrayracing.com",
+                "bio": "Stephen Gray operates Copper Belt Lodge, a boutique training facility based in Cambridge in the heart of New Zealand's Waikato thoroughbred country. Known for his patient, horse-first approach.",
+            },
+        ]
+        for t in trainers:
+            db.merge(Trainer(**t))
+            print(f"  Trainer: {t['name']} ({t['id']})")
 
         db.commit()
 
