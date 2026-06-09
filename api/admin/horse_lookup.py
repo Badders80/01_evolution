@@ -65,16 +65,25 @@ def lookup_microchip(microchip: str, timeout: int = 15) -> HorseLookupResult:
         return result
 
     try:
-        # Step 1: Search loveracing.nz for the microchip
         search_resp = requests.get(
             LOVERACING_SEARCH_URL,
             params={"search": microchip, "type": "horse"},
             timeout=timeout,
-            headers={"User-Agent": "Mozilla/5.0 (EvolutionStables/1.0)"},
+            headers={
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36",
+                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+                "Accept-Language": "en-US,en;q=0.5",
+            },
         )
         search_resp.raise_for_status()
+    except requests.exceptions.HTTPError as exc:
+        if exc.response.status_code == 403 and "cloudflare" in exc.response.text.lower():
+            result.error = "External lookup blocked by Cloudflare bot protection. Enter details manually below."
+        else:
+            result.error = f"External lookup failed ({exc.response.status_code}). Enter details manually below."
+        return result
     except Exception as exc:
-        result.error = f"loveracing.nz search request failed: {exc}"
+        result.error = f"External lookup failed: {exc}. Enter details manually below."
         return result
 
     soup = BeautifulSoup(search_resp.text, "html.parser")
@@ -103,7 +112,14 @@ def lookup_microchip(microchip: str, timeout: int = 15) -> HorseLookupResult:
         profile_resp = requests.get(
             profile_url,
             timeout=timeout,
-            headers={"User-Agent": "Mozilla/5.0 (EvolutionStables/1.0)"},
+            headers={
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36",
+                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+                "Accept-Language": "en-US,en;q=0.5",
+                "Accept-Encoding": "gzip, deflate, br",
+                "DNT": "1",
+                "Connection": "keep-alive",
+            },
         )
         profile_resp.raise_for_status()
     except Exception as exc:

@@ -752,12 +752,14 @@ const views = {
     const hlts = await loadHlts();
     const rows = hlts.map(h => `
       <tr class="border-b hover:bg-gray-50 cursor-pointer" onclick="window.location.hash='#/hlt/${h.id}';render()">
-        <td class="px-4 py-2 font-mono text-sm">${h.id}</td>
-        <td class="px-4 py-2">${h.horse_microchip}</td>
-        <td class="px-4 py-2">${h.owner_id}</td>
-        <td class="px-4 py-2">${h.trainer_id}</td>
-        <td class="px-4 py-2">${h.lease_id}</td>
-        <td class="px-4 py-2"><span class="rounded-full px-2 py-0.5 text-xs font-semibold bg-gray-100 text-gray-700">${h.status}</span></td>
+        <td class="px-4 py-3">
+          <div class="font-semibold">${h.horse_name || h.horse_microchip}</div>
+          <div class="text-xs text-gray-400 font-mono mt-0.5">ID: ${h.id} | Microchip: ${h.horse_microchip}</div>
+        </td>
+        <td class="px-4 py-3">${h.owner_name || h.owner_id}</td>
+        <td class="px-4 py-3">${h.trainer_name || h.trainer_id}</td>
+        <td class="px-4 py-3">${h.lease_id}</td>
+        <td class="px-4 py-3"><span class="rounded-full px-2 py-0.5 text-xs font-semibold bg-gray-100 text-gray-700">${h.status}</span></td>
       </tr>
     `).join("");
     app.innerHTML = `
@@ -769,7 +771,6 @@ const views = {
         <table class="w-full text-left border mt-2">
           <thead class="bg-gray-100">
             <tr>
-              <th class="px-4 py-2">ID</th>
               <th class="px-4 py-2">Horse</th>
               <th class="px-4 py-2">Owner</th>
               <th class="px-4 py-2">Trainer</th>
@@ -777,16 +778,47 @@ const views = {
               <th class="px-4 py-2">Status</th>
             </tr>
           </thead>
-          <tbody>${rows || '<tr><td colspan="6" class="px-4 py-4 text-gray-500">No HLTs yet.</td></tr>'}</tbody>
+          <tbody>${rows || '<tr><td colspan="5" class="px-4 py-4 text-gray-500">No HLTs yet.</td></tr>'}</tbody>
         </table>
       </div>
     `;
   },
-  default: () => {
+  default: async () => {
+    const [stats, horses, owners, trainers, hlts] = await Promise.all([
+      fetch(`${API}/stats`).then(r => r.json()).then(j => j.success ? j.data : {}),
+      loadHorses(), loadOwners(), loadTrainers(), loadHlts()
+    ]);
+    const counts = {
+      horses: stats.horses || horses.length,
+      owners: stats.owners || owners.length,
+      trainers: stats.trainers || trainers.length,
+      hlts: stats.hlts || hlts.length,
+    };
     app.innerHTML = `
       <div class="bg-white shadow rounded-lg p-6">
-        <h2 class="text-xl font-bold mb-4">Dashboard</h2>
-        <p class="text-gray-600">Welcome to HLT Mission Control. Use the nav above.</p>
+        <h2 class="text-xl font-bold mb-6">HLT Mission Control</h2>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+          <div class="bg-emerald-50 rounded-lg p-4 border border-emerald-100">
+            <div class="text-3xl font-bold text-emerald-700">${counts.horses}</div>
+            <div class="text-sm text-emerald-600 font-medium">Horses</div>
+          </div>
+          <div class="bg-blue-50 rounded-lg p-4 border border-blue-100">
+            <div class="text-3xl font-bold text-blue-700">${counts.owners}</div>
+            <div class="text-sm text-blue-600 font-medium">Owners</div>
+          </div>
+          <div class="bg-amber-50 rounded-lg p-4 border border-amber-100">
+            <div class="text-3xl font-bold text-amber-700">${counts.trainers}</div>
+            <div class="text-sm text-amber-600 font-medium">Trainers / Stables</div>
+          </div>
+          <div class="bg-purple-50 rounded-lg p-4 border border-purple-100">
+            <div class="text-3xl font-bold text-purple-700">${counts.hlts}</div>
+            <div class="text-sm text-purple-600 font-medium">Active HLTs</div>
+          </div>
+        </div>
+        <div class="flex gap-3">
+          <a href="#/create-hlt" class="bg-green-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-green-700">+ Create HLT</a>
+          <a href="#/hlts" class="bg-gray-800 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-gray-900">View HLTs</a>
+        </div>
       </div>
     `;
   }
@@ -802,71 +834,94 @@ window.renderHltDetail = async function(id) {
     return;
   }
   const h = json.data;
+  const horse = h.horse || {};
+  const owner = h.owner || {};
+  const trainer = h.trainer || {};
+  const lease = h.lease || {};
+
+  // Document badges
+  const docBadge = (status) => `<span class="rounded-full px-2 py-0.5 text-xs font-semibold ${status === 'complete' ? 'bg-emerald-50 text-emerald-700' : 'bg-gray-100 text-gray-700'}">${status}</span>`;
+
   app.innerHTML = `
-    <div class="bg-white shadow rounded-lg p-6 max-w-4xl mx-auto">
-      <div class="flex justify-between items-center mb-6">
+    <div class="bg-white shadow rounded-lg p-6 max-w-5xl mx-auto">
+      <!-- Header -->
+      <div class="flex justify-between items-start mb-6">
         <div>
-          <h2 class="text-xl font-bold">HLT ${h.id}</h2>
-          <p class="text-sm text-gray-500">Status: <span class="rounded-full px-2 py-0.5 text-xs font-semibold bg-gray-100 text-gray-700">${h.status}</span></p>
+          <h1 class="text-2xl font-bold">${horse.name || 'Unnamed Horse'}</h1>
+          <p class="text-sm text-gray-500 mt-1">HLT ${docBadge(h.status)} <span class="text-gray-400 mx-1">•</span> Lease ${h.lease_id}</p>
         </div>
         <button onclick="window.location.hash='#/hlts';render()" class="bg-gray-800 text-white px-3 py-2 rounded-md text-sm">Back</button>
       </div>
 
+      <!-- Entity cards -->
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         <div class="bg-gray-50 rounded-lg p-4 border">
           <h3 class="text-xs font-bold text-gray-500 uppercase mb-2">Horse</h3>
-          <p class="font-semibold">${h.horse?.name || h.horse_microchip}</p>
-          <p class="text-sm text-gray-500">${h.horse?.sex || ''} • ${h.horse?.colour || ''}</p>
-          <p class="text-sm text-gray-500 font-mono">${h.horse_microchip}</p>
+          <p class="font-semibold text-lg">${horse.name || '—'}</p>
+          <p class="text-sm text-gray-500">${horse.sex || ''} ${horse.colour ? '• ' + horse.colour : ''}</p>
+          <p class="text-sm text-gray-500">${horse.sire_name || ''} / ${horse.dam_name || ''}</p>
+          <div class="mt-2 text-xs text-gray-400 font-mono">Microchip: ${h.horse_microchip}</div>
         </div>
         <div class="bg-gray-50 rounded-lg p-4 border">
           <h3 class="text-xs font-bold text-gray-500 uppercase mb-2">Owner</h3>
-          <p class="font-semibold">${h.owner?.name || h.owner_id}</p>
-          <p class="text-sm text-gray-500">${h.owner?.email || ''}</p>
+          <p class="font-semibold text-lg">${owner.name || '—'}</p>
+          <p class="text-sm text-gray-500">${owner.email || ''}</p>
+          <p class="text-sm text-gray-500">${owner.phone || ''}</p>
+          <div class="mt-2 text-xs text-gray-400 font-mono">ID: ${h.owner_id}</div>
         </div>
         <div class="bg-gray-50 rounded-lg p-4 border">
-          <h3 class="text-xs font-bold text-gray-500 uppercase mb-2">Trainer</h3>
-          <p class="font-semibold">${h.trainer?.name || h.trainer_id}</p>
-          <p class="text-sm text-gray-500">${h.trainer?.stable_name || ''}</p>
+          <h3 class="text-xs font-bold text-gray-500 uppercase mb-2">Trainer / Stable</h3>
+          <p class="font-semibold text-lg">${trainer.name || '—'}</p>
+          <p class="text-sm text-gray-500">${trainer.stable_name || ''}</p>
+          <p class="text-sm text-gray-500">${trainer.location || ''}</p>
+          <div class="mt-2 text-xs text-gray-400 font-mono">ID: ${h.trainer_id}</div>
         </div>
       </div>
 
+      <!-- Lease Terms -->
       <div class="bg-gray-50 rounded-lg p-4 border mb-6">
         <h3 class="text-xs font-bold text-gray-500 uppercase mb-3">Lease Terms</h3>
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
-          <div><div class="text-gray-500 text-xs">Lease ID</div><div class="font-semibold">${h.lease?.lease_id || h.lease_id}</div></div>
-          <div><div class="text-gray-500 text-xs">% Leased</div><div class="font-semibold">${h.lease?.percent_leased || ''}%</div></div>
-          <div><div class="text-gray-500 text-xs">Duration</div><div class="font-semibold">${h.lease?.duration_months || ''} months</div></div>
-          <div><div class="text-gray-500 text-xs">Tokens</div><div class="font-semibold">${h.lease?.token_count || ''}</div></div>
-          <div><div class="text-gray-500 text-xs">Min Unit</div><div class="font-semibold">${h.lease?.min_unit_size || ''}%</div></div>
-          <div><div class="text-gray-500 text-xs">Price / 1% / Mo</div><div class="font-semibold">$${h.lease?.price_per_1pct_per_month || ''}</div></div>
-          <div><div class="text-gray-500 text-xs">Total Value</div><div class="font-semibold">$${h.lease?.total_issuance_value_nzd || ''} NZD</div></div>
-          <div><div class="text-gray-500 text-xs">Token Price</div><div class="font-semibold">$${h.lease?.token_price_nzd || ''}</div></div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm">
+            <tbody class="divide-y">
+              <tr><td class="py-2 text-gray-500 w-48">Lease ID</td><td class="py-2 font-semibold">${lease.lease_id || h.lease_id || '—'}</td></tr>
+              <tr><td class="py-2 text-gray-500">Duration</td><td class="py-2 font-semibold">${lease.duration_months || '—'} months</td></tr>
+              <tr><td class="py-2 text-gray-500">Percent Leased</td><td class="py-2 font-semibold">${lease.percent_leased || '—'}%</td></tr>
+              <tr><td class="py-2 text-gray-500">Token Count</td><td class="py-2 font-semibold">${lease.token_count || '—'}</td></tr>
+              <tr><td class="py-2 text-gray-500">Min Unit Size</td><td class="py-2 font-semibold">${lease.min_unit_size || '—'}%</td></tr>
+              <tr><td class="py-2 text-gray-500">Price per 1% per month</td><td class="py-2 font-semibold">$${lease.price_per_1pct_per_month || '—'}</td></tr>
+              <tr><td class="py-2 text-gray-500">Total Issuance Value</td><td class="py-2 font-semibold">$${lease.total_issuance_value_nzd || '—'} NZD</td></tr>
+              <tr><td class="py-2 text-gray-500">Token Price</td><td class="py-2 font-semibold">$${lease.token_price_nzd || '—'}</td></tr>
+              <tr><td class="py-2 text-gray-500">Revenue Split</td><td class="py-2 font-semibold">Investor ${lease.investor_share_percent || '—'}% / Owner ${lease.owner_share_percent || '—'}% / Platform ${lease.platform_fee_percent || '0'}%</td></tr>
+            </tbody>
+          </table>
         </div>
       </div>
 
+      <!-- Actions -->
       <div class="flex gap-2 mb-6">
         <button onclick="generateTermSheet('${h.id}')" class="bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium">Generate Term Sheet</button>
         <button onclick="alert('Document upload coming in Sprint 5')" class="bg-gray-600 text-white px-4 py-2 rounded-md text-sm font-medium">Upload Documents</button>
       </div>
 
+      <!-- Document status -->
       <div class="grid grid-cols-3 gap-4 text-sm">
         <div class="border rounded-lg p-3">
           <div class="flex justify-between items-center">
             <span class="font-semibold">Term Sheet</span>
-            <span class="rounded-full px-2 py-0.5 text-xs font-semibold ${h.term_sheet_status === 'complete' ? 'bg-emerald-50 text-emerald-700' : 'bg-gray-100 text-gray-700'}">${h.term_sheet_status}</span>
+            ${docBadge(h.term_sheet_status)}
           </div>
         </div>
         <div class="border rounded-lg p-3">
           <div class="flex justify-between items-center">
             <span class="font-semibold">PDS</span>
-            <span class="rounded-full px-2 py-0.5 text-xs font-semibold ${h.pds_status === 'complete' ? 'bg-emerald-50 text-emerald-700' : 'bg-gray-100 text-gray-700'}">${h.pds_status}</span>
+            ${docBadge(h.pds_status)}
           </div>
         </div>
         <div class="border rounded-lg p-3">
           <div class="flex justify-between items-center">
             <span class="font-semibold">SA</span>
-            <span class="rounded-full px-2 py-0.5 text-xs font-semibold ${h.sa_status === 'complete' ? 'bg-emerald-50 text-emerald-700' : 'bg-gray-100 text-gray-700'}">${h.sa_status}</span>
+            ${docBadge(h.sa_status)}
           </div>
         </div>
       </div>

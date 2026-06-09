@@ -696,16 +696,42 @@ def create_hlt_workflow():
         db.close()
 
 
+# ─── Stats (for dashboard) ────────────────────────────────────────────────────
+
+@app.route("/api/stats", methods=["GET"])
+def get_stats():
+    db = SessionLocal()
+    try:
+        return _ok({
+            "horses": db.query(HorseORM).count(),
+            "owners": db.query(OwnerORM).count(),
+            "trainers": db.query(TrainerORM).count(),
+            "leases": db.query(LeaseORM).count(),
+            "hlts": db.query(HLTORM).count(),
+        })
+    finally:
+        db.close()
+
+
+# ─── HLTs ─────────────────────────────────────────────────────────────────────
+
 @app.route("/api/hlts", methods=["GET"])
 def list_hlts():
     db = SessionLocal()
     try:
         rows = db.query(HLTORM).order_by(HLTORM.created_at.desc()).all()
-        data = [
-            {
+        data = []
+        for r in rows:
+            horse = db.query(HorseORM).filter_by(microchip=r.horse_microchip).first()
+            owner = db.query(OwnerORM).filter_by(id=r.owner_id).first()
+            trainer = db.query(TrainerORM).filter_by(id=r.trainer_id).first()
+            data.append({
                 "id": r.id,
+                "horse_name": horse.name if horse else r.horse_microchip,
                 "horse_microchip": r.horse_microchip,
+                "owner_name": owner.name if owner else r.owner_id,
                 "owner_id": r.owner_id,
+                "trainer_name": trainer.name if trainer else r.trainer_id,
                 "trainer_id": r.trainer_id,
                 "lease_id": r.lease_id,
                 "status": r.status,
@@ -714,9 +740,7 @@ def list_hlts():
                 "sa_status": r.sa_status,
                 "created_at": r.created_at,
                 "updated_at": r.updated_at,
-            }
-            for r in rows
-        ]
+            })
         return _ok(data)
     finally:
         db.close()
