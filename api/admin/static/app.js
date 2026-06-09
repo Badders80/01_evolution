@@ -243,19 +243,19 @@ async function renderCreateHlt() {
           <div><label class="label">Horse</label><select id="h-horse" class="w-full border rounded-md px-3 py-2 text-sm">${horseOpts}</select></div>
           <div><label class="label">Owner</label><select id="h-owner" class="w-full border rounded-md px-3 py-2 text-sm">${ownerOpts}</select></div>
           <div><label class="label">Trainer / Stable</label><select id="h-trainer" class="w-full border rounded-md px-3 py-2 text-sm">${trainerOpts}</select></div>
-          <div><label class="label">Lease ID</label><input id="h-lease_id" type="text" placeholder="e.g. LSE-001" class="w-full border rounded-md px-3 py-2 text-sm" required /></div>
+          <div><label class="label">Lease ID</label><input id="h-lease_id" type="text" class="w-full border rounded-md px-3 py-2 text-sm" required /></div>
           <div><label class="label">Start Date</label><input id="h-start_date" type="date" class="w-full border rounded-md px-3 py-2 text-sm" required /></div>
           <div><label class="label">End Date</label><input id="h-end_date" type="date" class="w-full border rounded-md px-3 py-2 text-sm" required /></div>
           <div><label class="label">Duration (months)</label><input id="h-duration_months" type="number" min="1" class="w-full border rounded-md px-3 py-2 text-sm" required /></div>
           <div><label class="label">% Leased</label><input id="h-percent_leased" type="number" step="0.01" class="w-full border rounded-md px-3 py-2 text-sm" required /></div>
           <div><label class="label">Token Count</label><input id="h-token_count" type="number" min="1" class="w-full border rounded-md px-3 py-2 text-sm" required /></div>
-          <div><label class="label">Min Unit Size (%)</label><input id="h-min_unit_size" type="number" step="0.01" placeholder="0.25" class="w-full border rounded-md px-3 py-2 text-sm" required /></div>
-          <div><label class="label">Price Basis</label><select id="h-price_basis" class="w-full border rounded-md px-3 py-2 text-sm"><option value="per_1pct">Per 1%</option><option value="full_stake">Full Stake</option></select></div>
-          <div><label class="label">Price Period</label><select id="h-price_period" class="w-full border rounded-md px-3 py-2 text-sm"><option value="month">Per Month</option><option value="year">Per Year</option><option value="total">Total Duration</option></select></div>
+          <div><label class="label">Min Unit Size (%)</label><input id="h-min_unit_size" type="number" step="0.01" class="w-full border rounded-md px-3 py-2 text-sm" required /></div>
+          <div><label class="label">Price Basis</label><select id="h-price_basis" class="w-full border rounded-md px-3 py-2 text-sm"><option value=""></option><option value="per_1pct">Per 1%</option><option value="full_stake">Full Stake</option></select></div>
+          <div><label class="label">Price Period</label><select id="h-price_period" class="w-full border rounded-md px-3 py-2 text-sm"><option value=""></option><option value="month">Per Month</option><option value="year">Per Year</option><option value="total">Total Duration</option></select></div>
           <div><label class="label">Price Amount (NZD)</label><input id="h-price_amount" type="number" step="0.01" class="w-full border rounded-md px-3 py-2 text-sm" required /></div>
-          <div><label class="label">Investor Share %</label><input id="h-investor_share" type="number" step="0.01" value="75" class="w-full border rounded-md px-3 py-2 text-sm" required /></div>
-          <div><label class="label">Owner Share %</label><input id="h-owner_share" type="number" step="0.01" value="25" class="w-full border rounded-md px-3 py-2 text-sm" required /></div>
-          <div><label class="label">Platform Fee %</label><input id="h-platform_fee" type="number" step="0.01" value="0" class="w-full border rounded-md px-3 py-2 text-sm" required /></div>
+          <div><label class="label">Investor Share %</label><input id="h-investor_share" type="number" step="0.01" class="w-full border rounded-md px-3 py-2 text-sm" required /></div>
+          <div><label class="label">Owner Share %</label><input id="h-owner_share" type="number" step="0.01" class="w-full border rounded-md px-3 py-2 text-sm" required /></div>
+          <div><label class="label">Platform Fee %</label><input id="h-platform_fee" type="number" step="0.01" class="w-full border rounded-md px-3 py-2 text-sm" required /></div>
         </div>
         <div class="flex justify-between items-center">
           <button type="button" onclick="previewPricing()" class="bg-gray-600 text-white px-4 py-2 rounded-md text-sm font-medium">Preview Pricing</button>
