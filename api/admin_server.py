@@ -14,7 +14,7 @@ from flask import Flask, send_from_directory, send_file, jsonify, request
 from flask_cors import CORS
 from pydantic import ValidationError
 
-from admin.db import init_db, SessionLocal, Horse as HorseORM, Owner as OwnerORM, Trainer as TrainerORM, Lease as LeaseORM, HLT as HLTORM
+from admin.db import init_db, SessionLocal, Horse as HorseORM, Owner as OwnerORM, Trainer as TrainerORM, Lease as LeaseORM, HLT as HLTORM, GoverningBody as GoverningBodyORM
 from admin.horse_lookup import lookup_microchip
 from admin.models import HorseCreate, HorseUpdate, OwnerCreate, OwnerUpdate, TrainerCreate, TrainerUpdate, LeaseCreate
 
@@ -581,6 +581,7 @@ def create_hlt_workflow():
     horse_microchip = body.get("horse_microchip", "").strip()
     owner_id = body.get("owner_id", "").strip()
     trainer_id = body.get("trainer_id", "").strip()
+    governing_body_code = body.get("governing_body_code", "").strip()
 
     if not horse_microchip or not owner_id or not trainer_id:
         return _err("horse_microchip, owner_id, and trainer_id are required.")
@@ -596,9 +597,13 @@ def create_hlt_workflow():
         trainer = db.query(TrainerORM).filter_by(id=trainer_id).first()
         if not trainer:
             return _err(f"Trainer {trainer_id} not found.", 404)
+        if governing_body_code:
+            gb = db.query(GoverningBodyORM).filter_by(governing_body_code=governing_body_code).first()
+            if not gb:
+                return _err(f"Governing body {governing_body_code} not found.", 404)
 
         # Build lease payload from body, injecting horse_id
-        lease_payload = {k: v for k, v in body.items() if k not in ("horse_microchip", "owner_id", "trainer_id")}
+        lease_payload = {k: v for k, v in body.items() if k not in ("horse_microchip", "owner_id", "trainer_id", "governing_body_code")}
         lease_payload["horse_id"] = horse_microchip
 
         try:
@@ -644,6 +649,7 @@ def create_hlt_workflow():
             horse_microchip=horse_microchip,
             owner_id=owner_id,
             trainer_id=trainer_id,
+            governing_body_code=governing_body_code or None,
             lease_id=lease_data.lease_id,
             status="draft",
             term_sheet_status="pending",
@@ -706,9 +712,32 @@ def get_stats():
             "horses": db.query(HorseORM).count(),
             "owners": db.query(OwnerORM).count(),
             "trainers": db.query(TrainerORM).count(),
+            "governing_bodies": db.query(GoverningBodyORM).count(),
             "leases": db.query(LeaseORM).count(),
             "hlts": db.query(HLTORM).count(),
         })
+    finally:
+        db.close()
+
+
+# ─── Governing Bodies ────────────────────────────────────────────────────────
+
+@app.route("/api/governing-bodies", methods=["GET"])
+def list_governing_bodies():
+    db = SessionLocal()
+    try:
+        rows = db.query(GoverningBodyORM).order_by(GoverningBodyORM.governing_body_name).all()
+        data = [
+            {
+                "governing_body_code": r.governing_body_code,
+                "governing_body_name": r.governing_body_name,
+                "website": r.website,
+                "status": r.status,
+                "notes": r.notes,
+            }
+            for r in rows
+        ]
+        return _ok({"items": data, "count": len(data)})
     finally:
         db.close()
 
@@ -757,11 +786,14 @@ def get_hlt(hlt_id):
         horse = db.query(HorseORM).filter_by(microchip=hlt.horse_microchip).first()
         owner = db.query(OwnerORM).filter_by(id=hlt.owner_id).first()
         trainer = db.query(TrainerORM).filter_by(id=hlt.trainer_id).first()
+        governing_body = db.query(GoverningBodyORM).filter_by(governing_body_code=hlt.governing_body_code).first()
         return _ok({
             "id": hlt.id,
             "horse_microchip": hlt.horse_microchip,
             "owner_id": hlt.owner_id,
             "trainer_id": hlt.trainer_id,
+            "governing_body_code": hlt.governing_body_code,
+            "governing_body_name": governing_body.governing_body_name if governing_body else None,
             "lease_id": hlt.lease_id,
             "status": hlt.status,
             "term_sheet_status": hlt.term_sheet_status,

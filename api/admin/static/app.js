@@ -31,6 +31,11 @@ async function loadTrainers() {
   const j = await r.json();
   return j.success ? j.data : [];
 }
+async function loadGoverningBodies() {
+  const r = await fetch(`${API}/governing-bodies`);
+  const j = await r.json();
+  return j.success ? j.data.items : [];
+}
 async function loadHlts() {
   const r = await fetch(`${API}/hlts`);
   const j = await r.json();
@@ -61,12 +66,13 @@ async function renderDashboard() {
     horses: stats.horses ?? horses.length,
     owners: stats.owners ?? owners.length,
     trainers: stats.trainers ?? trainers.length,
+    governing_bodies: stats.governing_bodies ?? 0,
     hlts: stats.hlts ?? hlts.length,
   };
   app.innerHTML = `
     <div class="card">
       <h2 class="text-xl font-bold mb-6">HLT Mission Control</h2>
-      <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+      <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
         <div class="bg-emerald-50 rounded-lg p-4 border border-emerald-100">
           <div class="text-3xl font-bold text-emerald-700">${c.horses}</div>
           <div class="text-sm text-emerald-600 font-medium">Horses</div>
@@ -78,6 +84,10 @@ async function renderDashboard() {
         <div class="bg-amber-50 rounded-lg p-4 border border-amber-100">
           <div class="text-3xl font-bold text-amber-700">${c.trainers}</div>
           <div class="text-sm text-amber-600 font-medium">Trainers / Stables</div>
+        </div>
+        <div class="bg-rose-50 rounded-lg p-4 border border-rose-100">
+          <div class="text-3xl font-bold text-rose-700">${c.governing_bodies}</div>
+          <div class="text-sm text-rose-600 font-medium">Governing Bodies</div>
         </div>
         <div class="bg-purple-50 rounded-lg p-4 border border-purple-100">
           <div class="text-3xl font-bold text-purple-700">${c.hlts}</div>
@@ -228,10 +238,11 @@ async function renderTrainers() {
 
 async function renderCreateHlt() {
   setLoading(true);
-  const [horses, owners, trainers] = await Promise.all([loadHorses(), loadOwners(), loadTrainers()]);
-  const horseOpts = horses.map(h => `<option value="${h.microchip}">${h.name}</option>`).join("");
-  const ownerOpts = owners.map(o => `<option value="${o.id}">${o.name}</option>`).join("");
-  const trainerOpts = trainers.map(t => `<option value="${t.id}">${t.name} — ${t.stable_name}</option>`).join("");
+  const [horses, owners, trainers, governing_bodies] = await Promise.all([loadHorses(), loadOwners(), loadTrainers(), loadGoverningBodies()]);
+  const horseOpts = '<option value="" disabled selected>-- Select Horse --</option>' + horses.map(h => `<option value="${h.microchip}">${h.name}</option>`).join("");
+  const ownerOpts = '<option value="" disabled selected>-- Select Owner --</option>' + owners.map(o => `<option value="${o.id}">${o.name}</option>`).join("");
+  const trainerOpts = '<option value="" disabled selected>-- Select Trainer --</option>' + trainers.map(t => `<option value="${t.id}">${t.name} — ${t.stable_name}</option>`).join("");
+  const govOpts = '<option value="" disabled selected>-- Select Governing Body --</option>' + governing_bodies.map(g => `<option value="${g.governing_body_code}">${g.governing_body_name}</option>`).join("");
   app.innerHTML = `
     <div class="card max-w-4xl mx-auto">
       <div class="flex justify-between items-center mb-6">
@@ -243,6 +254,7 @@ async function renderCreateHlt() {
           <div><label class="label">Horse</label><select id="h-horse" class="w-full border rounded-md px-3 py-2 text-sm">${horseOpts}</select></div>
           <div><label class="label">Owner</label><select id="h-owner" class="w-full border rounded-md px-3 py-2 text-sm">${ownerOpts}</select></div>
           <div><label class="label">Trainer / Stable</label><select id="h-trainer" class="w-full border rounded-md px-3 py-2 text-sm">${trainerOpts}</select></div>
+          <div><label class="label">Governing Body</label><select id="h-governing_body" class="w-full border rounded-md px-3 py-2 text-sm">${govOpts}</select></div>
           <div><label class="label">Lease ID</label><input id="h-lease_id" type="text" class="w-full border rounded-md px-3 py-2 text-sm" required /></div>
           <div><label class="label">Start Date</label><input id="h-start_date" type="date" class="w-full border rounded-md px-3 py-2 text-sm" required /></div>
           <div><label class="label">End Date</label><input id="h-end_date" type="date" class="w-full border rounded-md px-3 py-2 text-sm" required /></div>
@@ -309,6 +321,7 @@ window.submitHlt = async function() {
     horse_microchip: document.getElementById("h-horse").value,
     owner_id: document.getElementById("h-owner").value,
     trainer_id: document.getElementById("h-trainer").value,
+    governing_body_code: document.getElementById("h-governing_body").value,
     lease_id: document.getElementById("h-lease_id").value,
     start_date: document.getElementById("h-start_date").value,
     end_date: document.getElementById("h-end_date").value,
@@ -402,7 +415,7 @@ window.renderHltDetail = async function(id) {
       </div>
 
       <!-- Entity cards -->
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
         <div class="entity-card">
           <h4>Horse</h4>
           <div class="name">${horse.name || '—'}</div>
@@ -424,6 +437,12 @@ window.renderHltDetail = async function(id) {
           <div class="detail">${trainer.stable_name || ''}</div>
           <div class="detail">${trainer.location || ''}</div>
           <div class="tagline">ID: ${h.trainer_id}</div>
+        </div>
+        <div class="entity-card">
+          <h4>Governing Body</h4>
+          <div class="name">${h.governing_body_name || '—'}</div>
+          <div class="detail">${h.governing_body_code || ''}</div>
+          <div class="tagline">ID: ${h.governing_body_code || 'Not set'}</div>
         </div>
       </div>
 
@@ -490,6 +509,41 @@ window.generateTermSheet = async function(hltId) {
   }
 };
 
+// ─── Governing Bodies ───────────────────────────────────────────────────────
+
+async function renderGoverningBodies() {
+  setLoading(true);
+  const items = await loadGoverningBodies();
+  const rows = items.map(g => `
+    <tr class="border-b hover:bg-gray-50">
+      <td class="px-4 py-3">${g.governing_body_name}</td>
+      <td class="px-4 py-3"><span class="tag">${g.governing_body_code}</span></td>
+      <td class="px-4 py-3">${g.website ? `<a href="${g.website}" target="_blank" class="text-blue-600 hover:underline">${g.website}</a>` : '—'}</td>
+      <td class="px-4 py-3">${g.status}</td>
+    </tr>
+  `).join("");
+  app.innerHTML = `
+    <div class="card">
+      <div class="flex justify-between items-center mb-4">
+        <h2 class="text-xl font-bold">Governing Bodies</h2>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm text-left">
+          <thead class="bg-gray-50 text-gray-600 font-medium">
+            <tr>
+              <th class="px-4 py-2">Name</th>
+              <th class="px-4 py-2">Code</th>
+              <th class="px-4 py-2">Website</th>
+              <th class="px-4 py-2">Status</th>
+            </tr>
+          </thead>
+          <tbody>${rows || '<tr><td colspan="4" class="px-4 py-4 text-gray-500">No governing bodies.</td></tr>'}</tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
+
 // ─── Views map ────────────────────────────────────────────────────────────────
 
 const views = {
@@ -497,6 +551,7 @@ const views = {
   horses: renderHorses,
   owners: renderOwners,
   trainers: renderTrainers,
+  "governing-bodies": renderGoverningBodies,
   hlts: renderHlts,
   "create-hlt": renderCreateHlt,
 };

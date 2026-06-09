@@ -20,7 +20,7 @@ def clean_db():
     from sqlalchemy import text
     db = SessionLocal()
     try:
-        for tbl in ["documents", "hlts", "leases", "horses", "owners", "trainers"]:
+        for tbl in ["documents", "hlts", "leases", "horses", "owners", "trainers", "governing_bodies"]:
             db.execute(text(f"DELETE FROM {tbl}"))
         db.commit()
     finally:

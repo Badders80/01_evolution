@@ -85,6 +85,18 @@ class Trainer(Base):
     updated_at = Column(Text, default=utc_now, onupdate=utc_now)
 
 
+class GoverningBody(Base):
+    __tablename__ = "governing_bodies"
+
+    governing_body_code = Column(String(8), primary_key=True)
+    governing_body_name = Column(Text, nullable=False)
+    website = Column(Text)
+    status = Column(Text, default="active")
+    notes = Column(Text)
+    created_at = Column(Text, default=utc_now)
+    updated_at = Column(Text, default=utc_now, onupdate=utc_now)
+
+
 class Lease(Base):
     __tablename__ = "leases"
 
@@ -121,6 +133,7 @@ class HLT(Base):
     horse_microchip = Column(String(15), ForeignKey("horses.microchip"), nullable=False)
     owner_id = Column(String(32), ForeignKey("owners.id"), nullable=False)
     trainer_id = Column(String(32), ForeignKey("trainers.id"), nullable=False)
+    governing_body_code = Column(String(8), ForeignKey("governing_bodies.governing_body_code"), nullable=True)
     lease_id = Column(String(32), ForeignKey("leases.lease_id"), nullable=False)
     status = Column(Text, default="draft")
     term_sheet_status = Column(Text, default="pending")

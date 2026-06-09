@@ -13,7 +13,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from admin.db import init_db, SessionLocal, Horse, Owner, Trainer, Lease, HLT
+from admin.db import init_db, SessionLocal, Horse, Owner, Trainer, Lease, HLT, GoverningBody
 
 
 def seed():
@@ -21,7 +21,7 @@ def seed():
     db = SessionLocal()
     try:
         from sqlalchemy import text
-        for tbl in ["documents", "hlts", "leases", "horses", "owners", "trainers"]:
+        for tbl in ["documents", "hlts", "leases", "horses", "owners", "trainers", "governing_bodies"]:
             db.execute(text(f"DELETE FROM {tbl}"))
         db.commit()
         print("Wiped all tables.")
@@ -114,6 +114,20 @@ def seed():
             db.merge(Owner(**o))
             print(f"  Owner: {o['name']} ({o['id']})")
 
+        # ─── Governing Bodies (from HLT canonical data) ────────────────────
+        governing_bodies = [
+            {
+                "governing_body_code": "NZTR",
+                "governing_body_name": "New Zealand Thoroughbred Racing",
+                "website": "https://www.nzracing.co.nz",
+                "status": "active",
+                "notes": "Seeded from SSOT_Build LSE-001.json",
+            },
+        ]
+        for gb in governing_bodies:
+            db.merge(GoverningBody(**gb))
+            print(f"  Governing Body: {gb['governing_body_name']} ({gb['governing_body_code']})")
+
         # ─── Trainers (from wexford-stables.json, stephen-gray-racing.json) ─
         trainers = [
             {
@@ -150,7 +164,8 @@ def seed():
         tc = db.query(Trainer).count()
         lc = db.query(Lease).count()
         hltc = db.query(HLT).count()
-        print(f"\nDone. Horses: {hc}, Owners: {oc}, Trainers: {tc}, Leases: {lc}, HLTs: {hltc}")
+        gc = db.query(GoverningBody).count()
+        print(f"\nDone. Horses: {hc}, Owners: {oc}, Trainers: {tc}, Governing Bodies: {gc}, Leases: {lc}, HLTs: {hltc}")
 
     finally:
         db.close()
