@@ -1,5 +1,51 @@
+import { 
+  calculateHltTerms, 
+  calculateDerivedFields, 
+  formatCurrency, 
+  formatPercent, 
+  formatNumber,
+  generateErc20Identifier,
+  nextLeaseId,
+  addMonthsIso,
+  parseNumber 
+} from './hlt-engine.js';
+
 const app = document.getElementById("app");
 const API = "/api";
+
+// Wizard state
+let wizardState = {
+  step: 1,
+  draft: {
+    // Step 1: Entities
+    horseId: '',
+    ownerId: '',
+    trainerId: '',
+    governingBodyCode: '',
+    // Step 2: Lease Terms
+    leaseStartDate: '',
+    leaseLengthMonths: '',
+    percentageLeased: '',
+    numTokens: '',
+    // Step 3: Pricing
+    monthlyRate: '',
+    // Derived (calculated)
+    pricePer1PercentTotal: 0,
+    annualRatePer1Percent: 0,
+    totalIssuanceValue: 0,
+    pricePerToken: 0,
+    fractionalInterestPerToken: 0,
+    leaseEndDate: '',
+    // Metadata
+    tokenName: '',
+    erc20Identifier: '',
+    variations: 'n/a',
+    investorReturn: '75',
+    ownerStakesSplit: '25',
+  },
+  lastEditedField: null,
+  entities: { horses: [], owners: [], trainers: [], governingBodies: [], leases: [] },
+};
 
 function setLoading(show) {
   app.innerHTML = show ? '<div class="p-6 text-gray-600">Loading...</div>' : "";

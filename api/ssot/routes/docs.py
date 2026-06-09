@@ -1,14 +1,24 @@
 """
 Document Generation — Term Sheet, PDS, Syndicate Agreement
 
-Generates DOCX files from HLT data and uploads them to Cloud Storage.
-All three documents are generated from the same canonical HLT record.
+Generates DOCX files from HLT data, uploads to Cloud Storage,
+and tracks them via DocumentRecord with section-by-section review.
 """
 
 from flask import Request, jsonify
 from google.cloud import firestore, storage
 from datetime import datetime
 import io
+import re
+
+from models import (
+    DocumentRecord,
+    DocumentRecordCreate,
+    DocumentRecordUpdate,
+    ReviewSection,
+    build_default_sections,
+    DOC_TYPE_SECTIONS,
+)
 
 _DB = None
 
@@ -23,9 +33,10 @@ BUCKET_NAME = "evolution-horse-docs"
 
 VALID_DOC_TYPES = ["term-sheet", "pds", "sa"]
 
+# ─── Document Generation Handler ──────────────────────────────────────────────
 
 def handle(request: Request, doc_type: str | None = None):
-    """Generate a document from an HLT record."""
+    """Generate a document from an HLT record and create a DocumentRecord."""
     if request.method != "POST":
         return jsonify({"error": "Method not allowed. Use POST."}), 405
 
@@ -64,15 +75,51 @@ def handle(request: Request, doc_type: str | None = None):
     bucket = storage_client.bucket(BUCKET_NAME)
     file_name = f"{hlt_id}/{doc_type}.docx"
     blob = bucket.blob(file_name)
-    blob.upload_from_string(doc_bytes, content_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document")
+    blob.upload_from_string(
+        doc_bytes,
+        content_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    )
 
     gcs_url = f"gs://{BUCKET_NAME}/{file_name}"
 
-    # Update HLT document status
-    doc_field = doc_type.replace("-", "_")  # term-sheet → term_sheet
+    # Build canonical document ID
+    lease_id = hlt_data.get("lease_id", "UNKNOWN")
+    safe_lease = re.sub(r"[^A-Z0-9-]", "", lease_id.upper())
+    safe_doc_type = doc_type.upper().replace("-", "")
+    document_id = f"DOC-{safe_lease}-{safe_doc_type}"
+
+    # Build DocumentRecord
+    today = datetime.utcnow().date()
+    sections = build_default_sections(doc_type)
+
+    record = DocumentRecordCreate(
+        document_id=document_id,
+        lease_id=lease_id,
+        horse_id=hlt_data["horse_microchip"],
+        document_type=doc_type,
+        document_version=1,
+        document_date=today,
+        source_reference="v1.0-template",
+        file_path=gcs_url,
+        is_current=True,
+        notes=None,
+        doc_review_status="draft",
+        sections=sections,
+    )
+
+    # Write to Firestore
+    doc_ref = _get_db().collection("documents").document(document_id)
+    doc_ref.set(record.model_dump() | {
+        "created_at": firestore.SERVER_TIMESTAMP,
+        "updated_at": firestore.SERVER_TIMESTAMP,
+    })
+
+    # Update HLT document status (legacy field for backward compat)
+    doc_field = doc_type.replace("-", "_")
     hlt_doc.reference.update({
         f"documents.{doc_field}.status": "pending",
         f"documents.{doc_field}.gcs_url": gcs_url,
+        f"documents.{doc_field}.document_id": document_id,
         "updated_at": firestore.SERVER_TIMESTAMP,
     })
 
@@ -81,26 +128,121 @@ def handle(request: Request, doc_type: str | None = None):
         "gcs_url": gcs_url,
         "doc_type": doc_type,
         "hlt_id": hlt_id,
+        "document_id": document_id,
+        "sections": [s.section_name for s in sections],
     }), 200
 
 
-def generate_document(doc_type: str, hlt_data: dict, horse_data: dict, owner_data: dict, trainer_data: dict) -> bytes:
-    """
-    Generate a DOCX file from HLT data.
+# ─── Review Endpoint ──────────────────────────────────────────────────────────
 
-    This is a placeholder that creates a minimal valid DOCX.
-    The full implementation will use the python-docx library to create
-    production-format documents matching the DNA brand system.
-    """
+def review(request: Request, document_id: str):
+    """POST /docs/{document_id}/review — update section statuses and reviewer notes."""
+    if request.method != "POST":
+        return jsonify({"error": "Method not allowed. Use POST."}), 405
+
+    data = request.get_json(force=True) or {}
+    section_updates = data.get("sections", {})
+    # e.g. {"horse_details": {"status": "approved", "reviewer_notes": "Looks good"}}
+
+    doc_ref = _get_db().collection("documents").document(document_id)
+    doc_snap = doc_ref.get()
+    if not doc_snap.exists:
+        return jsonify({"error": f"Document {document_id} not found"}), 404
+
+    doc_data = doc_snap.to_dict()
+    sections = doc_data.get("sections", [])
+
+    updated_any = False
+    for sec in sections:
+        name = sec.get("section_name")
+        if name in section_updates:
+            upd = section_updates[name]
+            if "status" in upd:
+                sec["status"] = upd["status"]
+                updated_any = True
+            if "reviewer_notes" in upd:
+                sec["reviewer_notes"] = upd["reviewer_notes"]
+                updated_any = True
+
+    # Auto-derive overall doc_review_status from sections
+    all_approved = all(s.get("status") == "approved" for s in sections)
+    any_rejected = any(s.get("status") == "rejected" for s in sections)
+    any_needs_revision = any(s.get("status") == "needs_revision" for s in sections)
+
+    new_status = doc_data.get("doc_review_status", "draft")
+    if all_approved and len(sections) > 0:
+        new_status = "approved"
+    elif any_rejected:
+        new_status = "rejected"
+    elif any_needs_revision:
+        new_status = "review"
+
+    update_payload = {
+        "sections": sections,
+        "doc_review_status": new_status,
+        "updated_at": firestore.SERVER_TIMESTAMP,
+    }
+
+    if updated_any:
+        doc_ref.update(update_payload)
+
+    return jsonify({
+        "document_id": document_id,
+        "doc_review_status": new_status,
+        "sections": sections,
+    }), 200
+
+
+# ─── Get Document ─────────────────────────────────────────────────────────────
+
+def get_document(request: Request, document_id: str):
+    """GET /docs/{document_id} — fetch DocumentRecord with section statuses."""
+    if request.method != "GET":
+        return jsonify({"error": "Method not allowed. Use GET."}), 405
+
+    doc_snap = _get_db().collection("documents").document(document_id).get()
+    if not doc_snap.exists:
+        return jsonify({"error": f"Document {document_id} not found"}), 404
+
+    return jsonify(doc_snap.to_dict()), 200
+
+
+# ─── List Documents by Lease ──────────────────────────────────────────────────
+
+def list_by_lease(request: Request):
+    """GET /docs?lease_id={id} — list all DocumentRecords for a lease."""
+    if request.method != "GET":
+        return jsonify({"error": "Method not allowed. Use GET."}), 405
+
+    lease_id = request.args.get("lease_id") if hasattr(request, "args") else None
+    if not lease_id:
+        body = request.get_json(silent=True) or {}
+        lease_id = body.get("lease_id")
+
+    if not lease_id:
+        return jsonify({"error": "lease_id is required (query param or body)."}), 400
+
+    docs_query = _get_db().collection("documents").where("lease_id", "==", lease_id).stream()
+    results = [d.to_dict() for d in docs_query]
+
+    return jsonify({
+        "lease_id": lease_id,
+        "count": len(results),
+        "documents": results,
+    }), 200
+
+
+# ─── DOCX Generation ──────────────────────────────────────────────────────────
+
+def generate_document(doc_type: str, hlt_data: dict, horse_data: dict, owner_data: dict, trainer_data: dict) -> bytes:
+    """Generate a DOCX file from HLT data."""
     from docx import Document
-    from docx.shared import Inches, Pt, RGBColor
-    from docx.enum.text import WD_ALIGN_PARAGRAPH
+    from docx.shared import Pt, RGBColor
 
     doc = Document()
 
-    # Brand colors from DNA
-    GOLD = RGBColor(0xD4, 0xA9, 0x64)  # #d4a964
-    BLACK = RGBColor(0x12, 0x12, 0x12)  # #121212
+    GOLD = RGBColor(0xD4, 0xA9, 0x64)
+    BLACK = RGBColor(0x12, 0x12, 0x12)
 
     # Title
     title = doc.add_heading("", level=0)
@@ -183,7 +325,6 @@ def generate_document(doc_type: str, hlt_data: dict, horse_data: dict, owner_dat
     run.font.size = Pt(8)
     run.font.color.rgb = GOLD
 
-    # Save to bytes
     buffer = io.BytesIO()
     doc.save(buffer)
     buffer.seek(0)

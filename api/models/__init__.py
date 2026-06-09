@@ -486,7 +486,73 @@ class ContentUpdate(BaseModel):
     status: Optional[Literal["draft", "published"]] = None
 
 
-# ─── Holding (Digital Ledger) ──────────────────────────────────────────────────
+# ─── Loveracing.nz Reference ──────────────────────────────────────────────────
+
+# NOTE: LoveracingRef, RaceResult, HorseRacingSummary moved to 05_industry-data/src/models.py
+# Import from there if needed; kept for backward compat during transition.
+
+
+# ─── DocumentRecord ───────────────────────────────────────────────────────────
+
+DocReviewStatus = Literal["draft", "review", "approved", "rejected"]
+SectionReviewStatus = Literal["pending", "approved", "rejected", "needs_revision"]
+
+
+class ReviewSection(BaseModel):
+    """A single document section with review status and reviewer notes."""
+    section_name: str = Field(..., description="Canonical section identifier.")
+    status: SectionReviewStatus = Field("pending")
+    reviewer_notes: Optional[str] = Field(None)
+
+
+class DocumentRecordCreate(BaseModel):
+    """Payload for creating a document tracking record."""
+    document_id: str = Field(..., description="Canonical document ID. e.g. DOC-LSE-001-PDS")
+    lease_id: str = Field(..., description="Reference to lease canonical ID.")
+    horse_id: str = Field(..., description="Horse microchip number.")
+    document_type: Literal["term-sheet", "pds", "sa"] = Field(...)
+    document_version: int = Field(1, ge=1)
+    document_date: date = Field(...)
+    source_reference: Optional[str] = Field(None, description="External reference or template version.")
+    file_path: str = Field(..., description="GCS URL or relative path to the generated file.")
+    is_current: bool = Field(True)
+    notes: Optional[str] = Field(None)
+    doc_review_status: DocReviewStatus = Field("draft")
+    sections: list[ReviewSection] = Field(default_factory=list)
+
+
+class DocumentRecord(DocumentRecordCreate):
+    """Full document record with server-generated fields."""
+    id: str = Field(..., description="Firestore document ID")
+    created_at: datetime
+    updated_at: datetime
+
+
+class DocumentRecordUpdate(BaseModel):
+    """Payload for updating a document record."""
+    document_version: Optional[int] = None
+    document_date: Optional[date] = None
+    source_reference: Optional[str] = None
+    file_path: Optional[str] = None
+    is_current: Optional[bool] = None
+    notes: Optional[str] = None
+    doc_review_status: Optional[DocReviewStatus] = None
+    sections: Optional[list[ReviewSection]] = None
+
+
+# ─── Standard Document Sections ───────────────────────────────────────────────
+
+DOC_TYPE_SECTIONS: dict[str, list[str]] = {
+    "term-sheet": ["horse_details", "lease_terms", "pricing", "parties"],
+    "pds": ["overview", "horse_details", "lease_terms", "risks", "fees", "contact"],
+    "sa": ["parties", "lease_conditions", "payment_terms", "termination", "governing_law"],
+}
+
+
+def build_default_sections(doc_type: str) -> list[ReviewSection]:
+    """Return a list of ReviewSection objects for a given doc_type, all pending."""
+    names = DOC_TYPE_SECTIONS.get(doc_type, [])
+    return [ReviewSection(section_name=name, status="pending") for name in names]
 
 class HoldingCreate(BaseModel):
     """Payload for creating a new holding (ownership record)."""
