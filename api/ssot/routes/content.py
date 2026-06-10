@@ -9,7 +9,7 @@ Deduplication is by source_email_id (Gmail message ID).
 
 from flask import Request, jsonify
 from google.cloud import firestore
-from models import ContentCreate, ContentUpdate
+from core.models import ContentCreate, ContentUpdate
 
 _DB = None
 

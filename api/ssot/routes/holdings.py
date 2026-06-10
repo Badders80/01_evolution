@@ -4,7 +4,7 @@ Holdings CRUD — Create, Read, Update, List for Digital Ownership Ledger
 
 from flask import Request, jsonify
 from google.cloud import firestore
-from models import HoldingCreate
+from core.models import HoldingCreate
 
 _DB = None
 

@@ -11,7 +11,7 @@ Status lifecycle:
 
 from flask import Request, jsonify
 from google.cloud import firestore
-from models import HLTCreate, HLTUpdate
+from core.models import HLTCreate, HLTUpdate
 
 _DB = None
 
@@ -240,7 +240,7 @@ def create_hlt_workflow(request: Request):
         return jsonify({"error": f"Trainer {trainer_id} not found"}), 400
 
     # ─── Extract lease fields ──────────────────────────────────────
-    from models import LeaseCreate
+    from core.models import LeaseCreate
     lease_fields = [
         "lease_id", "start_date", "end_date", "duration_months",
         "percent_leased", "token_count", "min_unit_size",
@@ -270,7 +270,7 @@ def create_hlt_workflow(request: Request):
     doc_ref.set(lease_doc)
 
     # ─── Create HLT ───────────────────────────────────────────────
-    from models import HLTCreate
+    from core.models import HLTCreate
     hlt_create = HLTCreate(
         horse_microchip=horse_microchip,
         owner_id=owner_id,

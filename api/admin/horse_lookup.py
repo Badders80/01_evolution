@@ -1,5 +1,5 @@
 """
-HLT Mission Control — Horse lookup by microchip.
+Mission Control — Horse lookup by microchip.
 
 Attempts to resolve a NZ microchip number to horse data via loveracing.nz.
 Since loveracing.nz does not expose a direct microchip→horse API, we:

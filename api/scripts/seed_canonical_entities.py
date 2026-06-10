@@ -18,7 +18,7 @@ from google.cloud import firestore
 # Add project root to path so `import models` works
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from models import GoverningBodyCreate, OwnerCreate, TrainerCreate, HLTCreate, HorseCreate
+from core.models import GoverningBodyCreate, OwnerCreate, TrainerCreate, HLTCreate, HorseCreate
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 logger = logging.getLogger(__name__)

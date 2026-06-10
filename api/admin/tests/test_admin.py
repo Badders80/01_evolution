@@ -38,7 +38,7 @@ class TestAdminServer:
     def test_index_serves_html(self, client):
         r = client.get("/")
         assert r.status_code == 200
-        assert b"HLT Mission Control" in r.data
+        assert b"Mission Control" in r.data
 
     def test_static_app_js(self, client):
         r = client.get("/app.js")

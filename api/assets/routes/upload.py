@@ -7,7 +7,7 @@ Organizes files by entity type and ID (e.g., horse/985125000126462/).
 
 from flask import Request, jsonify
 from google.cloud import firestore, storage
-from models import AssetCreate
+from core.models import AssetCreate
 from PIL import Image
 import io
 import uuid

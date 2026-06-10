@@ -3,7 +3,7 @@
 import pytest
 from pydantic import ValidationError
 
-from models import OwnerCreate, OwnerUpdate
+from core.models import OwnerCreate, OwnerUpdate
 
 
 class TestOwnerCreate:

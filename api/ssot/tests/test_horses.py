@@ -4,7 +4,7 @@ import pytest
 from unittest.mock import patch, MagicMock
 from pydantic import ValidationError
 
-from models import HorseCreate, Horse
+from core.models import HorseCreate, Horse
 
 
 class TestHorseCreate:
@@ -127,7 +127,7 @@ class TestHorseUpdate:
     """Test HorseUpdate Pydantic model with new fields."""
 
     def test_update_new_fields(self):
-        from models import HorseUpdate
+        from core.models import HorseUpdate
         update = HorseUpdate(
             breeding_url="https://loveracing.nz/Breeding/123.aspx",
             horse_status="retired",
@@ -138,7 +138,7 @@ class TestHorseUpdate:
         assert update.identity_status == "verified"
 
     def test_update_partial(self):
-        from models import HorseUpdate
+        from core.models import HorseUpdate
         update = HorseUpdate(country_code="AU")
         assert update.country_code == "AU"
         assert update.breeding_url is None

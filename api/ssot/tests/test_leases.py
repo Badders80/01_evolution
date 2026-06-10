@@ -4,7 +4,7 @@ import pytest
 from pydantic import ValidationError
 from datetime import date
 
-from models import LeaseCreate, LeaseUpdate
+from core.models import LeaseCreate, LeaseUpdate
 
 
 class TestLeaseCreateCalculator:

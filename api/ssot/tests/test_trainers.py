@@ -3,7 +3,7 @@
 import pytest
 from pydantic import ValidationError
 
-from models import TrainerCreate, TrainerUpdate
+from core.models import TrainerCreate, TrainerUpdate
 
 
 class TestTrainerCreate:

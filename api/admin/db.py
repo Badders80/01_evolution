@@ -1,5 +1,5 @@
 """
-HLT Mission Control — SQLite persistence layer.
+Mission Control — SQLite persistence layer.
 
 SQLAlchemy ORM models that mirror the existing Pydantic models
 in models/__init__.py for local dev use.

@@ -1,9 +1,9 @@
 """
-Evolution API — Shared Pydantic Models
+Evolution API — Canonical Pydantic Models
 
-These models are the single source of truth for data validation.
-They mirror the JSON Schemas in dna/schemas/ exactly.
-Every Cloud Function imports from this package.
+This is the SINGLE SOURCE OF TRUTH for all data validation.
+Every Cloud Function, admin server, and test imports from this file.
+Models mirror the JSON Schemas in dna/schemas/ exactly.
 """
 
 from datetime import date, datetime
@@ -486,12 +486,6 @@ class ContentUpdate(BaseModel):
     status: Optional[Literal["draft", "published"]] = None
 
 
-# ─── Loveracing.nz Reference ──────────────────────────────────────────────────
-
-# NOTE: LoveracingRef, RaceResult, HorseRacingSummary moved to 05_industry-data/src/models.py
-# Import from there if needed; kept for backward compat during transition.
-
-
 # ─── DocumentRecord ───────────────────────────────────────────────────────────
 
 DocReviewStatus = Literal["draft", "review", "approved", "rejected"]
@@ -554,6 +548,9 @@ def build_default_sections(doc_type: str) -> list[ReviewSection]:
     names = DOC_TYPE_SECTIONS.get(doc_type, [])
     return [ReviewSection(section_name=name, status="pending") for name in names]
 
+
+# ─── Holding ─────────────────────────────────────────────────────────────────
+
 class HoldingCreate(BaseModel):
     """Payload for creating a new holding (ownership record)."""
     user_id: str = Field(..., description="Firebase Auth UID of the investor.")
@@ -606,8 +603,3 @@ class GoverningBodyUpdate(BaseModel):
     website: Optional[str] = None
     status: Optional[Literal["active", "inactive"]] = None
     notes: Optional[str] = None
-
-
-# ─── Loveracing.nz Reference ──────────────────────────────────────────────────
-
-# NOTE: LoveracingRef, RaceResult, HorseRacingSummary moved to 05_industry-data/src/models.py

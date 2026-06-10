@@ -9,6 +9,8 @@ import email
 import logging
 from datetime import datetime
 from dotenv import load_dotenv
+from google.auth import default
+from google.auth.transport.requests import Request
 
 # Import our unified pipeline modules
 from parser import parse_email
@@ -30,6 +32,45 @@ DB_PATH = "/home/evo/workspace/projects/Evolution_Content/data/ledger.sqlite"
 # Credentials
 WEXFORD_EMAIL_USER = os.getenv("WEXFORD_EMAIL_USER", "alex@evolutionstables.nz")
 WEXFORD_APP_PASSWORD = os.getenv("WEXFORD_APP_PASSWORD")
+
+
+def get_auth_headers(target_audience=None):
+    """Get authentication headers for Cloud Functions API calls.
+    
+    Uses ID token (not access token) for Cloud Functions invoker auth.
+    Falls back to access token if ID token generation fails.
+    """
+    try:
+        # Try to get ID token first (required for Cloud Functions invoker auth)
+        import subprocess
+        if target_audience:
+            result = subprocess.run(
+                ['gcloud', 'auth', 'print-identity-token', '--audiences', target_audience],
+                capture_output=True, text=True, check=True
+            )
+            token = result.stdout.strip()
+            return {"Authorization": f"Bearer {token}"}
+        else:
+            # Fallback to access token from ADC
+            credentials, project = default()
+            credentials.refresh(Request())
+            token = credentials.token
+            return {"Authorization": f"Bearer {token}"}
+    except subprocess.CalledProcessError as e:
+        logger.warning(f"Failed to get ID token: {e.stderr}")
+        # Fall through to access token fallback
+    except Exception as e:
+        logger.warning(f"Failed to get auth headers: {e}")
+    
+    # Fallback: try access token from ADC
+    try:
+        credentials, project = default()
+        credentials.refresh(Request())
+        token = credentials.token
+        return {"Authorization": f"Bearer {token}"}
+    except Exception as e:
+        logger.warning(f"Failed to get fallback auth headers: {e}")
+        return {}
 
 
 def get_latest_wexford_email():
@@ -154,7 +195,8 @@ def resolve_horse_microchip(horse_name):
     """Call SSOT API to list horses and find microchip for horse name (with local fallback)."""
     try:
         logger.info(f"Listing horses from SSOT API to resolve '{horse_name}'...")
-        resp = requests.get(f"{SSOT_API_URL}/horses", timeout=10)
+        headers = get_auth_headers(target_audience=SSOT_API_URL)
+        resp = requests.get(f"{SSOT_API_URL}/horses", headers=headers, timeout=10)
         resp.raise_for_status()
         
         horses = resp.json()
@@ -183,9 +225,11 @@ def upload_to_assets_api(video_path, microchip, parsed):
     
     try:
         logger.info(f"Uploading video {video_path} to Assets API for microchip {microchip}...")
+        headers = get_auth_headers(target_audience=ASSETS_API_URL)
         with open(video_path, "rb") as f:
             resp = requests.post(
                 f"{ASSETS_API_URL}/upload",
+                headers=headers,
                 files={"file": (filename, f, "video/mp4")},
                 data={
                     "entity_type": "horse",
@@ -241,8 +285,10 @@ def store_content_api(parsed, microchip, asset_id, transcript):
     
     try:
         logger.info(f"Storing transcript via SSOT API content endpoint...")
+        headers = get_auth_headers(target_audience=SSOT_API_URL)
         resp = requests.post(
             f"{SSOT_API_URL}/content",
+            headers=headers,
             json=payload,
             timeout=15,
         )

@@ -11,7 +11,7 @@ from datetime import datetime
 import io
 import re
 
-from models import (
+from core.models import (
     DocumentRecord,
     DocumentRecordCreate,
     DocumentRecordUpdate,

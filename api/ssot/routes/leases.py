@@ -7,7 +7,7 @@ HLT links to a lease by canonical lease_id.
 
 from flask import Request, jsonify
 from google.cloud import firestore
-from models import LeaseCreate, LeaseUpdate
+from core.models import LeaseCreate, LeaseUpdate
 
 _DB = None
 

@@ -1,8 +1,48 @@
 # Evolution — Game Plan
 
-**Status:** 🟢 Phase 1 — Building MVP | 🟡 Phase 2 — Scoping locked
+**Status:** ✅ Sprint Zero: Complete | 🟡 Sprint One: Horse Media Console + Data Sync | 🟢 Phase 1 — Building MVP | 🟡 Phase 2 — Scoping locked
 **Created:** 2026-05-19
-**Last Updated:** 2026-06-06
+**Last Updated:** 2026-06-10
+
+---
+
+## ✅ Sprint Zero: Foundation & Security — COMPLETE
+
+**Date:** 2026-06-10  
+**Status:** ✅ DONE  
+
+**Deliverables:**
+- ✅ Unified models (`api/core/models.py`) — single source of truth
+- ✅ Test infrastructure — 128/128 passing
+- ✅ Admin authentication — Firebase Auth on 20+ endpoints
+- ✅ CORS restricted — allowlist, no wildcard
+- ✅ Mission Control UI — sign-in/out working
+- ✅ Debt sweep — zero backups, zero duplicates, clean pycache
+- ✅ Stripe rules documented — `dna/conventions/STRIPE.md`
+
+**See:** [`docs/sprints/S00_foundation_security.md`](docs/sprints/S00_foundation_security.md) | [`docs/sprints/SPRINT_ZERO_COMPLETE.md`](docs/sprints/SPRINT_ZERO_COMPLETE.md)
+
+---
+
+## 🚨 Current Sprint: Sprint One — Horse Media Console + Data Sync
+
+**Priority:** 🔴 ACTIVE  
+**Date:** 2026-06-10  
+**Status:** 🟡 IN PROGRESS  
+
+**Goal:** Add 4 Wexford horses to Mission Control, build horse detail media console, sync transcripts to Firestore.
+
+**Key Deliverables:**
+- [ ] Add 4 horses: Prudentia, Hottathanafantasy, I-Stole-A-Manolo, First-Gear
+- [ ] Fix SSOT API 403 (Cloud Functions auth for email ingest pipeline)
+- [ ] Fix SQLite schema mismatch (`horse_name` column)
+- [ ] Dedup transcript filenames (normalize to `transcript_{horse}_{date}.json`)
+- [ ] Push all Prudentia transcripts to Firestore with real IDs
+- [ ] Build horse detail media console in Mission Control UI
+- [ ] Build `GET /api/horses/{microchip}/media` endpoint
+- [ ] Full test suite verification
+
+**See Full Plan:** [`docs/sprints/S01_horse_media_console.md`](docs/sprints/S01_horse_media_console.md)
 
 ---
 

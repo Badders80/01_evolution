@@ -3,7 +3,7 @@
 import pytest
 from pydantic import ValidationError
 from datetime import datetime
-from models import HLTCreate, HLTUpdate, HLT
+from core.models import HLTCreate, HLTUpdate, HLT
 
 VALID_HLT_DATA = {
     "horse_microchip": "985125000126462",

@@ -11,7 +11,7 @@ Example:     https://loveracing.nz/Breeding/427416/Prudentia-NZ-2021.aspx
 
 from flask import Request, jsonify
 from google.cloud import firestore
-from models import HorseCreate, HorseUpdate
+from core.models import HorseCreate, HorseUpdate
 
 _DB = None
 

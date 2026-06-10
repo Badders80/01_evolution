@@ -3,7 +3,7 @@
 import pytest
 from datetime import date, datetime
 from pydantic import ValidationError
-from models import (
+from core.models import (
     DocumentRecordCreate,
     DocumentRecord,
     DocumentRecordUpdate,

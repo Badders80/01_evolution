@@ -111,6 +111,7 @@ Step 1 only uses `draft` and `reviewed`.
 1. **API is the only writer.** The Next.js app never writes to Firestore directly.
 2. **Firebase Auth + custom claims.** Roles: `admin`, `investor`, `viewer`.
 3. **Stripe Identity for KYC.** Investors must be verified before investing.
+   → **Full spec:** [`dna/conventions/STRIPE.md`](STRIPE.md)
 4. **Cloud Functions validate all input.** Pydantic models enforce schema.
 5. **GCS buckets are private.** Signed URLs for asset access (Step 2).
 

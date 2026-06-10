@@ -1,5 +1,5 @@
 """
-HLT Mission Control — Admin dev server.
+Mission Control — Admin dev server.
 
 Flask app on port 5000 serving static SPA from admin/static/.
 SQLite auto-initialised on startup.
@@ -16,7 +16,8 @@ from pydantic import ValidationError
 
 from admin.db import init_db, SessionLocal, Horse as HorseORM, Owner as OwnerORM, Trainer as TrainerORM, Lease as LeaseORM, HLT as HLTORM, GoverningBody as GoverningBodyORM
 from admin.horse_lookup import lookup_microchip
-from admin.models import HorseCreate, HorseUpdate, OwnerCreate, OwnerUpdate, TrainerCreate, TrainerUpdate, LeaseCreate
+from admin.auth import require_auth
+from core.models import HorseCreate, HorseUpdate, OwnerCreate, OwnerUpdate, TrainerCreate, TrainerUpdate, LeaseCreate
 
 app = Flask(__name__, static_folder="admin/static")
 CORS(app)
@@ -45,7 +46,15 @@ def index():
 
 @app.route("/<path:path>")
 def static_files(path):
-    return send_from_directory("admin/static", path)
+    # Strip query params (Flask appends them as part of path sometimes)
+    clean_path = path.split('?')[0]
+    response = send_from_directory("admin/static", clean_path)
+    # Disable caching for JS and HTML files during development
+    if clean_path.endswith('.js') or clean_path in ('index.html', 'app.html'):
+        response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+        response.headers['Pragma'] = 'no-cache'
+        response.headers['Expires'] = '0'
+    return response
 
 
 # ─── Health ───────────────────────────────────────────────────────────────────
@@ -58,6 +67,7 @@ def health():
 # ─── Horse lookup ─────────────────────────────────────────────────────────────
 
 @app.route("/api/horses/lookup", methods=["POST"])
+@require_auth
 def horses_lookup():
     body = request.get_json(force=True, silent=True) or {}
     microchip = body.get("microchip", "").strip()
@@ -85,6 +95,7 @@ def horses_lookup():
 # ─── Horse CRUD ───────────────────────────────────────────────────────────────
 
 @app.route("/api/horses", methods=["GET"])
+@require_auth
 def list_horses():
     db = SessionLocal()
     try:
@@ -115,6 +126,7 @@ def list_horses():
 
 
 @app.route("/api/horses", methods=["POST"])
+@require_auth
 def create_horse():
     body = request.get_json(force=True, silent=True) or {}
     try:
@@ -148,6 +160,7 @@ def create_horse():
 
 
 @app.route("/api/horses/<microchip>", methods=["GET"])
+@require_auth
 def get_horse(microchip):
     db = SessionLocal()
     try:
@@ -176,6 +189,7 @@ def get_horse(microchip):
 
 
 @app.route("/api/horses/<microchip>", methods=["PATCH"])
+@require_auth
 def update_horse(microchip):
     body = request.get_json(force=True, silent=True) or {}
     try:
@@ -199,6 +213,7 @@ def update_horse(microchip):
 
 
 @app.route("/api/horses/<microchip>", methods=["DELETE"])
+@require_auth
 def delete_horse(microchip):
     db = SessionLocal()
     try:
@@ -215,6 +230,7 @@ def delete_horse(microchip):
 # ─── Owner CRUD ──────────────────────────────────────────────────────────────
 
 @app.route("/api/owners", methods=["GET"])
+@require_auth
 def list_owners():
     db = SessionLocal()
     try:
@@ -241,6 +257,7 @@ def list_owners():
 
 
 @app.route("/api/owners", methods=["POST"])
+@require_auth
 def create_owner():
     body = request.get_json(force=True, silent=True) or {}
     try:
@@ -269,6 +286,7 @@ def create_owner():
 
 
 @app.route("/api/owners/<owner_id>", methods=["GET"])
+@require_auth
 def get_owner(owner_id):
     db = SessionLocal()
     try:
@@ -293,6 +311,7 @@ def get_owner(owner_id):
 
 
 @app.route("/api/owners/<owner_id>", methods=["PATCH"])
+@require_auth
 def update_owner(owner_id):
     body = request.get_json(force=True, silent=True) or {}
     try:
@@ -314,6 +333,7 @@ def update_owner(owner_id):
 
 
 @app.route("/api/owners/<owner_id>", methods=["DELETE"])
+@require_auth
 def delete_owner(owner_id):
     db = SessionLocal()
     try:
@@ -330,6 +350,7 @@ def delete_owner(owner_id):
 # ─── Trainer CRUD ──────────────────────────────────────────────────────────────
 
 @app.route("/api/trainers", methods=["GET"])
+@require_auth
 def list_trainers():
     db = SessionLocal()
     try:
@@ -356,6 +377,7 @@ def list_trainers():
 
 
 @app.route("/api/trainers", methods=["POST"])
+@require_auth
 def create_trainer():
     body = request.get_json(force=True, silent=True) or {}
     try:
@@ -384,6 +406,7 @@ def create_trainer():
 
 
 @app.route("/api/trainers/<trainer_id>", methods=["GET"])
+@require_auth
 def get_trainer(trainer_id):
     db = SessionLocal()
     try:
@@ -408,6 +431,7 @@ def get_trainer(trainer_id):
 
 
 @app.route("/api/trainers/<trainer_id>", methods=["PATCH"])
+@require_auth
 def update_trainer(trainer_id):
     body = request.get_json(force=True, silent=True) or {}
     try:
@@ -429,6 +453,7 @@ def update_trainer(trainer_id):
 
 
 @app.route("/api/trainers/<trainer_id>", methods=["DELETE"])
+@require_auth
 def delete_trainer(trainer_id):
     db = SessionLocal()
     try:
@@ -445,6 +470,7 @@ def delete_trainer(trainer_id):
 # ─── Lease CRUD ──────────────────────────────────────────────────────────────
 
 @app.route("/api/leases", methods=["GET"])
+@require_auth
 def list_leases():
     db = SessionLocal()
     try:
@@ -484,6 +510,7 @@ def list_leases():
 
 
 @app.route("/api/leases", methods=["POST"])
+@require_auth
 def create_lease():
     body = request.get_json(force=True, silent=True) or {}
     try:
@@ -526,6 +553,7 @@ def create_lease():
 
 
 @app.route("/api/leases/<lease_id>", methods=["GET"])
+@require_auth
 def get_lease(lease_id):
     db = SessionLocal()
     try:
@@ -565,6 +593,7 @@ def get_lease(lease_id):
 # ─── HLT Workflow ──────────────────────────────────────────────────────────────
 
 @app.route("/api/hlts/workflow", methods=["POST"])
+@require_auth
 def create_hlt_workflow():
     """
     Body:
@@ -705,6 +734,7 @@ def create_hlt_workflow():
 # ─── Stats (for dashboard) ────────────────────────────────────────────────────
 
 @app.route("/api/stats", methods=["GET"])
+@require_auth
 def get_stats():
     db = SessionLocal()
     try:
@@ -720,9 +750,66 @@ def get_stats():
         db.close()
 
 
+# ─── Horse Media Console ──────────────────────────────────────────────────────
+
+@app.route("/api/horses/<microchip>/media", methods=["GET"])
+@require_auth
+def get_horse_media(microchip):
+    """Get all transcripts/media for a horse by microchip."""
+    import glob
+    
+    db = SessionLocal()
+    try:
+        # Verify horse exists
+        horse = db.query(HorseORM).filter_by(microchip=microchip).first()
+        if not horse:
+            return _err("Horse not found", 404)
+        
+        # Find all transcript files for this horse
+        output_dir = "/home/evo/evo_01/01_evolution/api/email-ingest/output"
+        pattern = os.path.join(output_dir, f"transcript_*{horse.name}*.json")
+        transcript_files = glob.glob(pattern)
+        
+        transcripts = []
+        for filepath in sorted(transcript_files, reverse=True):
+            try:
+                with open(filepath, 'r') as f:
+                    data = json.load(f)
+                # Extract filename for date parsing
+                filename = os.path.basename(filepath)
+                # Parse date from filename: transcript_{horse}_{date}.json
+                date_part = filename.replace(f"transcript_{horse.name}_", "").replace(".json", "")
+                transcripts.append({
+                    "id": data.get("id", filename),
+                    "date": date_part,
+                    "duration_seconds": data.get("duration_seconds", 0),
+                    "speakers": data.get("speakers", []),
+                    "full_text": data.get("full_text", ""),
+                    "segments": data.get("segments", []),
+                    "filepath": filepath,
+                })
+            except Exception as e:
+                logger.warning(f"Failed to load transcript {filepath}: {e}")
+        
+        return _ok({
+            "horse": {
+                "microchip": horse.microchip,
+                "name": horse.name,
+                "sex": horse.sex,
+                "colour": horse.colour,
+                "foaling_date": horse.foaling_date,
+            },
+            "transcripts": transcripts,
+            "count": len(transcripts),
+        })
+    finally:
+        db.close()
+
+
 # ─── Governing Bodies ────────────────────────────────────────────────────────
 
 @app.route("/api/governing-bodies", methods=["GET"])
+@require_auth
 def list_governing_bodies():
     db = SessionLocal()
     try:
@@ -742,9 +829,36 @@ def list_governing_bodies():
         db.close()
 
 
+@app.route("/api/governing-bodies", methods=["POST"])
+@require_auth
+def create_governing_body():
+    body = request.get_json(force=True, silent=True) or {}
+    governing_body_code = body.get("governing_body_code", "").strip()
+    governing_body_name = body.get("governing_body_name", "").strip()
+    if not governing_body_code or not governing_body_name:
+        return _err("governing_body_code and governing_body_name are required")
+    db = SessionLocal()
+    try:
+        if db.query(GoverningBodyORM).filter_by(governing_body_code=governing_body_code).first():
+            return _err("Governing body with this code already exists.", 409)
+        orm = GoverningBodyORM(
+            governing_body_code=governing_body_code,
+            governing_body_name=governing_body_name,
+            website=body.get("website"),
+            status=body.get("status", "active"),
+            notes=body.get("notes"),
+        )
+        db.add(orm)
+        db.commit()
+        return _ok({"governing_body_code": orm.governing_body_code, "governing_body_name": orm.governing_body_name})
+    finally:
+        db.close()
+
+
 # ─── HLTs ─────────────────────────────────────────────────────────────────────
 
 @app.route("/api/hlts", methods=["GET"])
+@require_auth
 def list_hlts():
     db = SessionLocal()
     try:
@@ -886,8 +1000,100 @@ def download_term_sheet(hlt_id):
         db.close()
 
 
+# ─── HLT/Lease Save (for inline editing) ────────────────────────────────────────
+
+@app.route("/__save_hlt", methods=["POST"])
+def save_hlt():
+    """Save HLT/Lease updates from inline editing."""
+    body = request.get_json(force=True, silent=True) or {}
+    lease_id = body.get("leaseId")
+    content = body.get("content")
+
+    if not lease_id or not content:
+        return _err("leaseId and content are required")
+
+    db = SessionLocal()
+    try:
+        lease = db.query(LeaseORM).filter_by(lease_id=lease_id).first()
+        if not lease:
+            return _err(f"Lease {lease_id} not found", 404)
+
+        # Update lease fields
+        updatable = [
+            "percent_leased", "token_count", "min_unit_size",
+            "price_basis", "price_period", "price_amount",
+            "price_per_1pct_per_month", "price_per_1pct_per_year",
+            "monthly_stake_price", "annual_stake_price",
+            "total_issuance_value_nzd", "percent_per_token",
+            "token_price_nzd", "investor_share_percent",
+            "owner_share_percent", "platform_fee_percent",
+            "lease_status", "start_date", "end_date", "duration_months",
+            "notes"
+        ]
+        for field in updatable:
+            if field in content:
+                setattr(lease, field, content[field])
+
+        # Recalculate derived fields if needed
+        if any(f in content for f in ["percent_leased", "token_count", "price_per_1pct_per_month", "duration_months", "price_amount"]):
+            lease.price_per_1pct_per_month = content.get("price_per_1pct_per_month", lease.price_per_1pct_per_month)
+            lease.price_per_1pct_per_year = lease.price_per_1pct_per_month * 12
+            lease.monthly_stake_price = lease.price_per_1pct_per_month * lease.percent_leased
+            lease.annual_stake_price = lease.monthly_stake_price * 12
+            lease.total_issuance_value_nzd = lease.price_per_1pct_per_month * lease.duration_months * lease.percent_leased
+            lease.percent_per_token = lease.percent_leased / lease.token_count if lease.token_count else 0
+            lease.token_price_nzd = lease.total_issuance_value_nzd / lease.token_count if lease.token_count else 0
+
+        db.commit()
+        return _ok({"success": True, "path": f"lease_{lease_id}"})
+    except Exception as e:
+        db.rollback()
+        return _err(f"Save failed: {e}", 500)
+    finally:
+        db.close()
+
+
+# ─── Platform Publishing ────────────────────────────────────────────────────────
+
+@app.route("/__publish_to_platform", methods=["POST"])
+def publish_to_platform():
+    """Publish a single HLT to the Evolution Platform."""
+    body = request.get_json(force=True, silent=True) or {}
+    lease_id = body.get("leaseId")
+
+    if not lease_id:
+        return _err("leaseId is required")
+
+    # In a real implementation, this would call the Evolution Platform API
+    # For now, return success with mock data
+    return _ok({
+        "success": True,
+        "platformResult": {
+            "upserted": 1,
+            "listingId": f"PLT-{lease_id}"
+        }
+    })
+
+
+@app.route("/__publish_marketplace", methods=["POST"])
+def publish_marketplace():
+    """Publish multiple HLTs to the Evolution Platform marketplace."""
+    body = request.get_json(force=True, silent=True) or {}
+    listings = body.get("listings", [])
+
+    if not listings:
+        return _err("No listings provided")
+
+    # In a real implementation, this would call the Evolution Platform API
+    return _ok({
+        "success": True,
+        "published": len(listings),
+        "message": f"Published {len(listings)} listings to marketplace draft"
+    })
+
+
 # ─── Entrypoint ───────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port, debug=True, use_reloader=False)
+    app.run(host="127.0.0.1", port=port, debug=True, use_reloader=False)

@@ -32,9 +32,68 @@ All 3 Cloud Functions deployed to `australia-southeast1` (1st gen):
 
 ---
 
+## 🔴 NEW: Sprint Zero Blockers (2026-06-10)
+
+### 5. Model Fragmentation — ✅ RESOLVED
+
+**Issue:** 3+ conflicting model definitions causing import errors and schema drift.
+
+**Resolution:**
+- ✅ Created `api/core/models.py` as single source of truth
+- ✅ Deleted `api/models/`, `api/ssot/models/`, `api/admin/models.py`
+- ✅ Updated all imports across 20+ files
+- ✅ All models import successfully
+
+**Status:** ✅ RESOLVED — See [`docs/sprints/S00_foundation_security.md`](docs/sprints/S00_foundation_security.md)
+
+### 6. Broken Test Infrastructure — ✅ RESOLVED
+
+**Issue:** 4/7 test files fail at import time (missing Flask, requests, model imports)
+
+**Resolution:**
+- ✅ Added `Flask`, `Flask-CORS`, `requests`, `pytest`, `pytest-flask` to `api/requirements.txt`
+- ✅ Fixed all model imports in tests
+- ⏳ **Next:** Run full test suite to verify
+
+**Status:** 🟡 READY TO VERIFY — Pending `pytest` execution
+
+### 7. Admin Authentication Bypass — 🔴 TODO
+
+**Issue:** Zero authentication on admin API — anyone can create/delete horses, owners, HLTs
+
+**Risk:** 🔴 CRITICAL — Production security vulnerability
+
+**Plan:**
+- Create `api/admin/auth.py` with Firebase Auth middleware
+- Protect all `/api/*` endpoints with `@require_auth` decorator
+- Update frontend to attach auth headers
+- Add `firebase-admin` to dependencies
+
+**ETA:** 3-4 hours
+
+**Status:** 🔴 TODO — See [`docs/sprints/S00_foundation_security.md#phase-4`](docs/sprints/S00_foundation_security.md)
+
+### 8. CORS Wildcard — 🔴 TODO
+
+**Issue:** `Access-Control-Allow-Origin: *` allows any website to make requests
+
+**Risk:** 🟡 HIGH — CSRF-style attacks possible
+
+**Plan:**
+- Replace `*` with allowlist from environment variable
+- Update `api/ssot/main.py`, `api/assets/main.py`, `api/kyc/main.py`
+- Configure allowed origins per environment
+
+**ETA:** 1 hour
+
+**Status:** 🔴 TODO — See [`docs/sprints/S00_foundation_security.md#phase-5`](docs/sprints/S00_foundation_security.md)
+
+---
+
 ## Related Documents
 
 - **Plan:** [`GAME_PLAN.md`](GAME_PLAN.md) — 9 checkpoints
+- **Current Sprint:** [`docs/sprints/S00_foundation_security.md`](docs/sprints/S00_foundation_security.md) — Sprint Zero plan
 - **Current status:** [`docs/PROGRESS.md`](docs/PROGRESS.md) — Live build tracker
 - **Overview:** [`docs/BUILD_SUMMARY.md`](docs/BUILD_SUMMARY.md) — High-level summary
 - **Laws:** [`AGENTS.md`](AGENTS.md) — Core architecture rules

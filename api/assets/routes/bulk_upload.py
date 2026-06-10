@@ -8,7 +8,7 @@ Auto-tags with horse name, owner, trainer, location.
 
 from flask import Request, jsonify
 from google.cloud import firestore, storage
-from models import AssetCreate
+from core.models import AssetCreate
 from PIL import Image
 import io
 import re

@@ -3,7 +3,7 @@
 import pytest
 from pydantic import ValidationError
 
-from models import GoverningBodyCreate, GoverningBodyUpdate
+from core.models import GoverningBodyCreate, GoverningBodyUpdate
 
 
 class TestGoverningBodyCreate:

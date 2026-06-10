@@ -7,7 +7,7 @@ A horse can change trainers over time. The current trainer is stored on the hors
 
 from flask import Request, jsonify
 from google.cloud import firestore
-from models import TrainerCreate, TrainerUpdate
+from core.models import TrainerCreate, TrainerUpdate
 
 _DB = None
 

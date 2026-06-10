@@ -5,3 +5,13 @@ pydantic>=2.7.0
 python-docx>=1.1.0
 Pillow>=10.3.0
 stripe>=10.0.0
+
+# Admin server & testing
+Flask>=3.0.0
+Flask-CORS>=4.0.0
+beautifulsoup4>=4.12.0
+requests>=2.31.0
+
+# Testing
+pytest>=8.0.0
+pytest-flask>=1.3.0

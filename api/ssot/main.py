@@ -14,20 +14,41 @@ Routes:
 
 import functions_framework
 from flask import Request, jsonify
+import os
 
 from routes import horses, owners, trainers, hlts, leases, docs, extract, content, holdings, governing_bodies
+
+# CORS Configuration - Restrict to known domains
+ALLOWED_ORIGINS = os.getenv(
+    "ALLOWED_ORIGINS", 
+    "http://localhost:3000,http://localhost:5000,https://evolutionstables.nz"
+).split(",")
+
+
+def add_cors_headers(response, origin=None):
+    """Add CORS headers to response."""
+    if origin and origin in ALLOWED_ORIGINS:
+        response.headers.add("Access-Control-Allow-Origin", origin)
+        response.headers.add("Access-Control-Allow-Credentials", "true")
+    else:
+        # For development, allow localhost
+        if origin and "localhost" in origin:
+            response.headers.add("Access-Control-Allow-Origin", origin)
+            response.headers.add("Access-Control-Allow-Credentials", "true")
+    response.headers.add("Access-Control-Allow-Methods", "GET, POST, PATCH, DELETE, OPTIONS")
+    response.headers.add("Access-Control-Allow-Headers", "Content-Type, Authorization")
+    return response
 
 
 @functions_framework.http
 def ssot(request: Request):
     """Route requests to the appropriate handler based on path."""
+    origin = request.headers.get("Origin")
+    
     # Handle CORS preflight requests
     if request.method == "OPTIONS":
         response = jsonify({})
-        response.headers.add("Access-Control-Allow-Origin", "*")
-        response.headers.add("Access-Control-Allow-Methods", "GET, POST, PATCH, DELETE, OPTIONS")
-        response.headers.add("Access-Control-Allow-Headers", "Content-Type")
-        return response, 200
+        return add_cors_headers(response, origin), 200
     
     path = request.path.strip("/")
     segments = path.split("/") if path else []
@@ -87,7 +108,4 @@ def ssot(request: Request):
 
     from flask import make_response
     response = make_response(res)
-    response.headers.add("Access-Control-Allow-Origin", "*")
-    response.headers.add("Access-Control-Allow-Methods", "GET, POST, PATCH, DELETE, OPTIONS")
-    response.headers.add("Access-Control-Allow-Headers", "Content-Type")
-    return response
+    return add_cors_headers(response, origin)

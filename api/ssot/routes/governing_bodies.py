@@ -7,7 +7,7 @@ Used by HLT records to reference the regulatory body for a lease.
 
 from flask import Request, jsonify
 from google.cloud import firestore
-from models import GoverningBodyCreate, GoverningBodyUpdate
+from core.models import GoverningBodyCreate, GoverningBodyUpdate
 
 _DB = None
 

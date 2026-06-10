@@ -2,7 +2,7 @@
 
 import pytest
 from pydantic import ValidationError
-from models import AssetCreate
+from core.models import AssetCreate
 
 
 class TestAssetCreate:

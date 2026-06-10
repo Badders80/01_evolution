@@ -8,7 +8,7 @@ The HLT record holds the owner_id reference.
 
 from flask import Request, jsonify
 from google.cloud import firestore
-from models import OwnerCreate, OwnerUpdate
+from core.models import OwnerCreate, OwnerUpdate
 
 _DB = None
 
