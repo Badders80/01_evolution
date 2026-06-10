@@ -26,10 +26,11 @@ CORS(app)
 
 init_db()
 
-# Auto-seed if database is empty (prevents data loss on fresh checkout)
+# Auto-seed if database is empty or has stale test data (prevents data loss on fresh checkout)
 db = SessionLocal()
-if db.query(HorseORM).count() == 0:
-    print("Database is empty — auto-seeding...")
+horse_count = db.query(HorseORM).count()
+if horse_count < 4:
+    print(f"Database has only {horse_count} horse(s) — auto-seeding...")
     from admin.seed_data import seed_database
     seed_database()
 db.close()
