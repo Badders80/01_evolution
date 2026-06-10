@@ -2,7 +2,7 @@
 
 import pytest
 from pydantic import ValidationError
-from datetime import datetime
+from datetime import datetime, timezone
 from core.models import HLTCreate, HLTUpdate, HLT
 
 VALID_HLT_DATA = {
@@ -24,8 +24,8 @@ class TestHLTCreate:
     def test_default_status_is_draft_on_hlt(self):
         hlt = HLT(
             id="hlt-789",
-            created_at=datetime.utcnow(),
-            updated_at=datetime.utcnow(),
+            created_at=datetime.now(timezone.utc),
+            updated_at=datetime.now(timezone.utc),
             **VALID_HLT_DATA
         )
         assert hlt.status == "draft"
@@ -34,8 +34,8 @@ class TestHLTCreate:
         hlt = HLT(
             id="hlt-789",
             status="reviewed",
-            created_at=datetime.utcnow(),
-            updated_at=datetime.utcnow(),
+            created_at=datetime.now(timezone.utc),
+            updated_at=datetime.now(timezone.utc),
             **VALID_HLT_DATA
         )
         assert hlt.status == "reviewed"

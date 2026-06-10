@@ -7,7 +7,7 @@ and tracks them via DocumentRecord with section-by-section review.
 
 from flask import Request, jsonify
 from google.cloud import firestore, storage
-from datetime import datetime
+from datetime import datetime, timezone
 import io
 import re
 
@@ -89,7 +89,7 @@ def handle(request: Request, doc_type: str | None = None):
     document_id = f"DOC-{safe_lease}-{safe_doc_type}"
 
     # Build DocumentRecord
-    today = datetime.utcnow().date()
+    today = datetime.now(timezone.utc).date()
     sections = build_default_sections(doc_type)
 
     record = DocumentRecordCreate(

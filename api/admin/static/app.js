@@ -57,8 +57,13 @@ function setLoading(show) {
 
 // Reliable hash navigation that always triggers render
 window.navigateTo = function(hash) {
-  window.location.hash = hash;
-  // hashchange listener calls render() automatically
+  if (window.location.hash === hash) {
+    // Force re-render if clicking same link
+    render();
+  } else {
+    window.location.hash = hash;
+    // hashchange listener calls render() automatically
+  }
 }
 
 function showToast(message, type = 'info') {
@@ -606,9 +611,9 @@ async function renderCreateHlt() {
   renderWizardStep();
 }
 
-function closeWizard() {
+window.closeWizard = function() {
   window.location.hash = "#/hlts";
-  render();
+  // render() will be called by hashchange listener
 }
 
 function renderWizardStep() {
@@ -2101,6 +2106,6 @@ async function renderHorseDetail(microchip) {
   }
 }
 
-window.addEventListener("hashchange", render);
+window.addEventListener("hashchange", () => window.render());
 
 console.log('=== app.js module loaded ===');
