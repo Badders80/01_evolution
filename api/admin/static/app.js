@@ -1962,27 +1962,103 @@ window.renderHltDetail = async function(id) {
         </div>
       </div>
 
-      <!-- Actions -->
-      <div class="flex gap-2 mb-6">
-        <button onclick="generateTermSheet('${h.id}')" class="bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium">Generate Term Sheet</button>
-        <button onclick="alert('Document upload coming in Sprint 5')" class="bg-gray-600 text-white px-4 py-2 rounded-md text-sm font-medium">Upload Documents</button>
-      </div>
-
-      <!-- Documents -->
-      <div class="grid grid-cols-3 gap-4 text-sm">
-        <div class="border rounded-lg p-3">
-          <div class="flex justify-between items-center"><span class="font-semibold">Term Sheet</span>${docBadge(h.term_sheet_status)}</div>
-        </div>
-        <div class="border rounded-lg p-3">
-          <div class="flex justify-between items-center"><span class="font-semibold">PDS</span>${docBadge(h.pds_status)}</div>
-        </div>
-        <div class="border rounded-lg p-3">
-          <div class="flex justify-between items-center"><span class="font-semibold">SA</span>${docBadge(h.sa_status)}</div>
-        </div>
+      <!-- Document Management -->
+      <div class="space-y-3 mb-6" id="hlt-detail-docs">
+        <h3 class="label">Documents</h3>
+        <div class="text-sm text-slate-500">Loading documents...</div>
       </div>
     </div>
   `;
+
+  // Load documents for this HLT
+  loadHltDetailDocuments(h.id);
 };
+
+// ─── HLT Detail Document Management ──────────────────────────────────────────
+
+async function loadHltDetailDocuments(hltId) {
+  const container = document.getElementById("hlt-detail-docs");
+  if (!container) return;
+
+  try {
+    const resp = await fetch(`/api/hlts/${hltId}/documents`);
+    const result = await resp.json();
+    const docs = result.success ? result.data : [];
+
+    const getDocs = (type) => docs.filter(d => d.doc_type === type);
+    const termSheetDocs = getDocs("term_sheet");
+    const pdsDocs = getDocs("pds");
+    const saDocs = getDocs("sa");
+    const images = getDocs("photo");
+
+    const docBadge = (hasDoc) => hasDoc
+      ? '<span class="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-700">complete</span>'
+      : '<span class="rounded-full border border-blue-200 bg-blue-50 px-2 py-0.5 text-[11px] font-semibold text-blue-700">pending</span>';
+
+    const renderDocRow = (type, label, existingDocs) => {
+      const hasDoc = existingDocs.length > 0;
+      const doc = existingDocs[0];
+      const isImage = type === "photo";
+      const acceptAttr = type === "photo" ? "image/*" : ".pdf,.docx,.doc";
+
+      return `
+        <div class="flex items-center justify-between p-3 bg-white border border-slate-200 rounded-lg">
+          <div class="flex items-center gap-3">
+            <svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+            <span class="text-sm font-semibold text-slate-900">${label}</span>
+            ${docBadge(hasDoc)}
+          </div>
+          <div class="flex items-center gap-2">
+            ${hasDoc ? `
+              ${isImage ? `<img src="${doc.file_path}" class="w-8 h-8 rounded object-cover border" />` : ""}
+              <button onclick="viewDocument('${doc.file_path}', '${doc.file_name}')" class="btn-secondary text-xs">View</button>
+              <button onclick="deleteDocument('${doc.id}', '${hltId}').then(() => loadHltDetailDocuments('${hltId}'))" class="btn-ghost text-xs">Delete</button>
+            ` : `
+              <label class="btn-primary text-xs cursor-pointer">
+                Upload
+                <input type="file" accept="${acceptAttr}" onchange="uploadDocument(this, '${hltId}', '${type}').then(() => setTimeout(() => loadHltDetailDocuments('${hltId}'), 500))" class="hidden" />
+              </label>
+            `}
+          </div>
+        </div>
+      `;
+    };
+
+    // Image gallery
+    const imageGallery = images.length > 0 ? `
+      <div class="p-3 bg-white border border-slate-200 rounded-lg">
+        <div class="flex items-center gap-3 mb-3">
+          <svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+          <span class="text-sm font-semibold text-slate-900">Images (${images.length})</span>
+        </div>
+        <div class="flex flex-wrap gap-3">
+          ${images.map(img => `
+            <div class="relative group">
+              <img src="${img.file_path}" class="w-20 h-20 rounded-lg object-cover border cursor-pointer hover:border-blue-400" onclick="viewDocument('${img.file_path}', '${img.file_name}')" />
+              <button onclick="deleteDocument('${img.id}', '${hltId}').then(() => loadHltDetailDocuments('${hltId}'))" class="absolute -top-2 -right-2 w-5 h-5 bg-rose-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+              </button>
+            </div>
+          `).join("")}
+          <label class="w-20 h-20 rounded-lg border-2 border-dashed border-slate-300 flex items-center justify-center cursor-pointer hover:border-blue-400 hover:bg-blue-50">
+            <svg class="w-6 h-6 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
+            <input type="file" accept="image/*" onchange="uploadDocument(this, '${hltId}', 'photo').then(() => setTimeout(() => loadHltDetailDocuments('${hltId}'), 500))" class="hidden" />
+          </label>
+        </div>
+      </div>
+    ` : "";
+
+    container.innerHTML = `
+      ${renderDocRow("term_sheet", "Term Sheet", termSheetDocs)}
+      ${renderDocRow("pds", "Product Disclosure Statement", pdsDocs)}
+      ${renderDocRow("sa", "Syndicate Agreement", saDocs)}
+      ${imageGallery}
+      ${images.length === 0 ? renderDocRow("photo", "Images", []) : ""}
+    `;
+  } catch (err) {
+    container.innerHTML = `<div class="text-sm text-rose-600">Failed to load documents: ${err.message}</div>`;
+  }
+}
 
 // ─── Term Sheet ───────────────────────────────────────────────────────────────
 
