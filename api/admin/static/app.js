@@ -1153,7 +1153,42 @@ async function wizardSave() {
       showError(resp.error || 'Failed to create HLT');
       return;
     }
-    showToast('HLT created successfully!', 'success');
+    const hltId = resp.data?.id;
+    showToast('HLT created! Generating term sheet...', 'success');
+
+    // Auto-generate term sheet
+    if (hltId) {
+      const { buildHltDocumentHtml } = await import('./hlt-engine.js');
+      const record = {
+        lease_id: leaseId,
+        token_name: tokenName,
+        erc20_identifier: erc20Identifier,
+        submission_date: d.submissionDate,
+        horse_name: horse.name,
+        horse_country: horse.country_code || 'NZ',
+        horse_microchip: horse.microchip,
+        trainer_name: trainer.name,
+        owner_name: owner.name,
+        governing_body_name: governing.governing_body_name,
+        governing_body_code: governing.governing_body_code,
+        lease_start_date: d.leaseStartDate,
+        lease_length_months: parseNumber(d.leaseLengthMonths),
+        percentage_leased: parseNumber(d.percentageLeased),
+        num_tokens: parseNumber(d.numTokens),
+        token_price_nzd: parseNumber(d.pricePerToken),
+        total_issuance_value: parseNumber(d.totalIssuanceValue),
+        percentage_per_token: parseNumber(d.fractionalInterestPerToken),
+        investor_stakes_split: 100 - parseNumber(d.ownerStakesSplit),
+        variations: d.variations || 'n/a',
+      };
+      const html = buildHltDocumentHtml(record);
+      const blob = new Blob([html], { type: 'text/html' });
+      const formData = new FormData();
+      formData.append('file', blob, `term-sheet-${hltId}.html`);
+      formData.append('doc_type', 'term_sheet');
+      await fetch(`/api/hlts/${hltId}/documents`, { method: 'POST', body: formData });
+    }
+
     closeWizard();
   } catch (err) {
     showError('Error: ' + err.message);
