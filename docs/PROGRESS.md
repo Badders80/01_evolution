@@ -68,7 +68,7 @@ See: [`docs/sprints/S01_horse_media_console.md`](sprints/S01_horse_media_console
 3. **Payments tests** — Add test coverage (currently zero)
 4. **CI/CD** — Add `.github/workflows/test.yml` (pytest + lint)
 5. **Linting** — Add `pyproject.toml` with ruff config
-6. **`backfill_5_days.py`** — Consolidate with `backfill.py` or add `--days` flag
+6. **`backfill_5_days.py`** — ✅ Deleted (consolidated into `backfill.py`)
 
 ---
 

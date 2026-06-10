@@ -35,7 +35,3 @@ known-first-party = ["admin", "core", "ssot", "assets", "kyc", "payments", "emai
 quote-style = "double"
 indent-style = "space"
 skip-magic-trailing-comma = false
-
-[tool.pytest.ini_options]
-testpaths = ["api"]
-pythonpath = ["api"]
