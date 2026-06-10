@@ -48,3 +48,4 @@ api/email-ingest/output/
 # Task Master
 .taskmaster/
 archive/api/admin/ssot_local.db
+api/admin/ssot_local.db

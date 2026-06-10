@@ -1171,6 +1171,7 @@ let hltsState = {
   expandedRow: null,
   editingTermSheet: null,
   termSheetEdit: {},
+  hltDocuments: {},
   horses: [],
   owners: [],
   trainers: [],
@@ -1349,44 +1350,44 @@ function renderHltRow(hlt) {
 }
 
 function renderHltExpandedRow(hlt, horse, owner, trainer) {
-  const { editingTermSheet, termSheetEdit } = hltsState;
+  const { editingTermSheet } = hltsState;
   const isEditing = editingTermSheet === hlt.id;
 
-  // Mock document data - in real app this would come from API
-  const termSheetDoc = { document_id: `doc-ts-${hlt.id}`, file_path: `/api/hlts/${hlt.id}/term-sheet.docx` };
-  const pdsDoc = { document_id: `doc-pds-${hlt.id}`, file_path: `/api/hlts/${hlt.id}/pds.docx` };
-  const saDoc = { document_id: `doc-sa-${hlt.id}`, file_path: `/api/hlts/${hlt.id}/sa.docx` };
-
-  const pdsStatus = 'for_review';
-  const saStatus = 'for_review';
+  // Load documents from state (populated by loadHltDocuments)
+  const docs = hltsState.hltDocuments?.[hlt.id] || [];
+  const getDocs = (type) => docs.filter(d => d.doc_type === type);
+  const termSheetDocs = getDocs("term_sheet");
+  const pdsDocs = getDocs("pds");
+  const saDocs = getDocs("sa");
+  const images = getDocs("photo");
 
   const docBadge = (status) => {
-    if (status === 'complete') return '<span class="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-700">complete</span>';
-    if (status === 'flagged') return '<span class="rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-700">flagged</span>';
-    return '<span class="rounded-full border border-blue-200 bg-blue-50 px-2 py-0.5 text-[11px] font-semibold text-blue-700">for_review</span>';
+    if (status === "complete") return '<span class="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-700">complete</span>';
+    if (status === "flagged") return '<span class="rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-700">flagged</span>';
+    return '<span class="rounded-full border border-blue-200 bg-blue-50 px-2 py-0.5 text-[11px] font-semibold text-blue-700">pending</span>';
   };
 
-  const formatCurrency = (val) => {
-    if (!val) return '—';
-    return new Intl.NumberFormat('en-NZ', { style: 'currency', currency: 'NZD', minimumFractionDigits: 2 }).format(val);
-  };
+  const termSheetStatus = termSheetDocs.length > 0 ? "complete" : (hlt.term_sheet_status || "pending");
+  const pdsStatus = pdsDocs.length > 0 ? "complete" : (hlt.pds_status || "pending");
+  const saStatus = saDocs.length > 0 ? "complete" : (hlt.sa_status || "pending");
 
+  // Term sheet fields for editing
   const termSheetFields = [
-    { key: 'token_name', label: 'Token Name', type: 'text', value: hlt.token_name || `HLT – ${horse?.name || 'Asset'} ${hlt.lease_id?.replace('LSE-', '')}` },
-    { key: 'erc20_identifier', label: 'ERC20 Identifier', type: 'text', value: hlt.erc20_identifier || `TVHLT${horse?.name?.substring(0,3).toUpperCase()}${hlt.lease_id?.replace('LSE-', '')}` },
-    { key: 'percentage_leased', label: 'Percentage Leased (%)', type: 'number', value: hlt.percent_leased || hlt.percentage_leased },
-    { key: 'token_count', label: 'Number of Tokens', type: 'number', value: hlt.token_count },
-    { key: 'percent_per_token', label: '% Per Token', type: 'number', step: '0.01', value: hlt.percent_per_token },
-    { key: 'token_price_nzd', label: 'Token Price (NZD)', type: 'number', step: '0.01', value: hlt.token_price_nzd },
-    { key: 'total_issuance_value_nzd', label: 'Total Issuance Value (NZD)', type: 'number', step: '0.01', value: hlt.total_issuance_value_nzd },
-    { key: 'investor_share_percent', label: 'Investor Split (%)', type: 'number', value: hlt.investor_share_percent },
-    { key: 'owner_share_percent', label: 'Owner Split (%)', type: 'number', value: hlt.owner_share_percent },
-    { key: 'start_date', label: 'Start Date', type: 'date', value: hlt.start_date },
-    { key: 'duration_months', label: 'Lease Length (months)', type: 'number', value: hlt.duration_months },
-    { key: 'variations', label: 'Variations', type: 'text', value: hlt.notes || hlt.variations || 'n/a' },
+    { key: "token_name", label: "Token Name", type: "text", value: hlt.token_name || `HLT – ${horse?.name || "Asset"} ${hlt.lease_id?.replace("LSE-", "")}` },
+    { key: "erc20_identifier", label: "ERC20 Identifier", type: "text", value: hlt.erc20_identifier || `TVHLT${horse?.name?.substring(0,3).toUpperCase()}${hlt.lease_id?.replace("LSE-", "")}` },
+    { key: "percentage_leased", label: "Percentage Leased (%)", type: "number", value: hlt.percent_leased || hlt.percentage_leased },
+    { key: "token_count", label: "Number of Tokens", type: "number", value: hlt.token_count },
+    { key: "percent_per_token", label: "% Per Token", type: "number", step: "0.01", value: hlt.percent_per_token },
+    { key: "token_price_nzd", label: "Token Price (NZD)", type: "number", step: "0.01", value: hlt.token_price_nzd },
+    { key: "total_issuance_value_nzd", label: "Total Issuance Value (NZD)", type: "number", step: "0.01", value: hlt.total_issuance_value_nzd },
+    { key: "investor_share_percent", label: "Investor Split (%)", type: "number", value: hlt.investor_share_percent },
+    { key: "owner_share_percent", label: "Owner Split (%)", type: "number", value: hlt.owner_share_percent },
+    { key: "start_date", label: "Start Date", type: "date", value: hlt.start_date },
+    { key: "duration_months", label: "Lease Length (months)", type: "number", value: hlt.duration_months },
+    { key: "variations", label: "Variations", type: "text", value: hlt.notes || hlt.variations || "n/a" },
   ];
 
-  let editFormHtml = '';
+  let editFormHtml = "";
   if (isEditing) {
     editFormHtml = `
       <div class="edit-form">
@@ -1400,74 +1401,87 @@ function renderHltExpandedRow(hlt, horse, owner, trainer) {
           ${termSheetFields.map(f => `
             <label class="edit-field">
               <span class="form-label-sm">${f.label}</span>
-              <input type="${f.type}" id="ts-${f.key}" value="${f.value || ''}" ${f.step ? `step="${f.step}"` : ''} class="form-input" />
+              <input type="${f.type}" id="ts-${f.key}" value="${f.value || ""}" ${f.step ? `step="${f.step}"` : ""} class="form-input" />
             </label>
-          `).join('')}
+          `).join("")}
         </div>
         <div class="flex items-center gap-2 mt-3">
-          <button type="button" onclick="saveTermSheetEdit('${hlt.id}')" class="btn-primary">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l5 5L21 7"/></svg> Save
-          </button>
-          <button type="button" onclick="cancelTermSheetEdit()" class="btn-secondary">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg> Cancel
-          </button>
+          <button type="button" onclick="saveTermSheetEdit('${hlt.id}')" class="btn-primary">Save</button>
+          <button type="button" onclick="cancelTermSheetEdit()" class="btn-secondary">Cancel</button>
         </div>
       </div>
     `;
   }
 
+  // Render a document row with upload/delete
+  const renderDocRow = (type, label, status, existingDocs) => {
+    const hasDoc = existingDocs.length > 0;
+    const doc = existingDocs[0];
+    const isImage = type === "photo";
+    const acceptAttr = type === "photo" ? "image/*" : ".pdf,.docx,.doc";
+
+    return `
+      <div class="doc-card">
+        <div class="doc-header">
+          <svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+          <span class="text-sm font-semibold text-slate-900">${label}</span>
+        </div>
+        <div class="doc-actions">
+          ${docBadge(status)}
+          <div class="flex items-center gap-2">
+            ${hasDoc ? `
+              ${isImage ? `<img src="${doc.file_path}" class="w-8 h-8 rounded object-cover border border-slate-200" alt="thumb" />` : ""}
+              <button type="button" onclick="event.stopPropagation(); viewDocument('${doc.file_path}', '${doc.file_name}')" class="doc-btn doc-btn-primary">View</button>
+              <button type="button" onclick="event.stopPropagation(); deleteDocument('${doc.id}', '${hlt.id}')" class="doc-btn doc-btn-ghost" title="Delete">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+              </button>
+            ` : `
+              <label class="doc-btn doc-btn-primary cursor-pointer">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                Upload
+                <input type="file" accept="${acceptAttr}" onchange="uploadDocument(this, '${hlt.id}', '${type}')" class="hidden" />
+              </label>
+            `}
+          </div>
+        </div>
+      </div>
+    `;
+  };
+
+  // Image gallery
+  const imageGallery = images.length > 0 ? `
+    <div class="doc-card">
+      <div class="doc-header">
+        <svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+        <span class="text-sm font-semibold text-slate-900">Images (${images.length})</span>
+      </div>
+      <div class="flex flex-wrap gap-3 p-3">
+        ${images.map(img => `
+          <div class="relative group">
+            <img src="${img.file_path}" class="w-20 h-20 rounded-lg object-cover border border-slate-200 cursor-pointer hover:border-blue-400 transition-colors" onclick="event.stopPropagation(); viewDocument('${img.file_path}', '${img.file_name}')" alt="${img.file_name}" />
+            <button type="button" onclick="event.stopPropagation(); deleteDocument('${img.id}', '${hlt.id}')" class="absolute -top-2 -right-2 w-5 h-5 bg-rose-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity" title="Delete">
+              <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+          </div>
+        `).join("")}
+        <label class="w-20 h-20 rounded-lg border-2 border-dashed border-slate-300 flex items-center justify-center cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-colors">
+          <svg class="w-6 h-6 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
+          <input type="file" accept="image/*" onchange="uploadDocument(this, '${hlt.id}', 'photo')" class="hidden" />
+        </label>
+      </div>
+    </div>
+  ` : "";
+
   return `
     <tr class="expand-content">
       <td colspan="5" class="p-0">
         <div class="expand-inner">
-          <!-- Term Sheet -->
-          <div class="doc-card">
-            <div class="doc-header">
-              <svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-              <span class="text-sm font-semibold text-slate-900">Term Sheet</span>
-            </div>
-            <div class="doc-actions">
-              ${docBadge('complete')}
-              <div class="flex items-center gap-3">
-                <button type="button" onclick="event.stopPropagation(); viewTermSheet('${hlt.id}')" class="doc-btn doc-btn-primary">View</button>
-                <button type="button" onclick="event.stopPropagation(); startTermSheetEdit('${hlt.id}')" class="doc-btn doc-btn-secondary">Edit</button>
-                <button type="button" onclick="event.stopPropagation(); downloadDoc('${termSheetDoc.file_path}')" class="doc-btn doc-btn-muted">Download</button>
-              </div>
-            </div>
-          </div>
+          ${renderDocRow("term_sheet", "Term Sheet", termSheetStatus, termSheetDocs)}
           ${editFormHtml}
-
-          <!-- PDS -->
-          <div class="doc-card">
-            <div class="doc-header">
-              <svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-              <span class="text-sm font-semibold text-slate-900">Product Disclosure Statement</span>
-            </div>
-            <div class="doc-actions">
-              ${docBadge(pdsStatus)}
-              <div class="flex items-center gap-3">
-                <button type="button" onclick="event.stopPropagation(); viewDoc('${hlt.id}', 'pds')" class="doc-btn doc-btn-primary">View</button>
-                <button type="button" onclick="event.stopPropagation(); editDoc('pds')" class="doc-btn doc-btn-secondary">Edit</button>
-                <button type="button" onclick="event.stopPropagation(); downloadDoc('${pdsDoc.file_path}')" class="doc-btn doc-btn-muted">Download</button>
-              </div>
-            </div>
-          </div>
-
-          <!-- SA -->
-          <div class="doc-card">
-            <div class="doc-header">
-              <svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-              <span class="text-sm font-semibold text-slate-900">Syndicate Agreement</span>
-            </div>
-            <div class="doc-actions">
-              ${docBadge(saStatus)}
-              <div class="flex items-center gap-3">
-                <button type="button" onclick="event.stopPropagation(); viewDoc('${hlt.id}', 'sa')" class="doc-btn doc-btn-primary">View</button>
-                <button type="button" onclick="event.stopPropagation(); editDoc('sa')" class="doc-btn doc-btn-secondary">Edit</button>
-                <button type="button" onclick="event.stopPropagation(); downloadDoc('${saDoc.file_path}')" class="doc-btn doc-btn-muted">Download</button>
-              </div>
-            </div>
-          </div>
+          ${renderDocRow("pds", "Product Disclosure Statement", pdsStatus, pdsDocs)}
+          ${renderDocRow("sa", "Syndicate Agreement", saStatus, saDocs)}
+          ${imageGallery}
+          ${images.length === 0 ? renderDocRow("photo", "Images", "pending", []) : ""}
         </div>
       </td>
     </tr>
@@ -1476,6 +1490,9 @@ function renderHltExpandedRow(hlt, horse, owner, trainer) {
 
 function toggleHltRow(id) {
   hltsState.expandedRow = hltsState.expandedRow === id ? null : id;
+  if (hltsState.expandedRow === id) {
+    loadHltDocuments(id);
+  }
   renderHltsView();
 }
 
@@ -1589,17 +1606,101 @@ function viewTermSheet(hltId) {
   });
 }
 
+// ─── Document Operations ──────────────────────────────────────────────────────
+
+async function loadHltDocuments(hltId) {
+  try {
+    const resp = await fetch(`/api/hlts/${hltId}/documents`);
+    const result = await resp.json();
+    if (result.success) {
+      if (!hltsState.hltDocuments) hltsState.hltDocuments = {};
+      hltsState.hltDocuments[hltId] = result.data;
+      renderHltsView();
+    }
+  } catch (err) {
+    console.error("Failed to load documents:", err);
+  }
+}
+
+async function uploadDocument(input, hltId, docType) {
+  const file = input.files[0];
+  if (!file) return;
+
+  const formData = new FormData();
+  formData.append("file", file);
+  formData.append("doc_type", docType);
+
+  try {
+    const resp = await fetch(`/api/hlts/${hltId}/documents`, {
+      method: "POST",
+      body: formData,
+    });
+    const result = await resp.json();
+    if (result.success) {
+      showToast(`${docType.replace("_", " ")} uploaded!`, "success");
+      loadHltDocuments(hltId);
+    } else {
+      showToast(result.error || "Upload failed", "error");
+    }
+  } catch (err) {
+    showToast("Upload error: " + err.message, "error");
+  }
+}
+
+async function deleteDocument(docId, hltId) {
+  if (!confirm("Delete this document?")) return;
+
+  try {
+    const resp = await fetch(`/api/documents/${docId}`, { method: "DELETE" });
+    const result = await resp.json();
+    if (result.success) {
+      showToast("Document deleted", "success");
+      loadHltDocuments(hltId);
+    } else {
+      showToast(result.error || "Delete failed", "error");
+    }
+  } catch (err) {
+    showToast("Delete error: " + err.message, "error");
+  }
+}
+
+function viewDocument(filePath, fileName) {
+  const ext = fileName.split(".").pop().toLowerCase();
+  const imageExts = ["png", "jpg", "jpeg", "gif", "webp", "svg"];
+
+  if (imageExts.includes(ext)) {
+    // Show image in modal
+    const modal = document.createElement("div");
+    modal.className = "modal-overlay";
+    modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
+    modal.innerHTML = `
+      <div class="modal-content max-w-4xl" onclick="event.stopPropagation()">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-lg font-semibold text-slate-900">${fileName}</h3>
+          <button type="button" onclick="this.closest('.modal-overlay').remove()" class="text-slate-400 hover:text-slate-600">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+          </button>
+        </div>
+        <img src="${filePath}" alt="${fileName}" class="max-w-full max-h-[70vh] rounded-lg" />
+      </div>
+    `;
+    document.body.appendChild(modal);
+  } else {
+    // Open document in new tab
+    window.open(filePath, "_blank");
+  }
+}
+
 function viewDoc(hltId, type) {
-  // Placeholder for PDS/SA view
-  showToast(`${type.toUpperCase()} preview coming in Sprint 5`, 'info');
+  showToast(`${type.toUpperCase()} — upload a file to view it`, "info");
 }
 
 function editDoc(type) {
-  showToast(`${type.toUpperCase()} editor coming in Sprint 5`, 'info');
+  showToast(`Upload a ${type.toUpperCase()} file to manage it`, "info");
 }
 
 function downloadDoc(path) {
-  window.open(path, '_blank');
+  window.open(path, "_blank");
 }
 
 async function listToPlatform(hltId) {

@@ -14,7 +14,7 @@ from flask import Flask, send_from_directory, send_file, jsonify, request
 from flask_cors import CORS
 from pydantic import ValidationError
 
-from admin.db import init_db, SessionLocal, Horse as HorseORM, Owner as OwnerORM, Trainer as TrainerORM, Lease as LeaseORM, HLT as HLTORM, GoverningBody as GoverningBodyORM
+from admin.db import init_db, SessionLocal, Horse as HorseORM, Owner as OwnerORM, Trainer as TrainerORM, Lease as LeaseORM, HLT as HLTORM, GoverningBody as GoverningBodyORM, Document as DocumentORM
 from admin.horse_lookup import lookup_microchip
 from admin.auth import require_auth
 from core.models import HorseCreate, HorseUpdate, OwnerCreate, OwnerUpdate, TrainerCreate, TrainerUpdate, LeaseCreate
@@ -1098,6 +1098,145 @@ def publish_marketplace():
         "published": len(listings),
         "message": f"Published {len(listings)} listings to marketplace draft"
     })
+
+
+# ─── Document Upload / Delete ─────────────────────────────────────────────────
+
+UPLOAD_DIR = os.path.join(os.path.dirname(__file__), "admin", "uploads")
+os.makedirs(UPLOAD_DIR, exist_ok=True)
+
+ALLOWED_EXTENSIONS = {"pdf", "docx", "doc", "png", "jpg", "jpeg", "gif", "webp", "svg"}
+
+def _allowed_file(filename):
+    return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
+
+
+@app.route("/api/hlts/<hlt_id>/documents", methods=["GET"])
+def list_documents(hlt_id):
+    """List all documents attached to an HLT."""
+    db = SessionLocal()
+    try:
+        docs = db.query(DocumentORM).filter(DocumentORM.hlt_id == hlt_id).all()
+        return _ok([{
+            "id": d.id,
+            "hlt_id": d.hlt_id,
+            "doc_type": d.doc_type,
+            "file_path": d.file_path,
+            "file_name": d.file_name,
+            "mime_type": d.mime_type,
+            "created_at": d.created_at,
+        } for d in docs])
+    finally:
+        db.close()
+
+
+@app.route("/api/hlts/<hlt_id>/documents", methods=["POST"])
+def upload_document(hlt_id):
+    """Upload a document (term sheet, PDS, SA, or image) to an HLT."""
+    if "file" not in request.files:
+        return _err("No file provided")
+
+    file = request.files["file"]
+    doc_type = request.form.get("doc_type", "photo")
+
+    if file.filename == "":
+        return _err("No file selected")
+
+    if not _allowed_file(file.filename):
+        return _err(f"File type not allowed. Allowed: {', '.join(ALLOWED_EXTENSIONS)}")
+
+    # Save file
+    ext = file.filename.rsplit(".", 1)[1].lower()
+    doc_id = str(uuid.uuid4())[:8]
+    safe_name = f"{hlt_id}_{doc_type}_{doc_id}.{ext}"
+    file_path = os.path.join(UPLOAD_DIR, safe_name)
+    file.save(file_path)
+
+    # Determine MIME type
+    mime_map = {
+        "pdf": "application/pdf", "docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "doc": "application/msword", "png": "image/png", "jpg": "image/jpeg",
+        "jpeg": "image/jpeg", "gif": "image/gif", "webp": "image/webp", "svg": "image/svg+xml",
+    }
+    mime_type = mime_map.get(ext, "application/octet-stream")
+
+    # Save to DB
+    db = SessionLocal()
+    try:
+        doc = DocumentORM(
+            id=doc_id,
+            hlt_id=hlt_id,
+            doc_type=doc_type,
+            file_path=f"/uploads/{safe_name}",
+            file_name=file.filename,
+            mime_type=mime_type,
+            created_at=datetime.now().isoformat(),
+        )
+        db.add(doc)
+
+        # Update HLT status flags
+        hlt = db.query(HLTORM).filter(HLTORM.id == hlt_id).first()
+        if hlt:
+            if doc_type == "term_sheet":
+                hlt.term_sheet_status = "complete"
+            elif doc_type == "pds":
+                hlt.pds_status = "complete"
+            elif doc_type == "sa":
+                hlt.sa_status = "complete"
+
+        db.commit()
+        return _ok({
+            "id": doc.id,
+            "doc_type": doc.doc_type,
+            "file_path": doc.file_path,
+            "file_name": doc.file_name,
+            "mime_type": doc.mime_type,
+        })
+    except Exception as e:
+        db.rollback()
+        return _err(str(e), 500)
+    finally:
+        db.close()
+
+
+@app.route("/api/documents/<doc_id>", methods=["DELETE"])
+def delete_document(doc_id):
+    """Delete a document by ID."""
+    db = SessionLocal()
+    try:
+        doc = db.query(DocumentORM).filter(DocumentORM.id == doc_id).first()
+        if not doc:
+            return _err("Document not found", 404)
+
+        # Delete file from disk
+        file_path = os.path.join(UPLOAD_DIR, os.path.basename(doc.file_path))
+        if os.path.exists(file_path):
+            os.remove(file_path)
+
+        # Update HLT status flags
+        hlt = db.query(HLTORM).filter(HLTORM.id == doc.hlt_id).first()
+        if hlt:
+            if doc.doc_type == "term_sheet":
+                hlt.term_sheet_status = "pending"
+            elif doc.doc_type == "pds":
+                hlt.pds_status = "pending"
+            elif doc.doc_type == "sa":
+                hlt.sa_status = "pending"
+
+        db.delete(doc)
+        db.commit()
+        return _ok({"deleted": doc_id})
+    except Exception as e:
+        db.rollback()
+        return _err(str(e), 500)
+    finally:
+        db.close()
+
+
+@app.route("/uploads/<path:filename>")
+def serve_upload(filename):
+    """Serve uploaded files."""
+    return send_from_directory(UPLOAD_DIR, filename)
 
 
 # ─── Entrypoint ───────────────────────────────────────────────────────────────
