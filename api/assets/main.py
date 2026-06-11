@@ -15,6 +15,7 @@ from flask import Request, jsonify
 import os
 
 from routes import upload, retrieve, delete_asset, bulk_upload
+from auth import require_auth
 
 # CORS Configuration - Restrict to known domains
 ALLOWED_ORIGINS = os.getenv(
@@ -49,6 +50,19 @@ def assets(request: Request):
     if request.method == "OPTIONS":
         response = jsonify({})
         return add_cors_headers(response, origin), 200
+
+    # Verify Firebase ID token (all routes require auth)
+    auth_header = request.headers.get("Authorization", "")
+    if not auth_header.startswith("Bearer "):
+        return add_cors_headers(jsonify({"error": "Missing Authorization header. Expected: Bearer <token>"}), origin), 401
+
+    id_token = auth_header.split("Bearer ")[1]
+    try:
+        from firebase_admin import auth as firebase_auth
+        decoded_token = firebase_auth.verify_id_token(id_token)
+        request.user = decoded_token
+    except Exception as e:
+        return add_cors_headers(jsonify({"error": f"Authentication failed: {str(e)}"}), origin), 401
 
     if segments and segments[0] == "upload":
         response = upload.handle(request)

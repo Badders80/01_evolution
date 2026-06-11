@@ -1643,7 +1643,7 @@ function viewTermSheet(hltId) {
 
 // ─── Document Operations ──────────────────────────────────────────────────────
 
-async function loadHltDocuments(hltId) {
+window.loadHltDocuments = async function(hltId) {
   try {
     const resp = await fetch(`/api/hlts/${hltId}/documents`);
     const result = await resp.json();
@@ -1657,7 +1657,7 @@ async function loadHltDocuments(hltId) {
   }
 }
 
-async function uploadDocument(input, hltId, docType) {
+window.uploadDocument = async function(input, hltId, docType) {
   const file = input.files[0];
   if (!file) return;
 
@@ -1682,7 +1682,7 @@ async function uploadDocument(input, hltId, docType) {
   }
 }
 
-async function deleteDocument(docId, hltId) {
+window.deleteDocument = async function(docId, hltId) {
   if (!confirm("Delete this document?")) return;
 
   try {
@@ -1699,7 +1699,7 @@ async function deleteDocument(docId, hltId) {
   }
 }
 
-function viewDocument(filePath, fileName) {
+window.viewDocument = function(filePath, fileName) {
   const ext = fileName.split(".").pop().toLowerCase();
   const imageExts = ["png", "jpg", "jpeg", "gif", "webp", "svg"];
 
@@ -2011,7 +2011,7 @@ window.renderHltDetail = async function(id) {
 
 // ─── HLT Detail Document Management ──────────────────────────────────────────
 
-async function loadHltDetailDocuments(hltId) {
+window.loadHltDetailDocuments = async function(hltId) {
   const container = document.getElementById("hlt-detail-docs");
   if (!container) return;
 
