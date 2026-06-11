@@ -57,11 +57,16 @@ def assets(request: Request):
         return add_cors_headers(response, origin), 200
 
     # Verify Firebase ID token (all routes require auth)
-    auth_header = request.headers.get("Authorization", "")
-    if not auth_header.startswith("Bearer "):
-        return add_cors_headers(jsonify({"error": "Missing Authorization header. Expected: Bearer <token>"}), origin), 401
+    # Check x-firebase-token first (from proxy), then Authorization header
+    id_token = request.headers.get("X-Firebase-Token", "")
+    if not id_token:
+        auth_header = request.headers.get("Authorization", "")
+        if auth_header.startswith("Bearer "):
+            id_token = auth_header.split("Bearer ")[1]
+    
+    if not id_token:
+        return add_cors_headers(jsonify({"error": "Missing Firebase token. Expected: X-Firebase-Token or Authorization: Bearer <token>"}), origin), 401
 
-    id_token = auth_header.split("Bearer ")[1]
     try:
         from firebase_admin import auth as firebase_auth
         decoded_token = firebase_auth.verify_id_token(id_token)
