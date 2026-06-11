@@ -12,9 +12,14 @@ Routes:
   /docs       — Generate Term Sheet, PDS, SA from HLT
 """
 
+import sys
+import os
+
+# Bootstrap to find core/ shared module from api/
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
 import functions_framework
 from flask import Request, jsonify
-import os
 
 from routes import horses, owners, trainers, hlts, leases, docs, extract, content, holdings, governing_bodies
 from auth import require_auth

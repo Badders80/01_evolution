@@ -10,9 +10,14 @@ Routes:
   /delete    — Remove an asset from GCS + Firestore
 """
 
+import sys
+import os
+
+# Bootstrap to find core/ shared module from api/
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
 import functions_framework
 from flask import Request, jsonify
-import os
 
 from routes import upload, retrieve, delete_asset, bulk_upload
 from auth import require_auth

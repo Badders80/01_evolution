@@ -9,9 +9,14 @@ Routes:
   /webhook         — Handle Stripe webhook for KYC result
 """
 
+import sys
+import os
+
+# Bootstrap to find core/ shared module from api/
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
 import functions_framework
 from flask import Request, jsonify
-import os
 
 from routes import create_session, webhook
 
