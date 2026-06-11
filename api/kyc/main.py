@@ -19,6 +19,7 @@ import functions_framework
 from flask import Request, jsonify
 
 from routes import create_session, webhook
+from auth import require_auth
 
 # CORS Configuration - Restrict to known domains
 ALLOWED_ORIGINS = os.getenv(

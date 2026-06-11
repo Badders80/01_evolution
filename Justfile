@@ -49,29 +49,33 @@ create-buckets:
 
 # Deploy SSOT function
 deploy-ssot:
+    cp -r api/core api/ssot/core
     cd api/ssot && gcloud functions deploy ssot \
         --runtime python312 \
         --trigger-http \
-        --allow-unauthenticated \
+        --region australia-southeast1 \
+        --source . \
         --entry-point ssot
 
 # Deploy Assets function
 deploy-assets:
+    cp -r api/core api/assets/core
     cd api/assets && gcloud functions deploy assets \
         --runtime python312 \
         --trigger-http \
-        --allow-unauthenticated \
         --region australia-southeast1 \
         --memory 512MB \
+        --source . \
         --entry-point assets
 
 # Deploy KYC function
 deploy-kyc:
+    cp -r api/core api/kyc/core
     cd api/kyc && gcloud functions deploy kyc \
         --runtime python312 \
         --trigger-http \
-        --allow-unauthenticated \
         --region australia-southeast1 \
+        --source . \
         --entry-point kyc
 
 # Run Racing Data API locally
