@@ -55,11 +55,12 @@ def kyc(request: Request):
         return add_cors_headers(response, origin), 200
 
     if segments and segments[0] == "create-session":
-        response = create_session.handle(request)
+        res = create_session.handle(request)
     elif segments and segments[0] == "webhook":
-        response = webhook.handle(request)
+        res = webhook.handle(request)
     else:
-        response = jsonify({"error": "Not found", "path": path}), 404
+        res = jsonify({"error": "Not found", "path": path}), 404
 
     from flask import make_response
-    return make_response(add_cors_headers(response, origin))
+    response = make_response(res)
+    return add_cors_headers(response, origin)
