@@ -11,14 +11,16 @@
 
 ## Current State
 
-**Backend (`01_evolution/api/`):** ✅ Live — 3 Cloud Functions deployed (ssot, assets, kyc)  
+**Backend (`01_evolution/api/`):** ✅ Live — 3 Cloud Functions deployed with Firebase Auth middleware  
 **Admin UI:** ✅ Mission Control running on `:5000` — SPA with horse CRUD, HLT builder, media console  
 **Tests:** ✅ 173/173 passing, zero warnings  
-**Auth:** ✅ Firebase Auth on 20+ admin endpoints  
+**Auth:** ✅ Firebase Auth on 20+ admin endpoints + 3 Cloud Functions  
 **CORS:** ✅ Origin-restricted on all Cloud Functions  
 **Models:** ✅ Unified in `api/core/models.py` — single source of truth  
+**WIF:** ✅ Workload Identity Federation pool + OIDC provider created for Vercel auth  
+**Cloud Run:** ✅ `evolution-api-proxy` deployed — IAM bridge for Vercel→CF calls  
 
-**Blockers:** 0 (all resolved)
+**Blockers:** 1 (Vercel OIDC not yet enabled in Vercel dashboard — blocks production auth chain)
 
 ---
 
@@ -58,17 +60,19 @@ See: [`docs/sprints/S01_horse_media_console.md`](sprints/S01_horse_media_console
 | 2026-06-10 | Sprint Zero — Foundation & Security | ✅ Complete |
 | 2026-06-11 | Repo hygiene audit — tests, secrets, CORS, docs | ✅ Complete |
 | 2026-06-11 | SPA routing fixes — horse navigation, HLT close button | ✅ Complete |
+| 2026-06-11 | GCP Auth Blocker — WIF infra, Firebase Auth middleware, Cloud Run proxy | 🟡 In Progress |
 
 ---
 
 ## What's Next
 
-1. **Sprint One** — Horse Media Console + Data Sync (see sprint doc)
-2. **KYC tests** — Replace placeholder `assert True` tests with real integration tests
-3. **Payments tests** — Add test coverage (currently zero)
-4. **CI/CD** — Add `.github/workflows/test.yml` (pytest + lint)
-5. **Linting** — Add `pyproject.toml` with ruff config
-6. **`backfill_5_days.py`** — ✅ Deleted (consolidated into `backfill.py`)
+1. 🔴 **Enable Vercel OIDC** in Vercel dashboard (manual step — single blocker)
+2. Redeploy Vercel, test full auth chain Vercel → Cloud Run → Cloud Function
+3. **Sprint One** — Horse Media Console + Data Sync (see sprint doc)
+4. **KYC tests** — Replace placeholder `assert True` tests with real integration tests
+5. **Payments tests** — Add test coverage (currently zero)
+6. **CI/CD** — Add `.github/workflows/test.yml` (pytest + lint)
+7. **Linting** — Add `pyproject.toml` with ruff config
 
 ---
 
@@ -79,10 +83,14 @@ See: [`docs/sprints/S01_horse_media_console.md`](sprints/S01_horse_media_console
 | **GCP Project** | ✅ Active | `evolution-engine` (851430309148) |
 | **Firestore** | ✅ Running | `australia-southeast1`, Standard edition |
 | **Cloud Storage** | ✅ 2 buckets | `evolution-horse-images`, `evolution-horse-docs` |
-| **Cloud Functions** | ✅ 3 deployed | `ssot`, `assets` (with bulk-upload), `kyc` |
+| **Cloud Functions** | ✅ Active (3) | ssot (v13), assets (v5), kyc (v9) — all with Firebase Auth |
+| **Cloud Run** | ✅ Active | `evolution-api-proxy` — IAM bridge for Vercel→CF |
+| **WIF Pool** | ✅ Created | `vercel-pool` with `vercel-oidc` provider |
+| **Service Account** | ✅ Created | `website-api@evolution-engine.iam.gserviceaccount.com` |
 | **Firebase** | ✅ Enabled | Web app created, Email/Password + Google auth |
 | **Stripe** | ✅ Connected | Sandbox mode, Identity API ready |
 | **Admin UI** | ✅ Running | Flask on `:5000`, SQLite-backed |
+| **Vercel OIDC** | 🔴 Not enabled | Manual toggle needed in Vercel dashboard |
 
 ---
 

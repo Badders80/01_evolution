@@ -25,7 +25,7 @@ from auth import require_auth
 # CORS Configuration - Restrict to known domains
 ALLOWED_ORIGINS = os.getenv(
     "ALLOWED_ORIGINS", 
-    "http://localhost:3000,http://localhost:5000,https://evolutionstables.nz"
+    "http://localhost:3000,http://localhost:5000,https://evolutionstables.nz,https://evolution.2.0.vercel.app,https://02website-pearl.vercel.app"
 ).split(",")
 
 
