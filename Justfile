@@ -54,6 +54,7 @@ deploy-ssot:
         --runtime python312 \
         --trigger-http \
         --region australia-southeast1 \
+        --set-env-vars "ALLOWED_ORIGINS=https://evolutionstables.nz,https://evolution.2.0.vercel.app,https://02website-pearl.vercel.app" \
         --source . \
         --entry-point ssot
 
@@ -65,6 +66,7 @@ deploy-assets:
         --trigger-http \
         --region australia-southeast1 \
         --memory 512MB \
+        --env-vars-file /tmp/env_vars.yaml \
         --source . \
         --entry-point assets
 
@@ -75,6 +77,7 @@ deploy-kyc:
         --runtime python312 \
         --trigger-http \
         --region australia-southeast1 \
+        --env-vars-file /tmp/env_vars.yaml \
         --source . \
         --entry-point kyc
 
