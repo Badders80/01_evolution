@@ -52,3 +52,4 @@ api/admin/ssot_local.db
 api/ssot/core/
 api/assets/core/
 api/kyc/core/
+api/applications/core/

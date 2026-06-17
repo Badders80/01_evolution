@@ -18,6 +18,9 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 import functions_framework
 from flask import Request, jsonify
 
+from routes import submit, list_applications
+from auth import require_auth
+
 # CORS Configuration - Restrict to known domains
 ALLOWED_ORIGINS = os.getenv(
     "ALLOWED_ORIGINS", 
@@ -36,7 +39,7 @@ def add_cors_headers(response, origin=None):
             response.headers.add("Access-Control-Allow-Origin", origin)
             response.headers.add("Access-Control-Allow-Credentials", "true")
     response.headers.add("Access-Control-Allow-Methods", "GET, POST, PATCH, DELETE, OPTIONS")
-    response.headers.add("Access-Control-Allow-Headers", "Content-Type, Authorization")
+    response.headers.add("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Firebase-Token")
     return response
 
 
@@ -51,13 +54,40 @@ def applications(request: Request):
         response.status_code = 200
         return add_cors_headers(response, origin), 200
     
-    # Simple health check
+    # Simple health check at root path
     if request.path == "/":
         response = jsonify({"status": "healthy", "service": "applications"})
         response.status_code = 200
         return add_cors_headers(response, origin), 200
+        
+    # Verify Firebase ID token (all functional routes require auth)
+    # Check x-firebase-token first (from proxy), then Authorization header
+    id_token = request.headers.get("X-Firebase-Token", "")
+    if not id_token:
+        auth_header = request.headers.get("Authorization", "")
+        if auth_header.startswith("Bearer "):
+            id_token = auth_header.split("Bearer ")[1]
     
-    # Return 404 for other paths
-    response = jsonify({"error": "Not found", "path": request.path})
-    response.status_code = 404
-    return add_cors_headers(response, origin), 404
+    if not id_token:
+        return add_cors_headers(jsonify({"error": "Missing Firebase token. Expected: X-Firebase-Token or Authorization: Bearer <token>"}), origin), 401
+
+    try:
+        from firebase_admin import auth as firebase_auth
+        decoded_token = firebase_auth.verify_id_token(id_token)
+        request.user = decoded_token
+    except Exception as e:
+        return add_cors_headers(jsonify({"error": f"Authentication failed: {str(e)}"}), origin), 401
+
+    path = request.path.strip("/")
+    segments = path.split("/") if path else []
+
+    if segments and segments[0] == "submit":
+        res = submit.handle(request)
+    elif segments and segments[0] == "list":
+        res = list_applications.handle(request)
+    else:
+        res = jsonify({"error": "Not found", "path": path}), 404
+
+    from flask import make_response
+    response = make_response(res)
+    return add_cors_headers(response, origin)
