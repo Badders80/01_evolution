@@ -13,6 +13,14 @@ from google.auth import default
 from google.auth.transport.requests import Request
 
 # Import our unified pipeline modules
+from archive_media import (
+    archive_enabled,
+    archive_media,
+    delete_temp_enabled,
+    infer_media_kind,
+    normalize_horse_slug,
+    to_relative_asset_path,
+)
 from parser import parse_email
 from transcriber import Transcriber
 from main import _download_video
@@ -27,7 +35,10 @@ load_dotenv("/home/evo/.env")
 # APIs config
 SSOT_API_URL = "https://australia-southeast1-evolution-engine.cloudfunctions.net/ssot"
 ASSETS_API_URL = "https://australia-southeast1-evolution-engine.cloudfunctions.net/assets"
-DB_PATH = "/home/evo/workspace/projects/Evolution_Content/data/ledger.sqlite"
+
+# Local-first data paths (configurable via env vars, defaults inside workspace)
+_DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
+DB_PATH = os.getenv("INGEST_DB_PATH", os.path.join(_DATA_DIR, "ledger.sqlite"))
 
 # Credentials
 WEXFORD_EMAIL_USER = os.getenv("WEXFORD_EMAIL_USER", "alex@evolutionstables.nz")
@@ -310,7 +321,7 @@ def store_content_api(parsed, microchip, asset_id, transcript):
     return mock_content_id
 
 
-def store_in_local_sqlite(parsed, transcript):
+def store_in_local_sqlite(parsed, transcript, *, local_media_path=None, source_cdn_url=None):
     """Insert the parsed email and transcript into the local SQLite database for ingestion integration."""
     try:
         if not os.path.exists(DB_PATH):
@@ -362,6 +373,10 @@ def store_in_local_sqlite(parsed, transcript):
             "sentiment": "positive",
             "content_type": "video_update"
         }
+        if local_media_path:
+            extracted_data["local_media_path"] = local_media_path
+        if source_cdn_url:
+            extracted_data["source_cdn_url"] = source_cdn_url
         
         c.execute("""
             INSERT INTO emails (from_address, subject, date_received, body_text, body_html, extracted_json, status, message_id)
@@ -382,7 +397,7 @@ def store_in_local_sqlite(parsed, transcript):
         logger.info(f"Successfully inserted email and transcript into SQLite database (ID: {last_id})!")
         
         # Also append to ndjson catalog
-        catalog_path = os.path.join(os.path.dirname(DB_PATH), "..", "catalog", "content-index.ndjson")
+        catalog_path = os.getenv("INGEST_CATALOG_PATH", os.path.join(_DATA_DIR, "content-index.ndjson"))
         catalog_dir = os.path.dirname(catalog_path)
         if os.path.exists(catalog_dir):
             catalog_entry = {
@@ -454,6 +469,8 @@ def main():
         
     # 4. Download video using main module download helper
     video_path = _download_video(parsed.video_url)
+    horse_slug = normalize_horse_slug(parsed.horse_name)
+    media_kind = infer_media_kind(parsed.video_url, video_path)
     
     try:
         # 5. Transcribe using unified transcriber with Gemini 2.5 Flash as the requested engine
@@ -469,9 +486,25 @@ def main():
         
         # 7. Store transcript in SSOT API
         content_id = store_content_api(parsed, microchip, asset_id, transcript)
+
+        archived_path = None
+        if archive_enabled():
+            archived_path = archive_media(
+                video_path,
+                horse_slug,
+                parsed.content_date,
+                media_kind,
+                source_cdn_url=parsed.video_url,
+            )
+        local_media_path = to_relative_asset_path(archived_path) if archived_path else None
         
         # 8. Store in local SQLite DB for frontend/orchestrator ingestion
-        store_in_local_sqlite(parsed, transcript)
+        store_in_local_sqlite(
+            parsed,
+            transcript,
+            local_media_path=local_media_path,
+            source_cdn_url=parsed.video_url,
+        )
         
         # Save transcript to output directory
         script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -503,7 +536,7 @@ def main():
             logger.info(f"[{seg.start_time:.1f}s - {seg.end_time:.1f}s] {seg.speaker}: {seg.text}")
             
     finally:
-        if os.path.exists(video_path):
+        if delete_temp_enabled() and os.path.exists(video_path):
             os.unlink(video_path)
             logger.info("Cleaned up local video file.")
 

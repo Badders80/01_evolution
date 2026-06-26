@@ -143,7 +143,7 @@ Rules:
         from model_router import get_router
         router = get_router()
 
-        for model in [os.getenv("OLLAMA_MODEL", "kimi-k2.6:cloud"), os.getenv("OLLAMA_FALLBACK_MODEL", "qwen3.5:cloud")]:
+        for model in [os.getenv("OLLAMA_MODEL", "glm-5.2"), os.getenv("OLLAMA_FALLBACK_MODEL", "deepseek-v4-flash")]:
             try:
                 logger.info(f"Reconciling transcripts using Ollama model {model}...")
                 raw_content = router.chat(

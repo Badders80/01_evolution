@@ -1,7 +1,7 @@
 # Evolution Stables — Build Summary
 
-**Date:** 2026-05-20
-**Status:** Phase 1 MVP built, Sprint 2 ✅ Complete, persistent navbar live
+**Date:** 2026-06-24
+**Status:** Phase 1 MVP built, Sprint 2 ✅ Complete, persistent navbar live, knowledge repository ✅ Built
 
 > **This is the map.** What the project is, what exists, the rules.
 > For session-by-session progress, see [PROGRESS.md](PROGRESS.md).
@@ -70,6 +70,41 @@ Key design: `api/` is the **only** writer to Firestore. The app never writes dir
 | `auth/verify` | Stripe KYC flow | ✅ Built |
 
 > **Note:** Admin pages were originally built in `01_evolution/app/` (architectural drift) and moved to `02_website/src/app/admin/` on 2026-05-20. `01_evolution` is backend-only.
+
+### Email Ingest Pipeline (`01_evolution/api/email-ingest/` — Local-First)
+
+| Component | Status | Notes |
+|-----------|--------|-------|
+| Gmail API client | ✅ Built | Service account + domain-wide delegation. Primary email path (credentials need restoring) |
+| IMAP trigger | ✅ Legacy | Produced initial transcripts, superseded by Gmail API |
+| Email parser | ✅ Built | Regex-based, extracts horse name/date/video URL from Wexford update emails |
+| Multi-engine transcriber | ✅ Built | Google STT → AI Studio → Groq Whisper, quota-aware fallback chain |
+| LLM reconciler | ✅ Built | Ollama-based consensus reconciliation with domain knowledge base |
+| Corrections applier | ✅ Built | Regex corrections for horse names, venues, people (ASR mishearings) |
+| Local SQLite ledger | ✅ Built | Local-first storage — pipeline never hard-fails on cloud auth |
+| Auto-sync to _assets | ✅ Built | Post-batch: copies transcripts to `_assets/horses/{slug}/transcripts/`, regenerates `transcripts.md` via `index_horse.py`. Slug-validated, path-traversal-safe |
+| Ollama Cloud model router | ✅ Built | glm-5.2 primary, deepseek-v4-flash fallback. Dual subscription key rotation (badders80 + badders808). OpenAI-compatible `/v1/chat/completions` endpoint |
+| Cloud Function entry | ✅ Coded | `main.py` ready to deploy, not yet deployed |
+| Cloud Scheduler | ❌ Not set up | Future automation — not blocking |
+| Firestore sync | ❌ Blocked | SSOT API 401 auth issue — local fallbacks bypass this |
+
+**Design:** Local-first. Every cloud API call has a local fallback (mock IDs, SQLite, NDJSON). The pipeline produces transcripts regardless of cloud auth status. Cloud deployment is an automation upgrade, not a prerequisite.
+
+### Knowledge Repository (`01_evolution/` — Local Content Authoring)
+
+| Folder | Files | Purpose |
+|--------|-------|---------|
+| `horses/` | 5 horses × (profile + pedigree.json + race-record.json + documents.md) | Per-horse content, verified from loveracing.nz + breednet |
+| `people/` | 5 profiles | Trainers, owners (tagged by role, backend IDs) |
+| `stables/` | 3 profiles | Wexford Stables, Stephen Gray Racing, Logan Racing |
+| `pedigrees/` | 6 profiles | Sire knowledge (4 verified, 2 unverified) |
+| `press/` | 1 article | NZ Herald — First Gear six-figure offer |
+| `governing-bodies/` | 2 profiles | NZTR, Dubai Racing Club |
+| `leases/` | 4 JSON files | LSE-001 through LSE-004 (Nzd + AED) |
+| `hlts/` | 4 campaign files | One per horse, backend IDs in frontmatter |
+| `kb-index.py` | Query script | Tag/type/role/entity search, no auth, no database |
+
+**Rule:** Knowledge repo mirrors the backend entity model. Backend is source of truth. External sources (tokinvest, loveracing.nz, breednet) enrich, never replace. Backend IDs in all frontmatter for orderly Firestore sync.
 
 ### DNA (Design System)
 

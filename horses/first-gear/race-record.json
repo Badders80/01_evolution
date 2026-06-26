@@ -1,0 +1,44 @@
+{
+  "horse_slug": "first-gear",
+  "horse_name": "First Gear",
+  "microchip": "985125000126713",
+  "total_starts": 11,
+  "total_wins": 1,
+  "total_seconds": 2,
+  "total_thirds": 0,
+  "total_prizemoney_nzd": 24975,
+  "flat_rating": 57,
+  "starts": [
+    {
+      "date": "2024-05-25",
+      "venue": "Trentham",
+      "race_name": "TAB ODDS SURGE EVERY RACE AT TRENTHAM 2YO 1200",
+      "race_class": "Maiden 2YO",
+      "distance_m": 1200,
+      "track_condition": "Heavy10",
+      "jockey": "Lisa Allpress",
+      "result": "1st",
+      "margin": "3 1/2 LEN",
+      "prizemoney_nzd": 11500,
+      "starting_price": "$2.10"
+    },
+    {
+      "date": "2024-06-01",
+      "venue": "Wanganui",
+      "race_name": "JOHN TURKINGTON FORESTRY LTD CASTLETOWN STAKES",
+      "race_class": "Listed Race",
+      "distance_m": 1200,
+      "track_condition": "Heavy10",
+      "jockey": "Lisa Allpress",
+      "result": "2nd",
+      "margin": "1 1/2 LEN",
+      "prizemoney_nzd": 2000,
+      "starting_price": "$3.80"
+    }
+  ],
+  "source": "loveracing_nz",
+  "source_url": "https://loveracing.nz/Breeding/428364/First-Gear-NZ-2021.aspx",
+  "verified": true,
+  "verified_at": "2026-06-24",
+  "notes": "Verified from loveracing.nz. 11 starts: 1 win, 2 seconds, 0 thirds, 2 fifths, 5 unplaced. $24,975 career prizemoney. Maiden win at Trentham 25 May 2024. Turned down $300,000 offer after maiden win (NZ Herald, 31 May 2024)."
+}

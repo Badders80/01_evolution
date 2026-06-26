@@ -165,7 +165,7 @@ class OwnerUpdate(BaseModel):
 
 class TrainerCreate(BaseModel):
     """Payload for creating a new trainer record."""
-    name: str = Field(..., examples=["Sam Spratt"])
+    name: str = Field(..., examples=["Lance O'Sullivan & Andrew Scott"])
     stable_name: str = Field(..., examples=["Evolution Stables"])
     location: str = Field(..., examples=["Cambridge, NZ"])
     email: str = Field(...)

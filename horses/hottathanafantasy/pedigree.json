@@ -1,0 +1,30 @@
+{
+  "horse_slug": "hottathanafantasy",
+  "horse_name": "Hotta than a fantasy (NZ)",
+  "microchip": "985125000139165",
+  "life_number": "NZ00452052",
+  "loveracing_id": 452052,
+  "sex": "filly",
+  "colour": "Bay",
+  "foaling_date": "2023-10-24",
+  "country_code": "NZ",
+  "sire": {
+    "name": "Contributer (IRE) 2010",
+    "sire_id": null
+  },
+  "dam": {
+    "name": "Whiffle (USA) 2004",
+    "dam_id": null
+  },
+  "breeder": "Goldeye Trust",
+  "family_number": "13",
+  "left_shoulder_brand": "KB INSIDE CIRCLE",
+  "right_shoulder_brand": "87 OVER 3",
+  "dna_typed": true,
+  "pv": true,
+  "source": "loveracing_nz",
+  "source_url": "https://loveracing.nz/Breeding/452052/Hottathanafantasy-NZ-2023.aspx",
+  "verified": true,
+  "verified_at": "2026-06-24",
+  "notes": "Verified against loveracing.nz Stud Book. Breeder: Goldeye Trust."
+}

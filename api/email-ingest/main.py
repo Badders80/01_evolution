@@ -25,6 +25,7 @@ from flask import Request, jsonify
 from gmail_client import GmailClient
 from models import IngestResult
 from parser import parse_email, get_speaker_names
+from archive_media import archive_and_cleanup_temp, normalize_horse_slug
 from transcriber import Transcriber
 
 logging.basicConfig(level=logging.INFO)
@@ -222,9 +223,12 @@ def _process_email(raw_email: dict, gmail: GmailClient) -> IngestResult:
             logger.info(f"Content stored: content_id={content_id}")
 
         finally:
-            # Clean up temp video file
-            if os.path.exists(video_path):
-                os.unlink(video_path)
+            archive_and_cleanup_temp(
+                video_path,
+                horse_slug=normalize_horse_slug(parsed.horse_name),
+                content_date=parsed.content_date,
+                source_cdn_url=parsed.video_url,
+            )
 
         # Step 8: Mark email as read
         gmail.mark_read(message_id)
@@ -244,11 +248,16 @@ def _process_email(raw_email: dict, gmail: GmailClient) -> IngestResult:
 
 def _download_video(url: str) -> str:
     """Download a video from a URL to a temp file. Returns local path."""
+    lower = url.lower()
     ext = ".mp4"
-    if ".mov" in url.lower():
+    if ".mov" in lower:
         ext = ".mov"
-    elif ".webm" in url.lower():
+    elif ".webm" in lower:
         ext = ".webm"
+    elif ".mp3" in lower:
+        ext = ".mp3"
+    elif ".m4a" in lower:
+        ext = ".m4a"
 
     tmp_path = os.path.join(
         tempfile.gettempdir(),

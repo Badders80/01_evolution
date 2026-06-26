@@ -21,9 +21,59 @@ logger = logging.getLogger(__name__)
 # fallback.
 # ─────────────────────────────────────────────────────────────
 
-OLLAMA_HOST = os.getenv("OLLAMA_HOST", "http://127.0.0.1:11434")
-OLLAMA_DEFAULT_MODEL = os.getenv("OLLAMA_MODEL", "kimi-k2.6:cloud")
-OLLAMA_FALLBACK_MODEL = os.getenv("OLLAMA_FALLBACK_MODEL", "qwen3.5:cloud")
+# Ollama Cloud (OpenAI-compatible endpoint)
+# Two subscriptions: badders80 (primary) and badders808 (backup).
+# Keys live in ~/.hermes/.env. The shell env OLLAMA_API_KEY may be polluted
+# (e.g. SSH key from .bashrc), so we validate format and fall back to ~/.hermes/.env.
+_OLLAMA_CLOUD_HOST = "https://ollama.com/v1"
+
+def _load_ollama_keys():
+    """Load both Ollama Cloud API keys from ~/.hermes/.env.
+    
+    Returns list of valid keys (hex-dot format), primary first.
+    Handles two formats:
+      - OLLAMA_API_KEY=<key>  (active, uncommented)
+      - # <label> - <key>     (backup, commented with account label)
+    """
+    keys = []
+    hermes_env = os.path.expanduser("~/.hermes/.env")
+    if os.path.exists(hermes_env):
+        for line in open(hermes_env):
+            line = line.strip()
+            # Active key (uncommented OLLAMA_API_KEY=...)
+            if line.startswith("OLLAMA_API_KEY=") and not line.startswith("#"):
+                val = line.split("=", 1)[1].strip()
+                if val and not val.startswith("ssh-"):
+                    keys.append(val)
+            # Backup key (commented line with key in hex-dot format)
+            # Format: "# badders808 (backup) - 39b393e5b4264862bcc2de256b7a9c44.YlbuobD..."
+            if line.startswith("#") and "backup" in line.lower():
+                # Extract the hex-dot key from the comment
+                import re
+                m = re.search(r'([0-9a-f]{32}\.[A-Za-z0-9_\-]+)', line)
+                if m:
+                    keys.append(m.group(1))
+    
+    # Also check shell env (but validate format)
+    env_key = os.getenv("OLLAMA_API_KEY", "")
+    if env_key and not env_key.startswith("ssh-") and env_key not in keys:
+        keys.insert(0, env_key)
+    
+    return keys
+
+_OLLAMA_KEYS = _load_ollama_keys()
+OLLAMA_API_KEY = _OLLAMA_KEYS[0] if _OLLAMA_KEYS else ""
+OLLAMA_API_KEYS = _OLLAMA_KEYS  # All keys for rotation
+
+# If we have an API key, always use Ollama Cloud (OpenAI-compatible /v1 endpoint).
+# The OLLAMA_HOST env var (often set to 127.0.0.1:11434 in .bashrc for local Ollama)
+# is for the native API, not the Cloud OpenAI-compatible endpoint.
+if OLLAMA_API_KEY:
+    OLLAMA_HOST = os.getenv("OLLAMA_CLOUD_HOST", _OLLAMA_CLOUD_HOST)
+else:
+    OLLAMA_HOST = os.getenv("OLLAMA_HOST", "http://127.0.0.1:11434")
+OLLAMA_DEFAULT_MODEL = os.getenv("OLLAMA_MODEL", "glm-5.2")
+OLLAMA_FALLBACK_MODEL = os.getenv("OLLAMA_FALLBACK_MODEL", "deepseek-v4-flash")
 
 GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions"
 GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
@@ -166,6 +216,7 @@ class ModelRouter:
 
     def __init__(self):
         self.ollama_host = OLLAMA_HOST
+        self.ollama_api_keys = OLLAMA_API_KEYS
         self.ollama_models = [OLLAMA_DEFAULT_MODEL, OLLAMA_FALLBACK_MODEL]
         self.groq_key = GROQ_API_KEY
         self.groq_model = GROQ_MODEL
@@ -573,33 +624,51 @@ Format segments chronologically. Split segments whenever the speaker changes, or
             messages.append({"role": "system", "content": system})
         messages.append({"role": "user", "content": prompt})
 
+        # Ollama Cloud uses OpenAI-compatible /v1/chat/completions endpoint
         payload = {
             "model": model,
             "messages": messages,
             "stream": False,
-            "options": {"temperature": temperature},
+            "temperature": temperature,
         }
         if format_json:
-            payload["format"] = "json"
+            payload["response_format"] = {"type": "json_object"}
 
-        resp = requests.post(
-            f"{self.ollama_host}/api/chat",
-            headers={"Content-Type": "application/json"},
-            json=payload,
-            timeout=timeout,
-        )
-        if resp.status_code != 200:
-            raise RuntimeError(f"Ollama returned {resp.status_code}: {resp.text[:200]}")
+        # Try each API key (subscription rotation: badders80 → badders808)
+        for api_key in self.ollama_api_keys:
+            headers = {"Content-Type": "application/json"}
+            if api_key:
+                headers["Authorization"] = f"Bearer {api_key}"
 
-        data = resp.json()
-        raw = data["message"]["content"]
+            try:
+                resp = requests.post(
+                    f"{self.ollama_host}/chat/completions",
+                    headers=headers,
+                    json=payload,
+                    timeout=timeout,
+                )
+                if resp.status_code == 401:
+                    logger.warning(f"Ollama Cloud key {api_key[:8]}... unauthorized for {model}, trying next key")
+                    continue
+                if resp.status_code != 200:
+                    raise RuntimeError(f"Ollama Cloud {model} returned {resp.status_code}: {resp.text[:200]}")
 
-        # Strip markdown fences if model misbehaves
-        if raw.startswith("```json"):
-            raw = raw.split("```json", 1)[1]
-        if raw.endswith("```"):
-            raw = raw.rsplit("```", 1)[0]
-        return raw.strip()
+                data = resp.json()
+                raw = data["choices"][0]["message"]["content"]
+
+                # Strip markdown fences if model misbehaves
+                if raw.startswith("```json"):
+                    raw = raw.split("```json", 1)[1]
+                if raw.endswith("```"):
+                    raw = raw.rsplit("```", 1)[0]
+                return raw.strip()
+            except RuntimeError:
+                raise  # Re-raise non-auth errors immediately
+            except Exception as e:
+                logger.warning(f"Ollama Cloud {model} with key {api_key[:8]}... failed: {e}")
+                continue
+
+        raise RuntimeError(f"Ollama Cloud {model} failed with all {len(self.ollama_api_keys)} API keys")
 
     def _groq_chat(
         self,

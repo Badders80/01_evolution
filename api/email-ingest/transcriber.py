@@ -150,15 +150,37 @@ class Transcriber:
                         self._delete_from_gcs(gcs_uri)
                 except Exception as e:
                     logger.error(f"Google STT failed: {e}")
-                    if engine == "google":
+                    if engine == "google" and AI_STUDIO_ALLOWED and AI_STUDIO_API_KEY:
+                        try:
+                            logger.info("Falling back to AI Studio after Google STT failure")
+                            result_dict = self._transcribe_aistudio(audio_path, horse_name)
+                            transcripts["aistudio"] = TranscriptResult(**result_dict)
+                        except Exception as aistudio_err:
+                            logger.error(f"AI Studio fallback failed: {aistudio_err}")
+                    elif engine == "google":
                         raise
 
             # Gated Audits & Fallbacks
             # If primary failed or force_audit is requested, run alternative engines
-            primary_failed = "google" not in transcripts or not transcripts["google"].full_text
+            primary_failed = not any(
+                t.full_text for t in transcripts.values()
+            ) if transcripts else True
             run_audits = force_audit or primary_failed
 
             if run_audits:
+                # 0. AI Studio before Groq when Google unavailable
+                if (
+                    "aistudio" not in transcripts
+                    and AI_STUDIO_ALLOWED
+                    and AI_STUDIO_API_KEY
+                ):
+                    try:
+                        logger.info("Running AI Studio ASR fallback...")
+                        result_dict = self._transcribe_aistudio(audio_path, horse_name)
+                        transcripts["aistudio"] = TranscriptResult(**result_dict)
+                    except Exception as e:
+                        logger.warning(f"AI Studio ASR failed: {e}")
+
                 # 1. Groq Whisper Fallback
                 groq_key = os.getenv("GROQ_API_KEY")
                 if groq_key:
@@ -190,6 +212,15 @@ class Transcriber:
                 transcripts[key] = self.corrections_applier.apply_to_transcript_result(t_res)
 
             # Step 4: Perform Reconciliation if needed
+            skip_reconcile = os.getenv("INGEST_SKIP_RECONCILE", "false").lower() == "true"
+            if skip_reconcile and len(transcripts) > 1:
+                best_engine = "google" if "google" in transcripts else list(transcripts.keys())[0]
+                logger.info(
+                    "INGEST_SKIP_RECONCILE=true — returning %s without LLM reconciliation",
+                    best_engine,
+                )
+                return transcripts[best_engine]
+
             # If multiple transcripts exist, or force_audit is True, run the LLM reconciler
             if len(transcripts) > 1 or (len(transcripts) == 1 and force_audit):
                 logger.info(f"Reconciling {len(transcripts)} transcripts with Ollama consensus LLM...")

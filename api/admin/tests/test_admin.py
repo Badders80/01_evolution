@@ -249,7 +249,7 @@ class TestTrainerCrud:
 
     def test_create_trainer(self, client):
         payload = {
-            "name": "Sam Spratt",
+            "name": "Lance O'Sullivan & Andrew Scott",
             "stable_name": "Evolution Stables",
             "location": "Cambridge, NZ",
             "email": "sam@evolutionstables.nz",

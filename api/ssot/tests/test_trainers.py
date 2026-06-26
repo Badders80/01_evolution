@@ -11,19 +11,19 @@ class TestTrainerCreate:
 
     def test_valid_trainer_minimal(self):
         trainer = TrainerCreate(
-            name="Sam Spratt",
+            name="Lance O'Sullivan & Andrew Scott",
             stable_name="Evolution Stables",
             location="Cambridge, NZ",
             email="sam@evolution.nz",
         )
-        assert trainer.name == "Sam Spratt"
+        assert trainer.name == "Lance O'Sullivan & Andrew Scott"
         assert trainer.profile_status == "active"
         assert trainer.notable_wins == []
 
     def test_profile_status_must_be_valid(self):
         with pytest.raises(ValidationError):
             TrainerCreate(
-                name="Sam Spratt",
+                name="Lance O'Sullivan & Andrew Scott",
                 stable_name="Evolution Stables",
                 location="Cambridge, NZ",
                 email="sam@evolution.nz",

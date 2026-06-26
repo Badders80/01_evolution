@@ -29,7 +29,7 @@ TWO_SPEAKER_PATTERNS = [
 
 # Video URL patterns
 VIDEO_URL_PATTERNS = [
-    r'https?://[^\s"\'<>]+?\.(?:mp4|mov|webm|avi|mkv)',
+    r'https?://[^\s"\'<>]+?\.(?:mp4|mov|webm|avi|mkv|mp3|m4a)',
     r'https?://[^\s"\'<>]*?(?:video|cdn|prism\.horse|vimeo|wistia)[^\s"\'<>]*',
     r'https?://[^\s"\'<>]*?youtube[^\s"\'<>]*',
 ]
@@ -50,13 +50,15 @@ def parse_email(raw_email: dict) -> ParsedEmail:
     subject = raw_email.get("subject", "")
     body = raw_email.get("body_text", "") or raw_email.get("body_html", "")
 
-    # Strip HTML if we got HTML
-    if raw_email.get("body_html") and not raw_email.get("body_text"):
+    # Strip HTML if the body contains HTML tags (some emails are single-part text/html,
+    # so body_text itself can be HTML — not just body_html)
+    if body and "<html" in body.lower() or "<!doctype" in body.lower() or "<p>" in body.lower():
         body = re.sub(r"<[^>]*>", " ", body)
         body = re.sub(r"\s+", " ", body).strip()
 
-    horse_name = _extract_horse_name(subject)
-    content_date = _extract_date(body)
+    horse_name = _clean_horse_display(_extract_horse_name(subject))
+    date_received = raw_email.get("date_received", datetime.now())
+    content_date = _extract_date(body, subject=subject, date_received=date_received)
     title = _extract_title(body)
     video_url = _extract_video_url(body)
     speaker_count = _detect_speaker_count(body)
@@ -84,38 +86,79 @@ def parse_email(raw_email: dict) -> ParsedEmail:
 def _extract_horse_name(subject: str) -> str:
     """
     Extract horse name from subject line.
-    Pattern: "Video Update for {HorseName}"
+    Handles multiple formats:
+      - "Video Update for {HorseName}"
+      - "Video Update: {HorseName}"
+      - "Video Update - {HorseName}"
+      - "Race Acceptance - {HorseName} - {date} - {venue}"
+      - "Update for {HorseName}"
     """
-    # Try "Video Update for X"
-    match = re.search(r"Video\s+Update\s+for\s+(.+?)(?:\s*$)", subject, re.IGNORECASE)
+    # Try "Audio Update: X" or "Audio Update - X"
+    match = re.search(r"Audio\s+Update\s*[:\-]\s*(.+?)(?:\s*$)", subject, re.IGNORECASE)
     if match:
         return match.group(1).strip()
 
-    # Try "Update for X"
+    # Try "Video Update for/with X" or "Video Update: X" or "Video Update - X"
+    match = re.search(r"Video\s+Update\s+(?:for|with)\s+(.+?)(?:\s*$)", subject, re.IGNORECASE)
+    if match:
+        return match.group(1).strip()
+    match = re.search(r"Video\s+Update\s*[:\-]\s*(.+?)(?:\s*$)", subject, re.IGNORECASE)
+    if match:
+        return match.group(1).strip()
+
+    # Try "Race Acceptance/Result - {HorseName} - {date} - {venue}"
+    match = re.search(r"Race\s+(?:Acceptance|Result)\s*-\s*(.+?)\s*-", subject, re.IGNORECASE)
+    if match:
+        return match.group(1).strip()
+
+    # Try "Update for X" or "Update: X" or "Update - X"
     match = re.search(r"Update\s+for\s+(.+?)(?:\s*$)", subject, re.IGNORECASE)
+    if match:
+        return match.group(1).strip()
+    match = re.search(r"^Update\s*[:\-]\s*(.+?)(?:\s*$)", subject, re.IGNORECASE)
     if match:
         return match.group(1).strip()
 
     # Fallback: use the whole subject minus common prefixes
     cleaned = re.sub(r"^(?:VIDEO\s+)?Update\s*(?:for\s*)?", "", subject, flags=re.IGNORECASE).strip()
+    cleaned = re.sub(r"\s*\(NZ\)\s*$", "", cleaned, flags=re.IGNORECASE).strip()
     return cleaned or "Unknown"
 
 
-def _extract_date(body: str) -> date:
+def _clean_horse_display(name: str) -> str:
+    """Normalize horse name for storage (strip regional suffixes)."""
+    return re.sub(r"\s*\(NZ\)\s*$", "", name.strip(), flags=re.IGNORECASE).strip()
+
+
+_MONTH_PATTERN = r"(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*"
+
+
+def _parse_day_month_year(day_month: str, year: int) -> date | None:
+    for fmt in ("%d %B %Y", "%d %b %Y"):
+        try:
+            return datetime.strptime(f"{day_month} {year}", fmt).date()
+        except ValueError:
+            continue
+    return None
+
+
+def _extract_date(body: str, subject: str = "", date_received: datetime | None = None) -> date:
     """
-    Extract date from email body.
+    Extract date from email body, with subject-line fallback for race emails.
     Pattern: "Date: 18 May 2026"
     """
-    match = re.search(r"Date:\s*(\d{1,2}\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{4})", body, re.IGNORECASE)
+    match = re.search(
+        rf"Date:\s*(\d{{1,2}}\s+{_MONTH_PATTERN}\s+\d{{4}})",
+        body,
+        re.IGNORECASE,
+    )
     if match:
-        try:
-            return datetime.strptime(match.group(1), "%d %B %Y").date()
-        except ValueError:
-            pass
-        try:
-            return datetime.strptime(match.group(1), "%d %b %Y").date()
-        except ValueError:
-            pass
+        date_str = match.group(1)
+        for fmt in ("%d %B %Y", "%d %b %Y"):
+            try:
+                return datetime.strptime(date_str, fmt).date()
+            except ValueError:
+                continue
 
     # Try ISO format fallback
     match = re.search(r"Date:\s*(\d{4}-\d{2}-\d{2})", body)
@@ -124,6 +167,19 @@ def _extract_date(body: str) -> date:
             return datetime.strptime(match.group(1), "%Y-%m-%d").date()
         except ValueError:
             pass
+
+    # Race emails often omit body Date: — use "14 Mar" from subject
+    if subject:
+        match = re.search(
+            rf"-\s*(\d{{1,2}}\s+{_MONTH_PATTERN})\s*-",
+            subject,
+            re.IGNORECASE,
+        )
+        if match:
+            year = date_received.year if date_received else date.today().year
+            parsed = _parse_day_month_year(match.group(1), year)
+            if parsed:
+                return parsed
 
     logger.warning("Could not parse date from email body, using today")
     return date.today()
@@ -140,38 +196,65 @@ def _extract_title(body: str) -> str:
     return "Video Update"
 
 
+_WRAPPER_HOSTS = (
+    "urldefense.proofpoint.com",
+    "urldefense.com",
+    "mimecastprotect.com",
+    "protect-us.mimecast.com",
+    "safelinks.protection.outlook.com",
+)
+
+
+def _is_skippable_video_url(lower_url: str) -> bool:
+    image_and_doc_extensions = (
+        ".jpg", ".jpeg", ".png", ".gif", ".webp", ".svg",
+        ".pdf", ".docx", ".csv", ".xlsx", ".css", ".js",
+    )
+    if any(lower_url.endswith(ext) for ext in image_and_doc_extensions):
+        return True
+
+    skip_keywords = [
+        "/unsubscribe", "unsubscribe",
+        "/portal",
+        "pstmrk.it", "postmark",
+        "w3.org",
+        "/assets/", "/images/",
+    ]
+    if any(keyword in lower_url for keyword in skip_keywords):
+        return True
+
+    if lower_url.endswith("/media/video") or lower_url.endswith("/media/video/"):
+        return True
+
+    return any(host in lower_url for host in _WRAPPER_HOSTS)
+
+
+def _video_url_score(url: str) -> int:
+    lower_url = url.lower()
+    score = 0
+    if "cdn2.prism.horse/media/" in lower_url or "prism.horse/media/" in lower_url:
+        score += 100
+    if lower_url.endswith((".mp4", ".mp3", ".m4a", ".mov")):
+        score += 20
+    if "cdn" in lower_url or "prism.horse" in lower_url:
+        score += 10
+    return score
+
+
 def _extract_video_url(body: str) -> str | None:
-    """Extract the first video URL from the email body."""
+    """Extract the best video URL from the email body (prefer Prism CDN)."""
+    candidates: list[str] = []
     for pattern in VIDEO_URL_PATTERNS:
         matches = re.findall(pattern, body, re.IGNORECASE)
         for match in matches:
             url = match.strip().rstrip(".,;:!?")
-            if url and len(url) > 10:
-                lower_url = url.lower()
-                
-                # Skip image assets, documents, and other static formats
-                image_and_doc_extensions = (
-                    '.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg', '.pdf', '.docx', '.csv', '.xlsx', '.css', '.js'
-                )
-                if any(lower_url.endswith(ext) for ext in image_and_doc_extensions):
-                    continue
-                
-                # Skip unsubscribe links, tracking, assets, and portal web page views
-                skip_keywords = [
-                    "/unsubscribe", "unsubscribe",
-                    "/portal",
-                    "pstmrk.it", "postmark",
-                    "w3.org",
-                    "/assets/", "/images/"
-                ]
-                if any(keyword in lower_url for keyword in skip_keywords):
-                    continue
-                
-                # Skip portal links that just end with /video or /video/
-                if lower_url.endswith('/media/video') or lower_url.endswith('/media/video/'):
-                    continue
-                return url
-    return None
+            if url and len(url) > 10 and not _is_skippable_video_url(url.lower()):
+                candidates.append(url)
+
+    if not candidates:
+        return None
+
+    return max(candidates, key=_video_url_score)
 
 
 def _detect_speaker_count(body: str) -> int:

@@ -42,10 +42,11 @@ test-kyc:
 create-firestore:
     gcloud firestore databases create --region=australia-southeast1
 
-# Create Cloud Storage buckets (run once)
+# Create Cloud Storage buckets (run once in US for free tier)
 create-buckets:
-    gsutil mb gs://evolution-horse-images
-    gsutil mb gs://evolution-horse-docs
+    gcloud storage buckets create gs://evolution-horse-images --location=us-central1 || true
+    gcloud storage buckets create gs://evolution-horse-docs --location=us-central1 || true
+    gcloud storage buckets create gs://evolution-engine-speech-temp --location=us-central1 || true
 
 # Deploy SSOT function
 deploy-ssot:
@@ -94,6 +95,10 @@ deploy-racing-data:
         --region australia-southeast1 \
         --memory 512MB \
         --entry-point racing_data
+
+# Run Email Ingest pipeline locally via Gmail API
+run-email-ingest:
+    python3 api/email-ingest/trigger_gmail.py
 
 # Deploy Email Ingest function
 deploy-email-ingest:
@@ -172,3 +177,47 @@ sprint-start name *tasks:
 # Launch the interactive Dev Portal and Control Tower
 task-web:
     @python3 ../_taskmaster/server.py
+
+# ═══════════════════════════════════════════════════════════
+# Storage Hygiene & Prevention Tooling
+# ═══════════════════════════════════════════════════════════
+
+# Validate storage contract (slug sync, microchip consistency, folder structure)
+check-repo:
+    @python3 tools/check_storage_sync.py --verbose
+
+# Scaffold a new horse across both surfaces + HORSES.csv
+new-horse slug microchip="":
+    @echo "Scaffolding horse: {{slug}} (microchip: {{microchip}})"
+    @mkdir -p ../_assets/horses/{{slug}}/images ../_assets/horses/{{slug}}/videos ../_assets/horses/{{slug}}/transcripts ../_assets/horses/{{slug}}/documents ../_assets/horses/{{slug}}/investor-updates
+    @mkdir -p horses/{{slug}}
+    @test -f horses/{{slug}}/profile.md || echo "---\nslug: {{slug}}\ntype: horse\nname: \nmicrochip: \"{{microchip}}\"\nstatus: active\nupdated_at: $(date +%Y-%m-%d)\n---\n\n# {{slug}}\n\n## At a Glance\n\n| Field | Value |\n|-------|-------|\n| Microchip | {{microchip}} |\n\n---\n\nProfile text here." > horses/{{slug}}/profile.md
+    @test -f horses/{{slug}}/pedigree.json || echo '{\n  "microchip": "{{microchip}}",\n  "horse_slug": "{{slug}}",\n  "sire": "",\n  "dam": "",\n  "breeder": ""\n}' > horses/{{slug}}/pedigree.json
+    @test -f horses/{{slug}}/race-record.json || echo '{\n  "microchip": "{{microchip}}",\n  "horse_slug": "{{slug}}",\n  "starts": []\n}' > horses/{{slug}}/race-record.json
+    @echo "✅ Created both surfaces for {{slug}}"
+    @echo "⚠️  Add entry to _assets/horses/HORSES.csv manually (or run: just sync-horses)"
+    @echo "⚠️  Edit horses/{{slug}}/profile.md with horse details from loveracing.nz"
+
+# Generate HORSES.csv from all profile.md frontmatter
+sync-horses:
+    @python3 tools/sync_horses.py
+
+# Show asset coverage per horse (images, videos, transcripts, documents, updates)
+coverage:
+    @python3 tools/coverage_report.py
+
+# Show a single-horse dashboard (profile, pedigree, assets, transcripts)
+horse slug:
+    @python3 tools/horse_dashboard.py {{slug}}
+
+# Auto-generate transcript/update index markdown for a horse
+index-horse slug:
+    @python3 tools/index_horse.py {{slug}}
+
+# Migrate updates from old platform folder (repeatable, safe to re-run)
+migrate-updates:
+    @python3 tools/migrate_updates.py --dry-run
+
+# Migrate updates for real (copies files)
+migrate-updates-run:
+    @python3 tools/migrate_updates.py

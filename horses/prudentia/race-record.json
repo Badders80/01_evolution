@@ -1,0 +1,57 @@
+{
+  "horse_slug": "prudentia",
+  "horse_name": "Prudentia (NZ)",
+  "microchip": "985125000126462",
+  "total_starts": 9,
+  "total_wins": 2,
+  "total_seconds": 0,
+  "total_thirds": 1,
+  "total_prizemoney_nzd": 36060,
+  "flat_rating": 67,
+  "starts": [
+    {
+      "date": "2025-05-28",
+      "venue": "Tauranga",
+      "race_name": "TAURANGA RACECOURSE EVENT CENTRE MAIDEN",
+      "race_class": "Maiden 2YO&UP",
+      "distance_m": 1400,
+      "track_condition": "Heavy10",
+      "jockey": "Warren Kennedy",
+      "result": "1st",
+      "margin": "2 1/4 LEN",
+      "prizemoney_nzd": 9520,
+      "starting_price": "$9.40"
+    },
+    {
+      "date": "2026-04-17",
+      "venue": "Te Rapa (Waikato)",
+      "race_name": "SAL'S PIZZA HAMILTON 1300",
+      "race_class": "Rating 65 Benchmark",
+      "distance_m": 1300,
+      "track_condition": "Heavy9",
+      "jockey": "Masa Hashizume",
+      "result": "1st",
+      "margin": "NECK",
+      "prizemoney_nzd": 20125,
+      "starting_price": "$10.60"
+    },
+    {
+      "date": "2026-05-30",
+      "venue": "Te Rapa (Waikato)",
+      "race_name": "ROY AND PAM BROWNE SPRINT",
+      "race_class": "Rating 75 Benchmark",
+      "distance_m": 1200,
+      "track_condition": "Soft5",
+      "jockey": "Masa Hashizume",
+      "result": "5th",
+      "margin": "SHORT HEAD",
+      "prizemoney_nzd": 875,
+      "starting_price": "$8.20"
+    }
+  ],
+  "source": "loveracing_nz",
+  "source_url": "https://loveracing.nz/Breeding/427416/Prudentia-NZ-2021.aspx",
+  "verified": true,
+  "verified_at": "2026-06-24",
+  "notes": "Verified from loveracing.nz. 9 starts: 2 wins, 0 seconds, 1 third, 2 fifths, 4 unplaced. $36,060 career prizemoney. Maiden win at Tauranga 28 May 2025 on Heavy10. Second win at Te Rapa 17 Apr 2026 on Heavy9 (BM65). Next nominated: Tauranga 27 Jun 2026."
+}

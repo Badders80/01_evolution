@@ -68,3 +68,18 @@ def require_auth(f):
             return jsonify({"error": f"Authentication failed: {str(e)}"}), 401
 
     return decorated_function
+
+
+def set_user_claims(user_id: str, kyc_status: str):
+    """Set Firebase custom claims for the user."""
+    try:
+        current = auth.get_user(user_id)
+        existing_claims = current.custom_claims or {}
+        new_claims = {
+            **existing_claims,
+            "kyc_status": kyc_status,
+            "role": "investor" if kyc_status == "verified" else existing_claims.get("role", "viewer"),
+        }
+        auth.set_custom_user_claims(user_id, new_claims)
+    except Exception as e:
+        print(f"Failed to set claims for {user_id}: {e}")

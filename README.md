@@ -12,7 +12,31 @@ evolution/
 │   ├── assets/   Image upload, retrieve, delete
 │   └── kyc/      Stripe Identity verification
 ├── dna/          Shared design system + schemas
-└── docs/         Migration + strategy documents
+├── docs/         Migration + strategy documents
+├── horses/       Knowledge repo — per-horse content (profiles, listings, pedigree, race records)
+├── people/       Knowledge repo — trainers, owners, breeders (tagged by role)
+├── stables/      Knowledge repo — stable entities (Wexford, SGR, Logan Racing)
+├── pedigrees/    Knowledge repo — sire/dam knowledge (verified from loveracing.nz + breednet)
+├── press/        Knowledge repo — archived articles, race reports
+├── governing-bodies/  Knowledge repo — NZTR, Dubai Racing Club
+├── leases/       Knowledge repo — commercial lease terms (JSON)
+├── hlts/         Knowledge repo — HLT campaign records
+├── kb-index.py   Query script for the knowledge repo
+└── README-knowledge-repo.md  Documentation for the knowledge repo
+```
+
+## Knowledge Repository
+
+The knowledge repository is a local, no-auth knowledge base that mirrors the backend's entity model.
+Author content here at founder speed. Push to Firestore via the API when ready for production.
+
+See [`README-knowledge-repo.md`](README-knowledge-repo.md) for full documentation.
+
+```bash
+# Query the knowledge repo
+python kb-index.py --horse prudentia
+python kb-index.py --role owner
+python kb-index.py --stats
 ```
 
 ## Quick Start

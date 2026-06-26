@@ -4,8 +4,8 @@
 > For what the project is and what exists, see [BUILD_SUMMARY.md](BUILD_SUMMARY.md).
 
 **Current Phase:** 🟢 Phase 1 — MVP Build  
-**Last Updated:** 2026-06-11  
-**Next Session:** Sprint One — Horse Media Console + Data Sync
+**Last Updated:** 2026-06-24  
+**Next Session:** Gmail API credentials, Google STT re-auth, race acceptance parser, Firestore sync
 
 ---
 
@@ -61,18 +61,25 @@ See: [`docs/sprints/S01_horse_media_console.md`](sprints/S01_horse_media_console
 | 2026-06-11 | Repo hygiene audit — tests, secrets, CORS, docs | ✅ Complete |
 | 2026-06-11 | SPA routing fixes — horse navigation, HLT close button | ✅ Complete |
 | 2026-06-11 | GCP Auth Blocker — WIF infra, Firebase Auth middleware, Cloud Run proxy | 🟡 In Progress |
+| 2026-06-24 | Knowledge Repository Build — 80 files, 10 entity types, verified pedigrees | ✅ Complete |
+| 2026-06-24 | Email Ingest Pipeline — model migration, parser fixes, auto-sync | ✅ Complete |
 
 ---
 
 ## What's Next
 
-1. 🔴 **Enable Vercel OIDC** in Vercel dashboard (manual step — single blocker)
-2. Redeploy Vercel, test full auth chain Vercel → Cloud Run → Cloud Function
-3. **Sprint One** — Horse Media Console + Data Sync (see sprint doc)
-4. **KYC tests** — Replace placeholder `assert True` tests with real integration tests
-5. **Payments tests** — Add test coverage (currently zero)
-6. **CI/CD** — Add `.github/workflows/test.yml` (pytest + lint)
-7. **Linting** — Add `pyproject.toml` with ruff config
+1. **Gmail API credentials** — try service account with domain-wide delegation (bypass org policy)
+2. **Google STT re-auth** — run `gcloud auth application-default login` in fresh browser
+3. **Race acceptance parser** — extract venue + race date from subject line
+4. **Investigate transcript #4** — "rib cracker" content mismatch (wrong horse?)
+5. 🔴 **Enable Vercel OIDC** in Vercel dashboard (manual step — still blocking production auth chain)
+6. Redeploy Vercel, test full auth chain Vercel → Cloud Run → Cloud Function
+7. **Push Prudentia transcripts to Firestore** via SSOT API
+8. **Build horse detail media console** in Mission Control UI
+9. **KYC tests** — Replace placeholder `assert True` tests with real integration tests
+10. **CI/CD** — Add `.github/workflows/test.yml` (pytest + lint)
+
+> **Note:** Almanzor x Night Danza is a pending case — held until the horse is named + microchip assigned on loveracing.nz. No action needed until then.
 
 ---
 

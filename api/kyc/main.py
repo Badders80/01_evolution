@@ -55,23 +55,23 @@ def kyc(request: Request):
         response = jsonify({})
         return add_cors_headers(response, origin), 200
 
-    # Verify Firebase ID token (all routes require auth)
-    # Check x-firebase-token first (from proxy), then Authorization header
-    id_token = request.headers.get("X-Firebase-Token", "")
-    if not id_token:
-        auth_header = request.headers.get("Authorization", "")
-        if auth_header.startswith("Bearer "):
-            id_token = auth_header.split("Bearer ")[1]
-    
-    if not id_token:
-        return add_cors_headers(jsonify({"error": "Missing Firebase token. Expected: X-Firebase-Token or Authorization: Bearer <token>"}), origin), 401
+    # Verify Firebase ID token (all routes require auth except webhook)
+    if not (segments and segments[0] == "webhook"):
+        id_token = request.headers.get("X-Firebase-Token", "")
+        if not id_token:
+            auth_header = request.headers.get("Authorization", "")
+            if auth_header.startswith("Bearer "):
+                id_token = auth_header.split("Bearer ")[1]
+        
+        if not id_token:
+            return add_cors_headers(jsonify({"error": "Missing Firebase token. Expected: X-Firebase-Token or Authorization: Bearer <token>"}), origin), 401
 
-    try:
-        from firebase_admin import auth as firebase_auth
-        decoded_token = firebase_auth.verify_id_token(id_token)
-        request.user = decoded_token
-    except Exception as e:
-        return add_cors_headers(jsonify({"error": f"Authentication failed: {str(e)}"}), origin), 401
+        try:
+            from firebase_admin import auth as firebase_auth
+            decoded_token = firebase_auth.verify_id_token(id_token)
+            request.user = decoded_token
+        except Exception as e:
+            return add_cors_headers(jsonify({"error": f"Authentication failed: {str(e)}"}), origin), 401
 
     if segments and segments[0] == "create-session":
         res = create_session.handle(request)

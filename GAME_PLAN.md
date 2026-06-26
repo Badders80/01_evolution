@@ -1,15 +1,15 @@
 # Evolution — Game Plan
 
-**Status:** ✅ Sprint Zero: Complete | 🟡 Sprint One: Horse Media Console + Data Sync | 🟢 Phase 1 — Building MVP | 🟡 Phase 2 — Scoping locked
+**Status:** ✅ Sprint Zero: Complete | 🔴 Sprint One: PARKED (GCP retired) | 🟡 Post-GCP Reframe: ACTIVE
 **Created:** 2026-05-19
-**Last Updated:** 2026-06-10
+**Last Updated:** 2026-06-24
 
 ---
 
 ## ✅ Sprint Zero: Foundation & Security — COMPLETE
 
-**Date:** 2026-06-10  
-**Status:** ✅ DONE  
+**Date:** 2026-06-10
+**Status:** ✅ DONE (historical — before GCP retirement)
 
 **Deliverables:**
 - ✅ Unified models (`api/core/models.py`) — single source of truth
@@ -20,19 +20,16 @@
 - ✅ Debt sweep — zero backups, zero duplicates, clean pycache
 - ✅ Stripe rules documented — `dna/conventions/STRIPE.md`
 
-**See:** [`docs/sprints/S00_foundation_security.md`](docs/sprints/S00_foundation_security.md) | [`docs/sprints/SPRINT_ZERO_COMPLETE.md`](docs/sprints/SPRINT_ZERO_COMPLETE.md)
+**Note:** Sprint Zero was completed while GCP was live. The auth, CORS, and admin work is now dormant (GCP retired). If GCP returns, this work is the foundation.
 
 ---
 
-## 🚨 Current Sprint: Sprint One — Horse Media Console + Data Sync
+## 🔴 Sprint One: Horse Media Console + Data Sync — PARKED
 
-**Priority:** 🔴 ACTIVE  
-**Date:** 2026-06-10  
-**Status:** 🟡 IN PROGRESS  
+**Date parked:** 2026-06-23
+**Reason:** GCP billing delinquent. Firestore, GCS, and Cloud Functions are inaccessible. Sprint One depended on all three.
 
-**Goal:** Add 4 Wexford horses to Mission Control, build horse detail media console, sync transcripts to Firestore.
-
-**Key Deliverables:**
+**Parked deliverables (not cancelled — may resume if GCP returns):**
 - [ ] Add 4 horses: Prudentia, Hottathanafantasy, I-Stole-A-Manolo, First-Gear
 - [ ] Fix SSOT API 403 (Cloud Functions auth for email ingest pipeline)
 - [ ] Fix SQLite schema mismatch (`horse_name` column)
@@ -42,163 +39,92 @@
 - [ ] Build `GET /api/horses/{microchip}/media` endpoint
 - [ ] Full test suite verification
 
-**See Full Plan:** [`docs/sprints/S01_horse_media_console.md`](docs/sprints/S01_horse_media_console.md)
+**What happened instead:** Assets were consolidated locally (427 files in `_assets/`). Horses are tracked in `_assets/horses/HORSES.csv`. The website is being reframed to operate without GCP.
+
+See: [`docs/sprints/S01_horse_media_console.md`](docs/sprints/S01_horse_media_console.md) — original sprint plan (preserved)
 
 ---
 
-## 🏗️ Workspace Boundary (Locked 2026-05-20)
+## 🟡 Post-GCP Reframe — ACTIVE
+
+**Date:** 2026-06-24
+**Status:** IN PROGRESS
+**Priority:** Replace GCP dependencies with local-first alternatives
+
+### Goal
+Reframe the website to operate as a static-first marketing site with Firebase Auth, Stripe direct, and spreadsheet-driven inventory. No GCP backend.
+
+### Deliverables
+
+#### Phase 1: Doc Alignment
+- [x] Rewrite `02_website/AGENTS.md` — post-GCP architecture
+- [x] Rewrite `02_website/HANDSHAKE.md` — local JSON data, Stripe direct
+- [x] Update `01_evolution/BLOCKERS.md` — GCP retired
+- [ ] Update `01_evolution/GAME_PLAN.md` — this file
+- [ ] Update `02_website/BLOCKERS.md` — new post-GCP blockers
+
+#### Phase 2: Spreadsheet Inventory + Sync
+- [ ] Design Google Sheets structure (horses, HLTs, trainers, owners, holdings)
+- [ ] Create sheets
+- [ ] Write `scripts/sync_inventory.py` — reads sheets, writes `src/data/*.json`
+- [ ] Test replay workflow: edit sheet → run script → rebuild site
+
+#### Phase 3: Code Reframe
+- [ ] Rewire `marketplace/page.tsx` — read from `src/data/hlts.json`
+- [ ] Rewire `mystable/page.tsx` — read from `src/data/holdings.json`
+- [x] Rewrite `api/kyc/create-session/route.ts` — direct Stripe + token verify (in 02_website)
+- [x] Rewrite `api/checkout/create-session/route.ts` — direct Stripe + token verify (in 02_website)
+- [x] Webhooks direct + claims/holdings write (kyc sets claims; checkout appends via sheets webapp or log)
+- [ ] Dormant-ify `src/app/admin/` — keep code, remove from production nav
+- [ ] Dormant-ify `src/lib/api.ts` and `src/lib/gcp-auth.ts` — keep, no active imports (some still referenced)
+
+#### Phase 4: Deploy + Verify
+- [ ] `just check` GREEN
+- [ ] Vercel env vars set (`STRIPE_SECRET_KEY`, Firebase config, Stripe publishable)
+- [ ] Deploy to Vercel
+- [ ] Test: Firebase auth works, Stripe KYC redirects, marketplace shows listings from JSON, MyStable shows holdings from JSON
+
+---
+
+## 🏗️ Workspace Boundary (Updated 2026-06-24)
 
 | Workspace | Purpose | What Lives Here |
 |-----------|---------|-----------------|
-| `01_evolution/` | **Backend only** | Cloud Functions (`api/`), Pydantic models, schemas, docs |
-| `02_website/` | **Frontend only** | Next.js app — public pages + admin portal + auth |
+| `01_evolution/` | **Backend (DORMANT)** | Cloud Functions (`api/`), Pydantic models, schemas, docs. Preserved for reference. Not deployed. |
+| `02_website/` | **Frontend (ACTIVE)** | Next.js app — marketing pages, Firebase Auth, Stripe direct, local JSON data |
+| `_assets/` | **Assets (ACTIVE)** | 427 consolidated files, symlinks, HORSES.csv. See `WHATS_LEFT.md` |
 
-**Rule:** `01_evolution` never contains frontend code. `02_website` never writes to Firestore directly. All data flows: `02_website` → `POST /api/...` → `01_evolution` → Firestore/GCS.
-
----
-
-## 🎯 Project Overview
-
-**Goal:** Build the minimum viable business surface for Evolution Stables — a clean public website, Stripe KYC, horse/owner intake, and an image asset centre.
-
-**Scope:**
-- Horse, owner, trainer intake with microchip-anchored identity
-- HLT assembly and legal document generation (Term Sheet, PDS, SA)
-- Image upload and retrieval organized by horse microchip
-- Stripe Identity KYC verification for investors
-- Clean public marketing pages
-
-**Non-Goals (current phase):**
-- Marketplace listings (Step 2)
-- Stripe payments (Step 2)
-- Content scraping pipeline (Step 3)
-- Agent orchestration (Step 3)
-- GST/ops processing (Step 4)
-- CRM (Step 4)
+**Rule (updated):** `02_website` reads from local JSON (`src/data/`), not from `01_evolution/` APIs. The old data flow (`02_website → POST /api/... → 01_evolution → Firestore/GCS`) is retired. New flow: `Google Sheets → replay script → src/data/*.json → 02_website`.
 
 ---
 
-## 🏗️ Architecture Decisions (Locked)
+## 🏗️ Architecture Decisions (Updated)
 
 | Decision | Choice | Rationale | Date |
 |----------|--------|-----------|------|
-| Database | Firestore | Real-time, cloud-accessible, agent-friendly | 2026-05-19 |
-| API layer | Cloud Functions (Python) | Pydantic validation, GCP-native | 2026-05-19 |
-| Frontend | Next.js 16 + App Router + shadcn/ui | Team familiarity, SEO-first | 2026-05-19 |
-| Auth | Firebase Auth + custom claims | Simple, supports admin/investor roles | 2026-05-19 |
-| KYC | Stripe Identity | Already in ecosystem, NZD-compatible | 2026-05-19 |
-| Image storage | Cloud Storage + Firestore metadata | CDN-ready, searchable by microchip | 2026-05-19 |
-| Horse primary key | Microchip (15 digits) | Durable, never changes, NZTR-verified | 2026-05-19 |
-| HLT status lifecycle | draft → reviewed → publish_ready → published | Extensible for marketplace | 2026-05-19 |
-| Data flow | Unidirectional (api/ is the only writer) | Prevents bi-directional sync forever | 2026-05-19 |
+| ~~Database~~ | ~~Firestore~~ | ~~Real-time, cloud-accessible~~ | 2026-05-19 → **RETIRED 2026-06-23** |
+| ~~API layer~~ | ~~Cloud Functions (Python)~~ | ~~Pydantic validation, GCP-native~~ | 2026-05-19 → **RETIRED 2026-06-23** |
+| **Inventory data** | **Google Sheets → local JSON** | Solo-founder manageable, no infra cost, replay-on-demand | 2026-06-24 |
+| **Frontend** | Next.js 16 + App Router | Team familiarity, SEO-first | 2026-05-19 |
+| **Auth** | Firebase Auth (client-only) | Works without GCP backend | 2026-05-19 |
+| **KYC** | Stripe Identity (direct from Next.js) | No GCP proxy needed | 2026-06-24 |
+| **Payments** | Stripe Checkout (direct from Next.js) | No GCP proxy needed | 2026-06-24 |
+| **Image storage** | Local `_assets/` + symlinks | 427 files consolidated, no GCS | 2026-06-22 |
+| **Horse primary key** | Microchip (15 digits) | Durable, never changes, NZTR-verified | 2026-05-19 |
+| **Data flow** | Sheets → script → JSON → site | Unidirectional, replay-on-demand | 2026-06-24 |
 
 ---
 
-## ✅ Phase 1 Checklist
+## Phase 2: NZ Racing Data Corpus — PARKED (GCP-dependent)
 
-### Checkpoint 1: Firestore + Storage
-- [x] `gcloud firestore databases create` — ✅ Running
-- [x] `gsutil mb gs://evolution-horse-images` — ✅ Created
-- [x] `gsutil mb gs://evolution-horse-docs` — ✅ Created
+**Status:** Parked — requires Firestore for storage. The scraper code in `05_industry-data/` is preserved and can resume if GCP returns.
 
-### Checkpoint 2: Pydantic Models
-- [x] `api/models/__init__.py` — Horse, Owner, Trainer, HLT, Asset, LoveracingRef
-- [x] pytest passes for all models
+See original plan below (preserved for reference).
 
-### Checkpoint 3: SSOT API (Horses)
-- [x] `api/ssot/routes/horses.py` — CRUD
-- [x] `curl POST /horses` creates a horse in Firestore
+<details>
+<summary>Phase 2 original plan (collapsed — GCP-dependent)</summary>
 
-### Checkpoint 4: SSOT API (Owners, Trainers, HLTs, Docs)
-- [x] `api/ssot/routes/owners.py` — CRUD
-- [x] `api/ssot/routes/trainers.py` — CRUD
-- [x] `api/ssot/routes/hlts.py` — CRUD + status transitions
-- [x] `api/ssot/routes/docs.py` — Generate Term Sheet, PDS, SA
-- [x] All endpoints return correct responses
-
-### Checkpoint 5: Assets API
-- [x] `api/assets/routes/upload.py` — Upload to GCS + Firestore metadata
-- [x] `api/assets/routes/retrieve.py` — Get by entity (microchip for horses)
-- [x] `api/assets/routes/delete.py` — Remove from GCS + Firestore
-- [x] Upload and retrieve cycle works
-
-### Checkpoint 6: KYC API
-- [x] `api/kyc/routes/create_session.py` — Stripe Identity session
-- [x] `api/kyc/routes/webhook.py` — Stripe webhook handler
-- [x] Stripe session creation works
-
-### Checkpoint 7: Next.js App (Public Pages)
-- [x] Home, About, Press pages render
-- [x] DNA brand system applied
-
-### Checkpoint 8: Next.js App (Admin + Auth) — `02_website/`
-- [x] Admin pages rebuilt in `02_website/src/app/admin/` (moved from `01_evolution/app/`)
-- [x] Horse intake form works
-- [x] Horse list page works
-- [x] Owner list + create form works
-- [x] Trainer list + create form works
-- [x] HLT list + create + status workflow works
-- [x] Asset upload + browse works
-- [x] Bulk upload with smart naming + auto-tagging works
-- [x] Auth bypass for dev mode (re-enable before production)
-- [ ] Firebase Auth login works with real credentials
-- [ ] Google OAuth sign-in works
-- [ ] Stripe KYC flow works end-to-end
-- [ ] Auth guard re-enabled on `/admin/*` routes
-
-### Checkpoint 9: Integration Test
-- [ ] Create horse → create owner → create HLT → generate docs → upload image
-- [ ] All tests pass
-
----
-
-## 🎯 Today's Sprint (2026-05-20)
-
-**Goal:** Make auth real. The admin portal is built and functional (auth bypassed for dev). Today we wire Firebase Auth + Stripe KYC so the login page actually works, then re-enable the auth guard.
-
-### Morning (Done)
-- [x] Fix architectural drift — delete `01_evolution/app/`, rebuild admin in `02_website/`
-- [x] Auth bypass for dev mode (commented guard in `admin/layout.tsx`)
-- [x] Verify all 12 admin pages render and build passes (20 pages, 0 errors)
-- [x] Update docs: `PROGRESS.md`, `BUILD_SUMMARY.md`, `logs/2026-05-20.md`
-
-### Afternoon (In Progress)
-- [ ] **Firebase Auth** — Create `.env.local` with real `NEXT_PUBLIC_FIREBASE_CONFIG`
-- [ ] **Email login** — Test sign-up + sign-in flow, verify token claims
-- [ ] **Google OAuth** — Enable provider in Firebase Console, test one-click login
-- [ ] **Stripe KYC** — Wire `STRIPE_PUBLISHABLE_KEY`, test `/auth/verify` → Stripe redirect
-- [ ] **Webhook** — Verify KYC completion updates Firebase custom claims
-- [ ] **Re-enable auth guard** — Uncomment the 6 lines in `admin/layout.tsx`
-- [ ] **Integration test** — Full flow: register → login → KYC → access admin
-
-### Definition of Done for Today
-1. A real user can sign up with email, log in, and see the admin dashboard
-2. Google OAuth button works (one-click login)
-3. KYC verification redirects to Stripe and returns with verified status
-4. Unauthenticated users are blocked from `/admin/*` (guard re-enabled)
-5. Build passes with 0 errors
-
----
-
-## 🎯 Phase 1 Definition of Done
-
-**Phase 1 is complete when:**
-
-1. ✅ All 9 checkpoints above are green
-2. ✅ One complete E2E flow works: Create horse → create owner → create HLT → upload image
-3. ✅ No TypeScript errors in production build (`npm run build` passes)
-4. ✅ Cloud Functions deployed and responding (`ssot`, `assets`, `kyc`)
-5. ✅ Next.js deployed (Vercel or Firebase Hosting)
-
-**Current Status:** 8/9 checkpoints complete (~95% done)
-
-**Remaining:** Integration test + deployment
-
----
-
-## 🎯 Phase 2: NZ Racing Data Corpus (New — Locked 2026-06-06)
-
-**Goal:** Build a canonical, queryable dataset of NZ thoroughbred race histories and prize-money earnings. This is the financial foundation for all syndication pricing, modelling, and investor returns analysis.
+**Goal:** Build a canonical, queryable dataset of NZ thoroughbred race histories and prize-money earnings.
 
 **Scope:**
 - Scrape full race histories from `loveracing.nz` for all horses active in the last 10 years
@@ -207,63 +133,25 @@
 - Two-horse pilot: **Prudentia (427416)** + **First Gear (428364)**
 - Year-by-year iteration backward from 2024/25
 
-**Non-Goals:**
-- Full pedigree trees (sire + dam only)
-- Trial/workout data (Tier 2 — documented but not scraped yet)
-- Sectional times / performance analytics (Tier 2)
-- Real-time / live race streaming
+**Architecture (was):**
+| Decision | Choice | Rationale |
+|----------|--------|-----------|
+| Dataset anchor | `loveracing_id` (integer) | Universal across loveracing.nz URLs |
+| Storage | Firestore subcollection `horses/{microchip}/races` | **PARKED — GCP retired** |
+| Schema | JSON Schema `race.json` + Pydantic `RaceResult` | Same dual-validation pattern |
+| Scraping stack | Webclaw Cloud + Scrapling StealthyFetcher | Already proven in Evolution_Content pipeline |
 
-### Architecture Decisions (Locked)
-
-| Decision | Choice | Rationale | Date |
-|----------|--------|-----------|------|
-| Dataset anchor | `loveracing_id` (integer) | Universal across loveracing.nz URLs; already in horse schema | 2026-06-06 |
-| Storage | Firestore subcollection `horses/{microchip}/races` | Natural query root; no JOINs needed | 2026-06-06 |
-| Schema | JSON Schema `race.json` + Pydantic `RaceResult` | Same dual-validation as horse/owner/hlt | 2026-06-06 |
-| Scraping stack | Webclaw Cloud + Scrapling StealthyFetcher | Already proven in Evolution_Content pipeline | 2026-06-06 |
-| Pilot scope | 2 horses, full careers | Validate scraper repeatability before batching | 2026-06-06 |
-| Batch scope | Year-by-year backward from 2024/25 | Validate data quality per season before proceeding | 2026-06-06 |
-
-### Phase 2 Checklist
-
-#### Pilot (2 horses)
-- [ ] **2.1** Scrape Prudentia breeding page → validate `loveracing_id` mapping
-- [ ] **2.2** Scrape Prudentia full race history → raw HTML/JSON
-- [ ] **2.3** Parse into `RaceResult` schema → structured dataset
-- [ ] **2.4** Scrape First Gear breeding page + full race history
-- [ ] **2.5** Parse First Gear into `RaceResult` schema
-- [ ] **2.6** Validate: career totals match published stakes data (if available)
-- [ ] **2.7** Write `RaceResult` Pydantic model + `race.json` JSON Schema
-- [ ] **2.8** Design `horses/{microchip}/races` Firestore subcollection layout
-- [ ] **2.9** API route: `GET /racing-data/horses/{loveracing_id}` → race history
-- [ ] **2.10** API route: `GET /racing-data/horses/{loveracing_id}/summary` → aggregates
-
-#### Year 1 (2024/25 season)
-- [ ] **2.11** Enumerate all horse IDs with ≥1 start in 2024/25
-- [ ] **2.12** Batch scrape all identified horses
-- [ ] **2.13** Ingest into Firestore; validate row counts
-- [ ] **2.14** Cross-check season total prize money against NZTR season summary
-
-#### Years 2–10 (2022/23 → 2015/16)
-- [ ] **2.15** Repeat 2.11–2.14 per season
-- [ ] **2.16** Monitor for schema drift across seasons
-- [ ] **2.17** Final dataset: ~4,000–6,000 horses, tens of thousands of race starts
-
-### Tiered Data Boundary
-
-**Tier 1 (Core — scrape now):**
-- Per-race: date, venue, race name, class/grade, distance, field size, barrier, jockey, trainer, finish position, prize money NZD
-- Per-horse: static profile + computed aggregates
-
-**Tier 2 (Deferred — document sources only):**
-- Trial/jumpout results, sectional times, stewards reports, nomination patterns, ownership changes
+**If resuming:** Storage would need to move from Firestore to local JSON (same pattern as inventory) or a different database.
+</details>
 
 ---
 
 ## Related Documents
 
-- **Overview:** [`docs/BUILD_SUMMARY.md`](docs/BUILD_SUMMARY.md) — High-level summary
-- **Blockers:** [`BLOCKERS.md`](BLOCKERS.md) — Resolved issues + credentials
+- **Blockers:** [`BLOCKERS.md`](BLOCKERS.md) — Post-GCP blockers + status
+- **Website:** [`../02_website/AGENTS.md`](../02_website/AGENTS.md) — Website agent rules (post-GCP)
+- **Website handshake:** [`../02_website/HANDSHAKE.md`](../02_website/HANDSHAKE.md) — Data + auth contract (post-GCP)
+- **Asset status:** [`../_assets/WHATS_LEFT.md`](../_assets/WHATS_LEFT.md) — Asset consolidation
 - **Laws:** [`AGENTS.md`](AGENTS.md) — Core architecture rules
-- **Audit:** [`docs/audit/AUDIT.md`](docs/audit/AUDIT.md) — Quality assessments
-- **Phase 2 Detail:** [`docs/RACING_DATA_PLAN.md`](docs/RACING_DATA_PLAN.md) — Full scraper architecture, module design, migration notes
+- **Sprint Zero (historical):** [`docs/sprints/S00_foundation_security.md`](docs/sprints/S00_foundation_security.md)
+- **Sprint One (parked):** [`docs/sprints/S01_horse_media_console.md`](docs/sprints/S01_horse_media_console.md)

@@ -23,36 +23,7 @@ def _get_db():
         _DB = firestore.Client()
     return _DB
 
-# Initialize Firebase Admin (lazy, once per cold start)
-_firebase_app = None
-
-def _get_firebase_app():
-    global _firebase_app
-    if _firebase_app is None:
-        try:
-            _firebase_app = firebase_admin.get_app()
-        except ValueError:
-            _firebase_app = firebase_admin.initialize_app(
-                credentials.ApplicationDefault(),
-                {"projectId": os.environ.get("GOOGLE_CLOUD_PROJECT", "evolution-engine")},
-            )
-    return _firebase_app
-
-
-def _set_claims(user_id: str, kyc_status: str):
-    """Set Firebase custom claims for the user."""
-    try:
-        app = _get_firebase_app()
-        current = auth.get_user(user_id)
-        existing_claims = current.custom_claims or {}
-        new_claims = {
-            **existing_claims,
-            "kyc_status": kyc_status,
-            "role": "investor" if kyc_status == "verified" else existing_claims.get("role", "viewer"),
-        }
-        auth.set_custom_user_claims(user_id, new_claims)
-    except Exception as e:
-        print(f"Failed to set claims for {user_id}: {e}")
+from auth import set_user_claims
 
 
 def handle(request: Request):
@@ -78,37 +49,49 @@ def handle(request: Request):
     if event_type == "identity.verification_session.verified":
         # KYC passed
         session = event["data"]["object"]
-        user_id = session.get("metadata", {}).get("user_id")
+        user_id = session.metadata.get("user_id") if getattr(session, "metadata", None) else None
 
         if user_id:
             _get_db().collection("users").document(user_id).update({
                 "kyc_status": "verified",
                 "updated_at": firestore.SERVER_TIMESTAMP,
             })
-            _set_claims(user_id, "verified")
+            set_user_claims(user_id, "verified")
+
+    elif event_type == "identity.verification_session.processing":
+        # KYC is processing/under review
+        session = event["data"]["object"]
+        user_id = session.metadata.get("user_id") if getattr(session, "metadata", None) else None
+
+        if user_id:
+            _get_db().collection("users").document(user_id).update({
+                "kyc_status": "pending",
+                "updated_at": firestore.SERVER_TIMESTAMP,
+            })
+            set_user_claims(user_id, "pending")
 
     elif event_type == "identity.verification_session.requires_input":
         # KYC needs more information
         session = event["data"]["object"]
-        user_id = session.get("metadata", {}).get("user_id")
+        user_id = session.metadata.get("user_id") if getattr(session, "metadata", None) else None
 
         if user_id:
             _get_db().collection("users").document(user_id).update({
                 "kyc_status": "requires_input",
                 "updated_at": firestore.SERVER_TIMESTAMP,
             })
-            _set_claims(user_id, "requires_input")
+            set_user_claims(user_id, "requires_input")
 
     elif event_type == "identity.verification_session.canceled":
         # KYC was canceled
         session = event["data"]["object"]
-        user_id = session.get("metadata", {}).get("user_id")
+        user_id = session.metadata.get("user_id") if getattr(session, "metadata", None) else None
 
         if user_id:
             _get_db().collection("users").document(user_id).update({
                 "kyc_status": "canceled",
                 "updated_at": firestore.SERVER_TIMESTAMP,
             })
-            _set_claims(user_id, "canceled")
+            set_user_claims(user_id, "canceled")
 
     return jsonify({"received": True}), 200

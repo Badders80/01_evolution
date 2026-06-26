@@ -44,6 +44,12 @@ ui-debug.log
 uploads/
 scratch/gdrive_imports/
 api/email-ingest/output/
+api/email-ingest/data/**
+!api/email-ingest/data/.gitkeep
+api/email-ingest/.quota_state.json
+
+# Knowledge repo references GCS/_assets for media — never commit binaries here
+**/*.{jpg,jpeg,png,gif,webp,svg,mp4,mov,webm,mkv,avi}
 
 # Task Master
 .taskmaster/

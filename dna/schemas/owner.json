@@ -12,7 +12,7 @@
     "name": {
       "type": "string",
       "description": "Full legal name of the owner or syndicate.",
-      "examples": ["Goldeye Trust", "Alex Morrison"]
+      "examples": ["B.A.X Bloodstock", "Alex Morrison"]
     },
     "email": {
       "type": "string",

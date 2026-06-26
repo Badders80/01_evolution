@@ -1,100 +1,131 @@
 # Blockers & Human Handoff Points
 
-## 1. ~~GCP Project Setup~~ ✅ RESOLVED
-- Firestore database exists in `australia-southeast1`
-- Storage buckets created: `gs://evolution-horse-images`, `gs://evolution-horse-docs`
-- ADC credentials configured at `~/.config/gcloud/application_default_credentials.json`
-- Project: `evolution-engine` (ID: 851430309148)
-
-## 2. ~~Stripe Account Setup~~ ✅ RESOLVED
-- Stripe CLI authenticated for Evolution Stables sandbox (`acct_1TLJdYJNM3QjvBY1`)
-- Publishable key set in `app/.env.local`
-- Secret key + webhook signing secret set in `api/.env.api`
-- **Note:** `whsec_` secret is from `stripe listen` — for production, create a webhook endpoint in Stripe Dashboard
-
-## 3. ~~Firebase Auth Setup~~ ✅ RESOLVED
-- Firebase project added to `evolution-engine`
-- Web app created: `1:851430309148:web:41dd7c7e2be68539beced9`
-- Config pre-filled in `app/.env.local` as `NEXT_PUBLIC_FIREBASE_CONFIG`
-- Identity Toolkit API enabled
-- **⚠️ One manual step:** Enable Email/Password sign-in at https://console.firebase.google.com/project/evolution-engine/authentication → Sign-in method → Enable Email/Password
-
-## 4. ~~Cloud Function Deployment~~ ✅ RESOLVED
-All 3 Cloud Functions deployed to `australia-southeast1` (1st gen):
-
-| Function | URL | Status |
-|----------|-----|--------|
-| **SSOT** | `https://australia-southeast1-evolution-engine.cloudfunctions.net/ssot` | ✅ ACTIVE |
-| **Assets** | `https://australia-southeast1-evolution-engine.cloudfunctions.net/assets` | ✅ ACTIVE |
-| **KYC** | `https://australia-southeast1-evolution-engine.cloudfunctions.net/kyc` | ✅ ACTIVE |
-
-**Note:** KYC is not publicly accessible (requires authentication for webhook security).
+**Last Updated:** 2026-06-24
 
 ---
 
-## 🔴 NEW: Sprint Zero Blockers (2026-06-10)
+## GCP Infrastructure — 🔴 RETIRED (Billing Delinquent)
 
-### 5. Model Fragmentation — ✅ RESOLVED
+GCP Cloud Functions, Firestore, and GCS are **retired** — billing is delinquent. Assets have been consolidated locally into `_assets/` (427 files). The website is being reframed to operate without GCP (see `02_website/AGENTS.md` and `02_website/HANDSHAKE.md`).
 
-**Issue:** 3+ conflicting model definitions causing import errors and schema drift.
+### What's retired
 
-**Resolution:**
-- ✅ Created `api/core/models.py` as single source of truth
-- ✅ Deleted `api/models/`, `api/ssot/models/`, `api/admin/models.py`
-- ✅ Updated all imports across 20+ files
-- ✅ All models import successfully
+| Component | Former Status | Current Status |
+|---|---|---|
+| **GCP Project** (`evolution-engine`, ID: 851430309148) | ✅ RESOLVED | 🔴 RETIRED — billing delinquent |
+| **Firestore** (australia-southeast1) | ✅ RESOLVED | 🔴 RETIRED — data not accessible |
+| **GCS buckets** (`evolution-horse-images`, `evolution-horse-docs`) | ✅ RESOLVED | 🔴 RETIRED — assets pulled local to `_assets/` |
+| **Cloud Functions** (SSOT, Assets, KYC) | ✅ RESOLVED, deployed | 🔴 RETIRED — endpoints dead |
+| **GCP ADC credentials** | Configured | 🔴 RETIRED — not used |
 
-**Status:** ✅ RESOLVED — See [`docs/sprints/S00_foundation_security.md`](docs/sprints/S00_foundation_security.md)
+### What still works (not GCP-dependent)
 
-### 6. Broken Test Infrastructure — ✅ RESOLVED
+| Component | Status | Notes |
+|---|---|---|
+| **Firebase Auth** | ✅ LIVE | Client-side only, works without GCP backend |
+| **Stripe** | ✅ LIVE (pending rewrite) | KYC + Checkout need rewrite to call Stripe directly, not via GCP proxy |
+| **Local assets** | ✅ LIVE | 427 files in `_assets/`, symlinks active. See [_assets/WHATS_LEFT.md](../_assets/WHATS_LEFT.md) |
 
-**Issue:** 4/7 test files fail at import time (missing Flask, requests, model imports)
+### If GCP billing is restored
 
-**Resolution:**
-- ✅ Added `Flask`, `Flask-CORS`, `requests`, `pytest`, `pytest-flask` to `api/requirements.txt`
-- ✅ Fixed all model imports in tests
-- ⏳ **Next:** Run full test suite to verify
+The backend code in `api/` is preserved. Cloud Functions can be redeployed. The dormant files in `02_website` (`src/lib/api.ts`, `src/lib/gcp-auth.ts`, `src/app/admin/`) can be reactivated. But the post-GCP reframe is the primary path forward.
 
-**Status:** 🟡 READY TO VERIFY — Pending `pytest` execution
+---
 
-### 7. Admin Authentication Bypass — 🔴 TODO
+## Stripe — 🟡 PENDING REWRITE
 
-**Issue:** Zero authentication on admin API — anyone can create/delete horses, owners, HLTs
+### Setup (still valid)
 
-**Risk:** 🔴 CRITICAL — Production security vulnerability
+- Stripe CLI authenticated for Evolution Stables sandbox (`acct_1TLJdYJNM3QjvBY1`)
+- Publishable key: `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`
+- Secret key: needs to move from GCP env to Vercel env (`STRIPE_SECRET_KEY`)
+- Webhook signing secret: needs Stripe Dashboard webhook endpoint for production
 
-**Plan:**
-- Create `api/admin/auth.py` with Firebase Auth middleware
-- Protect all `/api/*` endpoints with `@require_auth` decorator
-- Update frontend to attach auth headers
-- Add `firebase-admin` to dependencies
+### What needs rewriting
 
-**ETA:** 3-4 hours
+| Route | Current (GCP proxy) | Target (direct Stripe) |
+|---|---|---|
+| `02_website/src/app/api/kyc/create-session/route.ts` | Calls GCP KYC API | Calls `stripe.identity.VerificationSession.create()` directly |
+| `02_website/src/app/api/checkout/create-session/route.ts` | Calls GCP Payments API | Calls `stripe.checkout.Session.create()` directly |
 
-**Status:** 🔴 TODO — See [`docs/sprints/S00_foundation_security.md#phase-4`](docs/sprints/S00_foundation_security.md)
+**Handoff:** User provides `STRIPE_SECRET_KEY` for Vercel env vars.
 
-### 8. CORS Wildcard — 🔴 TODO
+---
 
-**Issue:** `Access-Control-Allow-Origin: *` allows any website to make requests
+## Firebase Auth — ✅ LIVE
 
-**Risk:** 🟡 HIGH — CSRF-style attacks possible
+- Firebase project: `evolution-engine`
+- Web app: `1:851430309148:web:41dd7c7e2be68539beced9`
+- Config: `NEXT_PUBLIC_FIREBASE_CONFIG` in Vercel env
+- Sign-in methods: Email/Password + Google OAuth
+- **⚠️ Manual step still needed:** Enable Email/Password at [Firebase Console](https://console.firebase.google.com/project/evolution-engine/authentication → Sign-in method → Enable Email/Password)
 
-**Plan:**
-- Replace `*` with allowlist from environment variable
-- Update `api/ssot/main.py`, `api/assets/main.py`, `api/kyc/main.py`
-- Configure allowed origins per environment
+---
 
-**ETA:** 1 hour
+## Asset Consolidation — ✅ COMPLETE (gaps non-critical)
 
-**Status:** 🔴 TODO — See [`docs/sprints/S00_foundation_security.md#phase-5`](docs/sprints/S00_foundation_security.md)
+427 files consolidated into `_assets/`. 2 tasks blocked by GCP billing (non-critical), 2 deferred (code changes), 6 nice-to-have improvements.
+
+See: [_assets/WHATS_LEFT.md](../_assets/WHATS_LEFT.md) for the full status.
+
+### Blocked by GCP (non-critical)
+
+1. **GCS pull** — ~10 CR2 raw files, email ingest videos, auto-generated thumbnails. Script ready (`_assets/gcs_pull.py`). Low impact — CR2 files not needed for web.
+2. **Firestore transcript export** — transcripts only accessible via API. Would give local JSON copies. Script needed once billing restored.
+
+**If billing stays blocked:** Both are non-critical. The system works without them.
+
+---
+
+## Sprint Zero Items — Historical (completed before GCP retirement)
+
+### ~~Model Fragmentation~~ ✅ RESOLVED
+- Created `api/core/models.py` as single source of truth
+- Deleted conflicting model directories
+- See: [`docs/sprints/S00_foundation_security.md`](docs/sprints/S00_foundation_security.md)
+
+### ~~Broken Test Infrastructure~~ ✅ RESOLVED
+- Added Flask, pytest, pytest-flask to requirements
+- Fixed all model imports
+
+### ~~Admin Authentication Bypass~~ 🔴 MOVED TO DORMANT
+- Was: zero auth on admin API — critical production vulnerability
+- Now: admin API is dormant (GCP retired). No live endpoints = no live vulnerability.
+- If GCP returns: this becomes a critical blocker again.
+
+### ~~CORS Wildcard~~ 🔴 MOVED TO DORMANT
+- Was: `Access-Control-Allow-Origin: *` on all Cloud Functions
+- Now: Cloud Functions are dead. No CORS to exploit.
+- If GCP returns: this needs fixing before redeployment.
+
+---
+
+## New Blockers (Post-GCP Reframe)
+
+### 1. Spreadsheet Inventory Design — 🔴 TODO
+- Define Google Sheets structure for horses, HLTs, trainers, owners, holdings
+- Create sheets (user to create, or agent to design)
+- Map SSOT schema fields to spreadsheet columns
+
+### 2. Sync Script — 🔴 TODO
+- Write `scripts/sync_inventory.py` — reads Google Sheets, writes `src/data/*.json`
+- Handles the "replay" workflow: edit sheet → run script → rebuild site
+
+### 3. Stripe Route Rewrite — 🔴 TODO
+- Rewrite `api/kyc/create-session/route.ts` — direct Stripe, no GCP
+- Rewrite `api/checkout/create-session/route.ts` — direct Stripe, no GCP
+- Needs `STRIPE_SECRET_KEY` in Vercel env
+
+### 4. Marketplace/MyStable Rewire — 🔴 TODO
+- `marketplace/page.tsx` — read from `src/data/hlts.json` instead of `getHlts()` API call
+- `mystable/page.tsx` — read from `src/data/holdings.json` instead of `getHoldings()` API call
 
 ---
 
 ## Related Documents
 
-- **Plan:** [`GAME_PLAN.md`](GAME_PLAN.md) — 9 checkpoints
-- **Current Sprint:** [`docs/sprints/S00_foundation_security.md`](docs/sprints/S00_foundation_security.md) — Sprint Zero plan
-- **Current status:** [`docs/PROGRESS.md`](docs/PROGRESS.md) — Live build tracker
-- **Overview:** [`docs/BUILD_SUMMARY.md`](docs/BUILD_SUMMARY.md) — High-level summary
+- **Plan:** [`GAME_PLAN.md`](GAME_PLAN.md) — Post-GCP reframe
+- **Website:** [`../02_website/AGENTS.md`](../02_website/AGENTS.md) — Website agent rules (post-GCP)
+- **Website handshake:** [`../02_website/HANDSHAKE.md`](../02_website/HANDSHAKE.md) — Data + auth contract (post-GCP)
+- **Asset status:** [`../_assets/WHATS_LEFT.md`](../_assets/WHATS_LEFT.md) — Asset consolidation
 - **Laws:** [`AGENTS.md`](AGENTS.md) — Core architecture rules
-- **Audit:** [`docs/audit/AUDIT.md`](docs/audit/AUDIT.md) — Quality assessments

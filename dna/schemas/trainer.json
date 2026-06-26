@@ -12,7 +12,7 @@
     "name": {
       "type": "string",
       "description": "Full name of the trainer.",
-      "examples": ["Sam Spratt"]
+      "examples": ["Lance O'Sullivan & Andrew Scott"]
     },
     "stableName": {
       "type": "string",

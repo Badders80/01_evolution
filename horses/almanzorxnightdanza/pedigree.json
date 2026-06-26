@@ -1,0 +1,25 @@
+{
+  "horse_slug": "almanzorxnightdanza",
+  "horse_name": "Almanzor x Night Danza (unnamed)",
+  "microchip": "",
+  "sex": "filly",
+  "colour": "",
+  "foaling_date": "",
+  "country_code": "NZ",
+  "sire": {
+    "name": "Almanzor (FR)",
+    "sire_id": null
+  },
+  "dam": {
+    "name": "Night Danza (by Danzero)",
+    "dam_id": null
+  },
+  "breeder": "B.A.X Bloodstock",
+  "family_number": null,
+  "left_shoulder_brand": null,
+  "right_shoulder_brand": null,
+  "source": "baxltd.com",
+  "source_url": "https://www.baxltd.com/almanzorxnightdanza",
+  "verified": false,
+  "notes": "Unnamed 2YO filly. Not yet on loveracing.nz. Update with microchip, life number, brands, breeder, family number once named and registered."
+}

@@ -1,0 +1,30 @@
+{
+  "horse_slug": "first-gear",
+  "horse_name": "First Gear",
+  "microchip": "985125000126713",
+  "life_number": "NZ00428364",
+  "loveracing_id": 428364,
+  "sex": "gelding",
+  "colour": "Bay",
+  "foaling_date": "2021-10-02",
+  "country_code": "NZ",
+  "sire": {
+    "name": "Derryn (AUS) 2013",
+    "sire_id": null
+  },
+  "dam": {
+    "name": "A'Guin Ace (NZ) 2007",
+    "dam_id": null
+  },
+  "breeder": "M & W Rose",
+  "family_number": "13",
+  "left_shoulder_brand": "SR OVER V",
+  "right_shoulder_brand": "17 OVER 1",
+  "dna_typed": true,
+  "pv": true,
+  "source": "loveracing_nz",
+  "source_url": "https://loveracing.nz/Breeding/428364/First-Gear-NZ-2021.aspx",
+  "verified": true,
+  "verified_at": "2026-06-24",
+  "notes": "Verified against loveracing.nz Stud Book. Owner on loveracing: M Daines, C & M & Est late W Rose. Breeder: M & W Rose."
+}

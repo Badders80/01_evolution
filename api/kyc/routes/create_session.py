@@ -63,6 +63,13 @@ def handle(request: Request):
             "updated_at": firestore.SERVER_TIMESTAMP,
         })
 
+        # Set custom claims to pending so frontend picks it up immediately
+        try:
+            from auth import set_user_claims
+            set_user_claims(user_id, "pending")
+        except Exception as claim_err:
+            print(f"Error setting pending claim for {user_id}: {claim_err}")
+
         return jsonify({
             "session_id": session.id,
             "url": session.url,

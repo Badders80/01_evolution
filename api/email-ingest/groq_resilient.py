@@ -208,11 +208,37 @@ def _ollama_chat_fallback(
     """
     Ultimate fallback to Ollama Cloud (flat-fee, unlimited).
     Called when Groq is completely unavailable.
+    Rotates through both Ollama Cloud subscriptions (badders80 → badders808).
     """
-    ollama_host = os.getenv("OLLAMA_HOST", "http://127.0.0.1:11434")
+    # Load all Ollama Cloud keys from ~/.hermes/.env (primary + backup)
+    import re as _re
+    ollama_keys = []
+    hermes_env = os.path.expanduser("~/.hermes/.env")
+    if os.path.exists(hermes_env):
+        for line in open(hermes_env):
+            line = line.strip()
+            # Active key (uncommented)
+            if line.startswith("OLLAMA_API_KEY=") and not line.startswith("#"):
+                val = line.split("=", 1)[1].strip()
+                if val and not val.startswith("ssh-"):
+                    ollama_keys.append(val)
+            # Backup key (commented line with "backup" label)
+            if line.startswith("#") and "backup" in line.lower():
+                m = _re.search(r'([0-9a-f]{32}\.[A-Za-z0-9_\-]+)', line)
+                if m:
+                    ollama_keys.append(m.group(1))
+    # Also check shell env
+    env_key = os.getenv("OLLAMA_API_KEY", "")
+    if env_key and not env_key.startswith("ssh-") and env_key not in ollama_keys:
+        ollama_keys.insert(0, env_key)
+
+    if ollama_keys:
+        ollama_host = os.getenv("OLLAMA_CLOUD_HOST", "https://ollama.com/v1")
+    else:
+        ollama_host = os.getenv("OLLAMA_HOST", "http://127.0.0.1:11434")
     models = [
-        os.getenv("OLLAMA_MODEL", "kimi-k2.6:cloud"),
-        os.getenv("OLLAMA_FALLBACK_MODEL", "qwen3.5:cloud"),
+        os.getenv("OLLAMA_MODEL", "glm-5.2"),
+        os.getenv("OLLAMA_FALLBACK_MODEL", "deepseek-v4-flash"),
     ]
 
     messages = []
@@ -225,29 +251,38 @@ def _ollama_chat_fallback(
             "model": model,
             "messages": messages,
             "stream": False,
-            "options": {"temperature": temperature},
+            "temperature": temperature,
         }
         if format_json:
-            payload["format"] = "json"
+            payload["response_format"] = {"type": "json_object"}
 
-        try:
-            resp = requests.post(
-                f"{ollama_host}/api/chat",
-                headers={"Content-Type": "application/json"},
-                json=payload,
-                timeout=timeout,
-            )
-            if resp.status_code == 200:
-                data = resp.json()
-                raw = data["message"]["content"]
-                if raw.startswith("```json"):
-                    raw = raw.split("```json", 1)[1]
-                if raw.endswith("```"):
-                    raw = raw.rsplit("```", 1)[0]
-                logger.info(f"Ollama fallback succeeded with {model}")
-                return raw.strip()
-        except Exception as e:
-            logger.warning(f"Ollama fallback {model} failed: {e}")
-            continue
+        # Try each API key (subscription rotation)
+        for api_key in ollama_keys:
+            headers = {"Content-Type": "application/json"}
+            if api_key:
+                headers["Authorization"] = f"Bearer {api_key}"
+
+            try:
+                resp = requests.post(
+                    f"{ollama_host}/chat/completions",
+                    headers=headers,
+                    json=payload,
+                    timeout=timeout,
+                )
+                if resp.status_code == 401:
+                    logger.warning(f"Ollama key {api_key[:8]}... unauthorized, trying next")
+                    continue
+                if resp.status_code == 200:
+                    data = resp.json()
+                    raw = data["choices"][0]["message"]["content"]
+                    if raw.startswith("```json"):
+                        raw = raw.split("```json", 1)[1]
+                    if raw.endswith("```"):
+                        raw = raw.rsplit("```", 1)[0]
+                    logger.info(f"Ollama fallback succeeded with {model} (key {api_key[:8]}...)")
+                    return raw.strip()
+            except Exception as e:
+                logger.warning(f"Ollama fallback {model} key {api_key[:8]}... failed: {e}")
+                continue
 
     raise RuntimeError("All inference backends exhausted (Groq + Ollama).")
