@@ -2,6 +2,25 @@
 
 Single workspace for the Evolution Stables platform.
 
+
+## Agent / session boot
+
+**This folder is an island.** Do not invent “what’s next” from chat.
+
+| Order | File |
+|-------|------|
+| **1** | [`continue.md`](continue.md) |
+| **2** | [`STATE.md`](STATE.md) |
+
+```text
+Read continue.md and STATE.md. What's next?
+```
+
+End session: *“update the end of session notes”* → overwrite continue + patch STATE.  
+Full protocol: [`../docs/SESSION_PROTOCOL.md`](../docs/SESSION_PROTOCOL.md)
+
+---
+
 ## Structure
 
 ```
@@ -81,12 +100,14 @@ Every NZ thoroughbred has a loveracing.nz Stud Book page:
 
 ---
 
+## Agent boot
+
+[`STATE.md`](STATE.md) → this file. Add [`../SURFACES.md`](../SURFACES.md) §3 when deploying APIs.
+
 ## Related Documents
 
 - **Frontend:** [`02_website/`](../02_website/) — Investor/user-facing website
-- **Plan:** [`GAME_PLAN.md`](GAME_PLAN.md) — Backend roadmap (Checkpoints 1-9)
-- **Current status:** [`docs/PROGRESS.md`](docs/PROGRESS.md) — Live build tracker
-- **Overview:** [`docs/BUILD_SUMMARY.md`](docs/BUILD_SUMMARY.md) — High-level summary
-- **Blockers:** [`BLOCKERS.md`](BLOCKERS.md) — Resolved issues
-- **Laws:** [`AGENTS.md`](AGENTS.md) — Core architecture rules
+- **Live state:** [`STATE.md`](STATE.md) — architecture truth, handoffs, verify
+- **Plan (sprint):** [`GAME_PLAN.md`](GAME_PLAN.md) — Backend roadmap
+- **History:** [`docs/PROGRESS.md`](docs/PROGRESS.md) — pre-GCP-retirement tracker (stale for boot)
 - **Audit:** [`docs/audit/AUDIT.md`](docs/audit/AUDIT.md) — Quality assessments
