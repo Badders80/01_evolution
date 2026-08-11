@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mission Control — Evolution Stables</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Sora:wght@500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyCjJfkdUIoZS-a3soi0MafZ8yfA4K-m8w0",
+      authDomain: "evolution-engine.firebaseapp.com",
+      projectId: "evolution-engine",
+      storageBucket: "evolution-engine.firebasestorage.app",
+      messagingSenderId: "851430309148",
+      appId: "1:851430309148:web:41dd7c7e2be68539beced9"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+
+    auth.onAuthStateChanged((user) => {
+      const signInBtn = document.querySelector('button[onclick="signInWithGoogle()"]');
+      const signOutBtn = document.getElementById('logout-btn');
+      const userInfo   = document.getElementById('user-info');
+      const userEmail  = document.getElementById('user-email');
+
+      if (user) {
+        if (signInBtn) signInBtn.classList.add('hidden');
+        if (signOutBtn) signOutBtn.classList.remove('hidden');
+        if (userInfo) {
+          userInfo.classList.remove('hidden');
+          if (userEmail) userEmail.textContent = user.email;
+        }
+      } else {
+        if (signInBtn) signInBtn.classList.remove('hidden');
+        if (signOutBtn) signOutBtn.classList.add('hidden');
+        if (userInfo)  userInfo.classList.add('hidden');
+      }
+      if (typeof window.render === 'function') window.render();
+    });
+
+    async function signInWithGoogle() {
+      try {
+        const provider = new firebase.auth.GoogleAuthProvider();
+        await auth.signInWithPopup(provider);
+      } catch (error) {
+        console.error('Login error:', error);
+        alert('Sign-in failed: ' + error.message);
+      }
+    }
+
+    async function signOut() {
+      try {
+        await auth.signOut();
+      } catch (error) {
+        console.error('Logout error:', error);
+      }
+    }
+
+    window.getAuthHeader = async () => {
+      const user = firebase.auth().currentUser;
+      if (user) {
+        const token = await user.getIdToken();
+        return { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' };
+      }
+      return { 'Content-Type': 'application/json' };
+    };
+  </script>
+  <style>
+    :root {
+      --font-body: 'IBM Plex Sans', sans-serif;
+      --font-heading: 'Sora', sans-serif;
+    }
+    body { font-family: var(--font-body); }
+    h1, h2, h3, h4, h5, h6 { font-family: var(--font-heading); }
+
+    .nav-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 9px 12px; border-radius: 10px;
+      color: #475569; font-size: 13.5px; font-weight: 500;
+      transition: all 0.15s ease; text-decoration: none; cursor: pointer;
+    }
+    .nav-item:hover { background-color: #f1f5f9; color: #0f172a; }
+    .nav-item.active { background-color: #eff6ff; color: #1d4ed8 !important; font-weight: 600; }
+
+    .surface-card { background: #fff; border-radius: 12px; border: 1px solid #e2e8f0; box-shadow: 0 1px 2px rgba(15,23,42,.04); }
+    .badge { display: inline-flex; align-items: center; gap: 6px; border-radius: 999px; border: 1px solid; padding: 3px 10px; font-size: 11px; font-weight: 600; letter-spacing: .01em; }
+    .badge-coming_soon, .badge-draft { border-color: #e2e8f0; background: #f8fafc; color: #475569; }
+    .badge-list, .badge-review { border-color: #bfdbfe; background: #eff6ff; color: #1d4ed8; }
+    .badge-live, .badge-complete, .badge-listed { border-color: #a7f3d0; background: #ecfdf5; color: #047857; }
+    .badge-closed, .badge-flagged { border-color: #fde68a; background: #fffbeb; color: #b45309; }
+
+    .btn-primary { display: inline-flex; align-items: center; gap: 6px; border-radius: 8px; background: #2563eb; padding: 8px 14px; font-size: 13px; font-weight: 600; color: #fff; border: none; cursor: pointer; }
+    .btn-primary:hover { background: #1d4ed8; }
+    .btn-secondary { display: inline-flex; align-items: center; gap: 6px; border-radius: 8px; border: 1px solid #cbd5e1; background: #fff; padding: 8px 14px; font-size: 13px; font-weight: 600; color: #334155; cursor: pointer; }
+    .btn-secondary:hover { background: #f8fafc; }
+    .btn-ghost { display: inline-flex; align-items: center; gap: 4px; background: transparent; border: none; padding: 6px 8px; font-size: 12px; font-weight: 600; color: #64748b; cursor: pointer; }
+    .btn-ghost:hover { color: #0f172a; }
+
+    .table-header { background: #f8fafc; text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: #64748b; font-weight: 600; padding: 10px 14px; }
+    .table-cell { padding: 12px 14px; font-size: 13.5px; color: #334155; border-top: 1px solid #f1f5f9; }
+    .table-row:hover { background: #f8fafc; }
+
+    .form-label { display: block; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: #64748b; margin-bottom: 6px; }
+    .form-input, .form-input-sm {
+      width: 100%; border: 1px solid #cbd5e1; border-radius: 8px; padding: 9px 12px;
+      font-size: 13.5px; color: #0f172a; background: #fff; outline: none;
+    }
+    .form-input:focus, .form-input-sm:focus { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,.12); }
+    .form-input-sm { padding: 7px 10px; font-size: 13px; }
+
+    .modal-overlay { position: fixed; inset: 0; z-index: 60; display: flex; align-items: center; justify-content: center; background: rgba(15,23,42,.4); backdrop-filter: blur(4px); padding: 16px; }
+    .modal-content { max-height: 85vh; width: 100%; max-width: 36rem; overflow-y: auto; border-radius: 14px; border: 1px solid #e2e8f0; background: #fff; padding: 22px; box-shadow: 0 20px 50px rgba(15,23,42,.18); }
+
+    .toast { position: fixed; bottom: 20px; right: 20px; z-index: 80; background: #0f172a; color: #fff; padding: 12px 16px; border-radius: 10px; font-size: 13px; font-weight: 500; box-shadow: 0 8px 24px rgba(0,0,0,.2); max-width: 360px; }
+    .toast-success { background: #047857; }
+    .toast-error { background: #b91c1c; }
+    .toast-info { background: #1d4ed8; }
+
+    .stat-tile { background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px; transition: border-color .15s, box-shadow .15s; display: block; text-decoration: none; color: inherit; }
+    .stat-tile:hover { border-color: #93c5fd; box-shadow: 0 4px 12px rgba(37,99,235,.08); }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-900 min-h-screen">
+  <div class="flex min-h-screen">
+    <!-- Sidebar -->
+    <aside class="w-56 bg-white border-r border-slate-200 flex flex-col shrink-0">
+      <div class="px-4 py-4 border-b border-slate-200">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white font-bold text-sm">E</div>
+          <div>
+            <h1 class="text-slate-900 text-sm font-bold tracking-tight leading-tight">EVOLUTION</h1>
+            <p class="text-blue-600 text-[10px] font-semibold tracking-wide uppercase">Mission Control</p>
+          </div>
+        </div>
+      </div>
+
+      <nav class="flex-1 px-2.5 py-3 space-y-0.5 overflow-y-auto">
+        <a href="#/" class="nav-item active" data-route="">Home</a>
+        <a href="#/horses" class="nav-item" data-route="horses">Horses</a>
+        <a href="#/owners" class="nav-item" data-route="owners">Owners</a>
+        <a href="#/trainers" class="nav-item" data-route="trainers">Trainers</a>
+        <a href="#/hlts" class="nav-item" data-route="hlts">HLT Listings</a>
+        <div class="pt-3 mt-2 border-t border-slate-100">
+          <a href="#/sync" class="nav-item" data-route="sync">Sync</a>
+        </div>
+      </nav>
+
+      <div class="px-3 py-3 border-t border-slate-200 bg-slate-50/50">
+        <div id="auth-buttons" class="space-y-1.5">
+          <button onclick="signInWithGoogle()" class="w-full bg-blue-600 text-white px-3 py-2 rounded-lg text-xs font-semibold hover:bg-blue-700">Sign In</button>
+          <button onclick="signOut()" id="logout-btn" class="w-full bg-slate-200 text-slate-700 px-3 py-2 rounded-lg text-xs font-semibold hover:bg-slate-300 hidden">Sign Out</button>
+        </div>
+        <div id="user-info" class="mt-2 hidden">
+          <p class="text-slate-500 text-[11px] truncate" id="user-email"></p>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main -->
+    <div class="flex-1 flex flex-col min-w-0">
+      <header class="bg-white border-b border-slate-200 px-5 py-3 flex items-center justify-between gap-4">
+        <div class="flex-1 max-w-md relative">
+          <input type="text" id="global-search" placeholder="Search horses, owners, HLTs…" class="w-full pl-3 pr-3 py-1.5 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500">
+        </div>
+        <div class="flex items-center gap-2">
+          <button onclick="window.triggerSync && window.triggerSync()" class="badge badge-live cursor-pointer hover:opacity-90" title="Sync website JSON">
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+            Sync
+          </button>
+          <button type="button" onclick="window.openCreateHltWizard && window.openCreateHltWizard()" class="btn-primary text-xs">+ Create HLT</button>
+        </div>
+      </header>
+
+      <main id="app" class="flex-1 p-5 overflow-y-auto">
+        <!-- SPA views -->
+      </main>
+    </div>
+  </div>
+
+  <script type="module" src="hlt-engine.js"></script>
+  <script type="module" src="app.js?v=22"></script>
+</body>
+</html>
