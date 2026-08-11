@@ -10,7 +10,9 @@ website: https://loganracing.co.nz
 facebook: https://www.facebook.com/LoganRacingNZ/
 instagram: https://www.instagram.com/logan_racing_stables
 x: https://x.com/Logan__racing
-horses: [almanzorxnightdanza]
+horses: [almanzor-x-night-danza]
+trainers: [donna-logan]
+backend_id: TRN-003
 updated_at: 2026-06-24
 ---
 

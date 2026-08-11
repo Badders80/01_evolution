@@ -104,24 +104,51 @@ class TranscriptReconciler:
             for engine, text in filtered_transcripts.items()
         )
 
-        prompt = f"""You are a transcript reconciliation expert for horse racing stable updates. You have {len(filtered_transcripts)} different ASR (automatic speech recognition) transcripts of the same audio, plus a domain knowledge base. Your job is to produce the most accurate final transcript.
+        content_type = meta.get("content_type", "unknown")
+        speakers = meta.get("speakers") or []
+        is_interview = content_type == "interview"
 
-KNOWLEDGE BASE (correct names, terms, and aliases):
-{kb_context}
+        if is_interview:
+            domain_section = (
+                "DOMAIN CONTEXT:\n"
+                f"- This is an academic research interview.\n"
+                f"- Expected speakers: {', '.join(speakers) if speakers else 'unknown'}\n"
+                f"- Preserve speaker attribution and quoted wording faithfully.\n"
+            )
+            kb_section = ""
+            reconcile_guidance = (
+                "2. Resolve ambiguous or misheard words using context and proper nouns from the transcripts.\n"
+                "3. For disagreements, prefer the version that is grammatically correct and contextually plausible.\n"
+                "4. Do not paraphrase — keep the speakers' original meaning and phrasing.\n"
+                "5. Flag any remaining uncertain words for human review."
+            )
+        else:
+            domain_section = (
+                "KNOWLEDGE BASE (correct names, terms, and aliases):\n"
+                f"{kb_context}\n"
+            )
+            kb_section = ""
+            reconcile_guidance = (
+                '2. Use the knowledge base to resolve ambiguous or misheard words (e.g., "mere" → "mare", "Ninja" → "Prudentia", "run the truck" → "run the trip", "healthy meat" → "healthy mare", "weak white week" → "quiet week", "twelve hundred teams" → "twelve hundred meters").\n'
+                "3. For words where models disagree or there is an acoustic error, choose the version that best matches the knowledge base and stable context.\n"
+                "4. Flag any remaining uncertain words for human review."
+            )
 
-METADATA FROM DESCRIPTION:
-- Horse: {meta.get('horse', 'unknown')}
+        prompt = f"""You are a transcript reconciliation expert. You have {len(filtered_transcripts)} different ASR (automatic speech recognition) transcripts of the same audio. Your job is to produce the most accurate final transcript.
+
+{domain_section}
+METADATA:
+- Subject: {meta.get('horse', meta.get('subject', 'unknown'))}
+- Title: {meta.get('title', 'unknown')}
 - Venue: {meta.get('venue', 'unknown')}
-- Content type: {meta.get('content_type', 'unknown')}
+- Content type: {content_type}
 
 TRANSCRIPTS TO RECONCILE:
 {transcripts_section}
 
 TASK:
 1. Compare all transcripts word-by-word (or read the single transcript if only one is provided).
-2. Use the knowledge base to resolve ambiguous or misheard words (e.g., "mere" → "mare", "Ninja" → "Prudentia", "run the truck" → "run the trip", "healthy meat" → "healthy mare", "weak white week" → "quiet week", "twelve hundred teams" → "twelve hundred meters").
-3. For words where models disagree or there is an acoustic error, choose the version that best matches the knowledge base and stable context.
-4. Flag any remaining uncertain words for human review.
+{reconcile_guidance}
 
 Return ONLY a JSON object with this exact structure:
 {{

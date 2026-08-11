@@ -1,13 +1,15 @@
 """
-Batch Email Ingest — fetch and process multiple Wexford emails by subject pattern.
+Batch Email Ingest — fetch and process trainer emails by subject pattern.
 
 Usage:
-    python3 api/email-ingest/batch_ingest.py
+    python3 api/email-ingest/batch_ingest.py --source wexford
+    python3 api/email-ingest/batch_ingest.py --source stephen-gray
 
 Processes all matching emails (video updates + race acceptances) in chronological order.
 Handles both video-update emails (with transcription) and text-only emails (race acceptances).
 """
 
+import argparse
 import os
 import sys
 import re
@@ -29,13 +31,18 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from archive_media import (
     archive_enabled,
-    archive_media,
+    archive_from_parsed,
+    archive_images_from_parsed,
     delete_temp_enabled,
     infer_media_kind,
     normalize_horse_slug,
+    parse_transcript_filename,
+    save_transcript_json,
     to_relative_asset_path,
 )
-from parser import parse_email
+from horse_registry import INGEST_SOURCES, resolve_horse_entry, resolve_horse_microchip
+from mistable import extract_report_url
+from parser import parse_email, get_speaker_names
 from transcriber import Transcriber
 from main import _download_video
 
@@ -60,11 +67,18 @@ SSOT_API_URL = "https://australia-southeast1-evolution-engine.cloudfunctions.net
 ASSETS_API_URL = "https://australia-southeast1-evolution-engine.cloudfunctions.net/assets"
 
 
-def fetch_matching_emails(subject_patterns, date_start=None, date_end=None):
+def fetch_matching_emails(
+    subject_patterns,
+    *,
+    imap_query=None,
+    date_start=None,
+    date_end=None,
+):
     """Fetch all emails matching any of the given subject patterns via IMAP.
     
     Args:
         subject_patterns: List of regex patterns to match against subject.
+        imap_query: Optional IMAP search expression override.
         date_start: Optional datetime — only include emails after this (inclusive).
         date_end: Optional datetime — only include emails before this (exclusive).
     
@@ -80,9 +94,8 @@ def fetch_matching_emails(subject_patterns, date_start=None, date_end=None):
     
     all_emails = []
     
-    # Search INBOX for Wexford emails
     mail.select("INBOX", readonly=True)
-    search_query = '(OR FROM "info@wexfordstables.co.nz" TEXT "Prudentia")'
+    search_query = imap_query or '(OR FROM "info@wexfordstables.co.nz" TEXT "Prudentia")'
     status, response = mail.search(None, search_query)
     
     if status != 'OK':
@@ -172,16 +185,15 @@ def fetch_matching_emails(subject_patterns, date_start=None, date_end=None):
     return all_emails
 
 
-def resolve_horse_microchip(horse_name):
-    """Resolve horse name to microchip (local fallback only for now)."""
-    if "prudentia" in horse_name.lower():
-        return "985125000126462"
-    raise ValueError(f"Horse '{horse_name}' not registered in system and no fallback microchip available")
-
-
 def store_text_only(parsed, microchip):
     """Store a text-only email (race acceptance, no video)."""
-    speakers = ["Alex Baddeley"] if "alex@evolutionstables.nz" in parsed.from_address.lower() else ["Andrew Scott"]
+    speakers = get_speaker_names(
+        parsed.speaker_count,
+        horse_name=parsed.horse_name,
+        from_address=parsed.from_address,
+    )
+    if "alex@evolutionstables.nz" in parsed.from_address.lower():
+        speakers = ["Alex Baddeley"]
     
     class TextTranscript:
         def __init__(self, text, speakers):
@@ -215,7 +227,15 @@ def store_video_update(parsed, microchip):
     
     try:
         # Transcribe
-        transcriber = Transcriber(speaker_count=parsed.speaker_count)
+        speaker_names = get_speaker_names(
+            parsed.speaker_count,
+            horse_name=parsed.horse_name,
+            from_address=parsed.from_address,
+        )
+        transcriber = Transcriber(
+            speaker_count=parsed.speaker_count,
+            speaker_names=speaker_names,
+        )
         stt_engine = os.getenv("INGEST_STT_ENGINE", "aistudio")
         transcript = transcriber.transcribe_video(
             video_path=video_path,
@@ -225,13 +245,7 @@ def store_video_update(parsed, microchip):
 
         archived_path = None
         if archive_enabled():
-            archived_path = archive_media(
-                video_path,
-                horse_slug,
-                parsed.content_date,
-                media_kind,
-                source_cdn_url=parsed.video_url,
-            )
+            archived_path = archive_from_parsed(video_path, horse_slug, parsed)
         local_media_path = to_relative_asset_path(archived_path) if archived_path else None
         
         # Store in local SQLite
@@ -242,25 +256,14 @@ def store_video_update(parsed, microchip):
             source_cdn_url=parsed.video_url,
         )
         
-        # Save transcript JSON to output directory
         script_dir = os.path.dirname(os.path.abspath(__file__))
         output_dir = os.path.join(script_dir, "output")
-        os.makedirs(output_dir, exist_ok=True)
-        
-        safe_name = re.sub(r'[^\w\-]', '_', parsed.horse_name)
-        output_path = os.path.join(output_dir, f"transcript_{safe_name}_{parsed.content_date.isoformat()}.json")
-        with open(output_path, "w") as f:
-            segments_list = [
-                {"start_time": s.start_time, "end_time": s.end_time, "speaker": s.speaker, "text": s.text}
-                for s in transcript.segments
-            ]
-            json.dump({
-                "full_text": transcript.full_text,
-                "segments": segments_list,
-                "source": transcript.source,
-                "model": getattr(transcript, 'model', 'unknown'),
-                "speakers": transcript.speakers
-            }, f, indent=2)
+        output_path = save_transcript_json(
+            transcript,
+            parsed,
+            output_dir=output_dir,
+            source_path=video_path,
+        )
         logger.info(f"  → Transcript saved: {output_path}")
         logger.info(f"  → Full text preview: {transcript.full_text[:200]}...")
         
@@ -277,26 +280,12 @@ def _normalize_slug(name: str) -> str:
 
 
 def _parse_transcript_filename(filename: str) -> tuple[str, str] | None:
-    """Parse a transcript filename to extract horse slug and date.
-
-    Expected format: transcript_{HorseName}_{YYYY-MM-DD}.json
-    Returns (horse_slug, date_str) or None if not a transcript file.
-    """
-    if not filename.startswith("transcript_") or not filename.endswith(".json"):
+    """Parse transcript filename → (horse_slug, received_date). Supports legacy names."""
+    parsed = parse_transcript_filename(filename)
+    if parsed is None:
         return None
-    # Strip prefix and suffix
-    core = filename[len("transcript_"):-len(".json")]
-    # Split from the right — last part is the date (YYYY-MM-DD)
-    m = re.match(r"^(.+?)_(\d{4}-\d{2}-\d{2})$", core)
-    if not m:
-        return None
-    horse_name_raw = m.group(1)
-    date_str = m.group(2)
-    try:
-        horse_slug = _normalize_slug(horse_name_raw)
-    except ValueError:
-        return None
-    return (horse_slug, date_str)
+    horse_slug, date_str, _original = parsed
+    return horse_slug, date_str
 
 
 def sync_to_assets(processed_horses: dict[str, list[str]]):
@@ -345,7 +334,10 @@ def sync_to_assets(processed_horses: dict[str, list[str]]):
 
             # Regenerate index if we copied new files OR if index is stale
             # (only when there are actual transcript files in the target dir)
-            existing_files = [f for f in os.listdir(target_dir) if f.startswith("transcript_") and f.endswith(".json")]
+            existing_files = [
+                f for f in os.listdir(target_dir)
+                if f.endswith(".json") and parse_transcript_filename(f) is not None
+            ]
             if copied > 0 or (existing_files and os.path.exists(index_script)):
                 if os.path.exists(index_script):
                     result = subprocess.run(
@@ -431,16 +423,21 @@ def store_in_local_sqlite(parsed, transcript, *, local_media_path=None, source_c
             conn.close()
             return
         
+        horse_entry = resolve_horse_entry(parsed.horse_name)
+        report_url = extract_report_url(parsed.body_text)
         extracted_data = {
-            "horse": parsed.horse_name,
-            "stable": "Wexford Stables",
-            "trainer": "Lance O'Sullivan & Andrew Scott" if parsed.speaker_count >= 2 else "Andrew Scott",
+            "horse": horse_entry.display_name,
+            "horse_slug": horse_entry.slug,
+            "stable": horse_entry.stable,
+            "trainer": horse_entry.trainer,
             "venue": "",
             "race_date": parsed.content_date.isoformat(),
             "video_urls": [parsed.video_url] if parsed.video_url else [],
             "transcript": transcript.full_text,
             "content_type": "video_update" if parsed.video_url else "race_acceptance",
         }
+        if report_url:
+            extracted_data["mistable_report_url"] = report_url
         if local_media_path:
             extracted_data["local_media_path"] = local_media_path
         if source_cdn_url:
@@ -489,18 +486,24 @@ def store_in_local_sqlite(parsed, transcript, *, local_media_path=None, source_c
 
 
 def main():
-    logger.info("=== Batch Email Ingest ===")
+    parser = argparse.ArgumentParser(description="Batch email ingest")
+    parser.add_argument(
+        "--source",
+        choices=sorted(INGEST_SOURCES),
+        default=os.getenv("INGEST_SOURCE", "wexford"),
+        help="Trainer/source profile to ingest",
+    )
+    args = parser.parse_args()
+    source_cfg = INGEST_SOURCES[args.source]
 
-    subject_patterns = [
-        r"Video Update.*Prudentia",
-        r"Audio Update.*Prudentia",
-        r"Race Acceptance.*Prudentia",
-        r"Race Result.*Prudentia",
-    ]
+    logger.info("=== Batch Email Ingest (%s) ===", source_cfg.name)
+
+    subject_patterns = source_cfg.subject_patterns
 
     from datetime import timezone
+    default_end = "2026-07-09" if args.source == "stephen-gray" else "2026-06-27"
     backfill_start = os.getenv("INGEST_BACKFILL_FROM", "2026-02-01")
-    backfill_end = os.getenv("INGEST_BACKFILL_TO", "2026-06-27")
+    backfill_end = os.getenv("INGEST_BACKFILL_TO", default_end)
     y, m, d = map(int, backfill_start.split("-"))
     date_start = datetime(y, m, d, 0, 0, 0, tzinfo=timezone.utc)
     y2, m2, d2 = map(int, backfill_end.split("-"))
@@ -508,7 +511,12 @@ def main():
     logger.info("Date window: %s → %s (UTC)", backfill_start, backfill_end)
     
     # Fetch all matching emails
-    raw_emails = fetch_matching_emails(subject_patterns, date_start, date_end)
+    raw_emails = fetch_matching_emails(
+        subject_patterns,
+        imap_query=source_cfg.imap_query,
+        date_start=date_start,
+        date_end=date_end,
+    )
     
     if not raw_emails:
         logger.error("No matching emails found! Check subject patterns.")
@@ -527,6 +535,13 @@ def main():
             # Parse email
             parsed = parse_email(raw_email)
             logger.info(f"  Horse: {parsed.horse_name}, Date: {parsed.content_date}, Video: {'yes' if parsed.video_url else 'no'}")
+
+            image_paths = archive_images_from_parsed(
+                parsed,
+                body_html=raw_email.get("body_html", ""),
+            )
+            if image_paths:
+                logger.info("  → Archived %d image(s)", len(image_paths))
             
             skip_existing = os.getenv("INGEST_SKIP_EXISTING", "true").lower() == "true"
             if skip_existing and is_already_in_ledger(parsed):
@@ -566,7 +581,9 @@ def main():
     processed_horses: dict[str, set[str]] = {}
     output_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "output")
     if os.path.isdir(output_dir):
-        for filename in os.listdir(output_dir):
+            for filename in os.listdir(output_dir):
+            if not filename.endswith(".json"):
+                continue
             parsed_fn = _parse_transcript_filename(filename)
             if parsed_fn is None:
                 continue

@@ -4,16 +4,22 @@
 
 **Core Principle:** `api/` is the only data writer. The app never writes to Firestore directly.
 
+**Local operator admin (Mission Control):** not here — use  
+`_tools/mission-control/admin_server.py`.  
+`api/admin_server.py` and `api/admin/` are **retired stubs**.
+
 ---
 
 ## Structure
 
 ```
 api/
-├── models/              ← Shared Pydantic schemas (Horse, Owner, Trainer, HLT, Asset)
-├── ssot/                ← SSOT API (horses, owners, trainers, HLTs, docs)
+├── core/                ← Shared Pydantic schemas (used by MC + functions)
+├── ssot/                ← SSOT API (horses, owners, trainers, HLTs, docs) — GCP
 ├── assets/              ← Assets API (upload, retrieve, delete)
 ├── kyc/                 ← KYC API (Stripe Identity)
+├── admin/               ← RETIRED stub → _tools/mission-control
+├── admin_server.py      ← RETIRED stub (prints redirect, exit 1)
 ├── requirements.txt     ← Python dependencies
 └── .env.api.yaml        ← Environment config (Stripe keys, GCP project, buckets)
 ```

@@ -61,7 +61,7 @@ Reframe the website to operate as a static-first marketing site with Firebase Au
 - [x] Rewrite `02_website/HANDSHAKE.md` — local JSON data, Stripe direct
 - [x] Update `01_evolution/BLOCKERS.md` — GCP retired
 - [ ] Update `01_evolution/GAME_PLAN.md` — this file
-- [ ] Update `02_website/BLOCKERS.md` — new post-GCP blockers
+- [x] `02_website/STATE.md` — post-GCP live state (replaces BLOCKERS.md)
 
 #### Phase 2: Spreadsheet Inventory + Sync
 - [ ] Design Google Sheets structure (horses, HLTs, trainers, owners, holdings)
@@ -148,7 +148,7 @@ See original plan below (preserved for reference).
 
 ## Related Documents
 
-- **Blockers:** [`BLOCKERS.md`](BLOCKERS.md) — Post-GCP blockers + status
+- **Live state:** [`STATE.md`](STATE.md) — handoffs + constraints (replaces BLOCKERS.md)
 - **Website:** [`../02_website/AGENTS.md`](../02_website/AGENTS.md) — Website agent rules (post-GCP)
 - **Website handshake:** [`../02_website/HANDSHAKE.md`](../02_website/HANDSHAKE.md) — Data + auth contract (post-GCP)
 - **Asset status:** [`../_assets/WHATS_LEFT.md`](../_assets/WHATS_LEFT.md) — Asset consolidation

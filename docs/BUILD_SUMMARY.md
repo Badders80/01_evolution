@@ -150,7 +150,7 @@ These require credentials I don't have:
 
 - **Current status:** [`PROGRESS.md`](PROGRESS.md) — Session tracker, what's next, architecture status
 - **Plan:** [`GAME_PLAN.md`](../GAME_PLAN.md) — 9 checkpoints
-- **Blockers:** [`BLOCKERS.md`](../BLOCKERS.md) — Resolved issues
+- **Live state:** [`STATE.md`](../STATE.md) — canonical (replaces BLOCKERS.md)
 - **Laws:** [`AGENTS.md`](../AGENTS.md) — Core architecture rules
 - **Audit:** [`audit/AUDIT.md`](audit/AUDIT.md) — Quality assessments
 - **Logs:** [`logs/`](logs/) — Daily session notes

@@ -5,6 +5,7 @@ roles: [trainer, owner]
 tags: [person, trainer, owner, stephen-gray-racing]
 name: Stephen Gray
 stable: stephen-gray-racing
+backend_id: TRN-002
 backend_id_trainer: TRN-002
 backend_id_owner: OWN-002
 horses: [first-gear]

@@ -23,7 +23,7 @@ These are **separate by design** (text vs binary, authoring vs storage) but lack
 6. No validation script to enforce the contract
 7. `02_website/src/dna/content/stables.json` has old slug + wrong microchips + wrong sire/dam/trainer data
 8. `_assets/gcs_pull.py` uses wrong microchips as keys + old slug in NAME_MAP
-9. `almanzorxnightdanza` missing from `HORSES.csv`
+9. `almanzor-x-night-danza` missing from `HORSES.csv`
 10. Hardcoded SQLite/NDJSON paths in email ingest pipeline point outside the workspace
 
 ### Git topology (critical context)
@@ -83,8 +83,8 @@ Use `hottathanafantasy` (no hyphens) — matches the registered name on [loverac
    - Change `hotta-than-a-fantasy` → `hottathanafantasy` in the `horse_slug` column
    - Change `Hotta Than A Fantasy` → `Hottathanafantasy` in the `horse_name` column (must match loveracing.nz registered name exactly — no spaces, no gaps)
 
-4. **Add `almanzorxnightdanza` to HORSES.csv** (currently missing):
-   - `Almanzor x Night Danza,almanzorxnightdanza,,pending,bax-bloodstock`
+4. **Add `almanzor-x-night-danza` to HORSES.csv** (currently missing):
+   - `Almanzor x Night Danza,almanzor-x-night-danza,,pending,bax-bloodstock`
    - Empty microchip, no loveracing_id — pending case
 
 5. **Update all references across the ENTIRE workspace** (not just `01_evolution/`):
@@ -175,7 +175,7 @@ The following files already use the correct slug `hottathanafantasy` and correct
 
 4. **Fix `_assets/gcs_pull.py`** — update `HORSE_MAP` keys from `985141...` to `985125...` values.
 
-5. **Fix `_taskmaster/server.py`** — update `MOCK_HORSES` array:
+5. **Fix `_taskmaster/server.py`** (retired post-2026-06-27 SURFACES shift) — update `MOCK_HORSES` array:
    - Fix First Gear microchip: `985125000215324` → `985125000126713`
    - Fix First Gear sire: `Darci Brahma` → `Derryn`
    - Fix First Gear dam: `Speedy Queen` → `A'Guin Ace`
@@ -541,7 +541,7 @@ The following files contain **placeholder/mock data** that should not be treated
 
 1. Create `01_evolution/tools/` directory (if it doesn't exist)
 2. Write `check_storage_sync.py`
-3. Run it to verify the current state (should flag: slug mismatch, 4 microchip mismatches, missing almanzorxnightdanza in HORSES.csv, stale 985141 microchips in stables.json + gcs_pull.py + KNOWLEDGE_REPO_GAP_ANALYSIS.md, stale slug in ~15 files, JSON horse_slug mismatch)
+3. Run it to verify the current state (should flag: slug mismatch, 4 microchip mismatches, missing almanzor-x-night-danza in HORSES.csv, stale 985141 microchips in stables.json + gcs_pull.py + KNOWLEDGE_REPO_GAP_ANALYSIS.md, stale slug in ~15 files, JSON horse_slug mismatch)
 4. After each phase, run again to verify fixes
 
 ### Verification
@@ -579,7 +579,7 @@ The following files contain **placeholder/mock data** that should not be treated
 - **Phase 1+2 changes in `01_evolution/`** — commit inside the submodule: `cd 01_evolution && git add -A && git commit -m "fix: standardize slug + microchip data"`
 - **Phase 1+2 changes in `02_website/`** — commit in the website repo: `cd 02_website && git add -A && git commit -m "fix: update stables.json slug + microchips"`
 - **Phase 1+2 changes in `_assets/`** — commit in parent repo: `cd /home/evo/evo_01 && git add _assets/ && git commit -m "fix: update HORSES.csv + gcs_pull.py slug + microchips"`
-- **Phase 1+2 changes in `_taskmaster/`** — commit in parent repo: `cd /home/evo/evo_01 && git add _taskmaster/ && git commit -m "fix: update server.py mock horse data"`
+- **Phase 1+2 changes in `_taskmaster/`** (retired post-2026-06-27) — commit in parent repo: `cd /home/evo/evo_01 && git add _taskmaster/ && git commit -m "fix: update server.py mock horse data"`
 - **Phase 3 migration** — filesystem-only (binaries are gitignored), no commit needed except for index markdown files in `01_evolution/`
 - **Phase 4 conventions** — commit inside submodule: `cd 01_evolution && git add dna/conventions/CONVENTIONS.md && git commit -m "docs: add local-first storage conventions"`
 - **Phase 5 script** — commit inside submodule: `cd 01_evolution && git add tools/ && git commit -m "feat: add storage sync validation script"`
@@ -667,7 +667,7 @@ This plan was stress-tested against nemotron-3-ultra and deepseek-v4-pro subagen
 **Warnings (fixed in v2):**
 4. Slug search scope too narrow — expanded to entire workspace
 5. `_sandbox/Evolution-3.1/` third copy — documented, ignored for migration
-6. `almanzorxnightdanza` missing from HORSES.csv — added to Phase 1
+6. `almanzor-x-night-danza` missing from HORSES.csv — added to Phase 1
 7. Hardcoded pipeline paths — documented in Phase 4 conventions
 8. "API is the only writer" obsolete — replaced with local-first writer model
 9. `hottathen_frame.jpg` double-listed — fixed, only under Hottathanafantasy
@@ -686,7 +686,7 @@ Stress-tested again. The following issues were found and addressed:
 **Blockers (fixed in v3):**
 17. **Phase 6 tooling absent from document** — added Phase 6: Prevention Tooling with 10 tooling ideas
 18. **`KNOWLEDGE_REPO_GAP_ANALYSIS.md` contains `985141` microchips** — added to Phase 2 fix list (update or archive)
-19. **`_taskmaster/server.py` has wrong mock horse data** — added to Phase 2 fix list (wrong microchip, wrong sire/dam, fabricated horse)
+19. **`_taskmaster/server.py` has wrong mock horse data** (retired post-2026-06-27) — added to Phase 2 fix list (wrong microchip, wrong sire/dam, fabricated horse)
 20. **`hlts/` is untracked, not tracked** — fixed `git mv` → `mv` for HLT file rename
 
 **Warnings (fixed in v3):**

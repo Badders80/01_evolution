@@ -1,5 +1,7 @@
 # Evolution Stables — Progress
 
+> **STALE for agent boot.** Live state: [`../STATE.md`](../STATE.md). This file is pre-GCP-retirement history.
+
 > **This is the diary.** Session log, what's next, architecture status.
 > For what the project is and what exists, see [BUILD_SUMMARY.md](BUILD_SUMMARY.md).
 
@@ -105,7 +107,7 @@ See: [`docs/sprints/S01_horse_media_console.md`](sprints/S01_horse_media_console
 
 - **Plan:** [`GAME_PLAN.md`](../GAME_PLAN.md) — 9 checkpoints
 - **Overview:** [`BUILD_SUMMARY.md`](BUILD_SUMMARY.md) — High-level summary
-- **Blockers:** [`BLOCKERS.md`](../BLOCKERS.md) — Resolved issues
+- **Live state:** [`STATE.md`](../STATE.md) — canonical (replaces BLOCKERS.md)
 - **Laws:** [`AGENTS.md`](../AGENTS.md) — Core architecture rules
 - **Audit:** [`audit/AUDIT.md`](audit/AUDIT.md) — Quality assessments
 - **Sprints:** [`sprints/`](sprints/) — Sprint plans & completion reports

@@ -44,7 +44,7 @@ None required. This project has no external service dependencies.
 
 ## Key Business Logic / Pipeline Milestones
 
-1. **Aggregate** — Scan all project `.taskmaster/` directories for task counts and statuses
+1. **Aggregate** — Scan all project `.taskmaster/` directories for task counts and statuses (pre-2026-06-27 retire; now use owner skills + 01_evolution/docs/PROGRESS.md)
 2. **Prioritize** — CTO sets cross-project priorities in `direction/priorities.json`
 3. **Decide** — CTO records pending decisions in `direction/decisions.json`
 4. **Learn** — Per-project patterns and pitfalls recorded in `learnings/`

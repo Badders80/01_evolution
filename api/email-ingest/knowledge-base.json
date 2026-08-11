@@ -19,6 +19,18 @@
       "stable": "Wexford Stables",
       "trainers": ["Lance O'Sullivan", "Andrew Scott"],
       "type": "filly"
+    },
+    "Turn Me Loose x Yearn": {
+      "aliases": ["Turn Me Loose - Yearn", "TML x Yearn", "TLM x Yearn", "Turn Me Loose - Yearn 23F", "Yearn 23F"],
+      "stable": "Stephen Gray Racing",
+      "trainers": ["Stephen Gray"],
+      "type": "filly"
+    },
+    "First Gear": {
+      "aliases": ["First Gear Horse Report"],
+      "stable": "Stephen Gray Racing",
+      "trainers": ["Stephen Gray"],
+      "type": "gelding"
     }
   },
   "venues": {
@@ -57,6 +69,11 @@
     "Tony Pike": {
       "aliases": ["Tony Pike", "Tony", "Pike"],
       "role": "jockey"
+    },
+    "Stephen Gray": {
+      "aliases": ["Stephen Grey", "Gray", "Stephen"],
+      "role": "trainer",
+      "stable": "Stephen Gray Racing"
     }
   },
   "racingTerms": {

@@ -1,6 +1,6 @@
 # Email Ingest Pipeline
 
-Fetches Wexford Stables emails, extracts video updates, transcribes them, and stores transcripts locally.
+Fetches trainer emails (Wexford Stables + Stephen Gray Racing via miStable), extracts video updates, transcribes them, and stores transcripts locally.
 
 ## Architecture
 
@@ -44,9 +44,10 @@ python3 api/email-ingest/trigger_imap.py
 
 ### Batch (multiple emails by subject + date range)
 ```bash
-python3 api/email-ingest/batch_ingest.py
+python3 api/email-ingest/batch_ingest.py --source wexford
+python3 api/email-ingest/batch_ingest.py --source stephen-gray
 ```
-Edit `subject_patterns` and `date_start`/`date_end` in `main()` to target specific emails.
+Use `INGEST_BACKFILL_FROM` / `INGEST_BACKFILL_TO` env vars to target a date window.
 
 ### Gmail API (target state, currently blocked by org policy)
 ```bash
@@ -61,6 +62,10 @@ Requires: `~/secrets/gmail-service-account.json` + domain-wide delegation.
 | `data/ledger.sqlite` | SQLite ledger — one row per ingested email |
 | `data/content-index.ndjson` | NDJSON catalog — append-only event log |
 | `output/transcript_{horse}_{date}.json` | Full transcript JSON with segments |
+| `_assets/horses/{slug}/videos/{received}_{horse}_{original}.mp4` | Archived video — received date, not processed date |
+| `_assets/horses/{slug}/transcripts/{received}_{horse}_{original}.json` | Synced transcript (same stem as video) |
+| `_assets/horses/{slug}/images/{received}_{horse}_{original}.jpg` | Email content images (e.g. video thumbnails) |
+| `output/transcript_{received}_{horse}_{original}.json` | Staging transcript before sync |
 
 Override with env vars: `INGEST_DB_PATH`, `INGEST_NDJSON_PATH`
 

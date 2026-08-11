@@ -92,11 +92,24 @@ QUOTA_FILE = Path(__file__).with_name(".quota_state.json")
 
 # Per-account quota definitions (free-tier / budget caps)
 QUOTA_RULES = {
-    "google_stt_free": {
-        "description": "Google Cloud Speech-to-Text free tier",
+    "google_stt_work": {
+        "description": "Google Cloud Speech-to-Text free tier (work account)",
         "limit_seconds": 3600,          # ~60 min/mo free
         "resets_every": "month",
-        "account": "work",               # work = alex@evolutionstables.nz
+        "account": "work",               # alex@evolutionstables.nz
+    },
+    "google_stt_personal": {
+        "description": "Google Cloud Speech-to-Text free tier (personal account)",
+        "limit_seconds": 3600,          # ~60 min/mo free
+        "resets_every": "month",
+        "account": "personal",           # baddeley0@gmail.com
+    },
+    # Legacy alias — treat as work quota
+    "google_stt_free": {
+        "description": "Google Cloud Speech-to-Text free tier (legacy alias)",
+        "limit_seconds": 3600,
+        "resets_every": "month",
+        "account": "work",
     },
     "veo_3_1_work": {
         "description": "Veo 3.1 video generation",
@@ -350,7 +363,12 @@ class ModelRouter:
         except (KeyError, IndexError):
             raise RuntimeError(f"Unexpected AI Studio response: {data}")
 
-    def aistudio_transcribe(self, audio_path: str, horse_name: str) -> dict:
+    def aistudio_transcribe(
+        self,
+        audio_path: str,
+        subject: str,
+        speaker_names: list[str] | None = None,
+    ) -> dict:
         """
         AI Studio free-tier transcription (audio file in prompt).
         Does NOT bill GCP.
@@ -382,8 +400,9 @@ class ModelRouter:
         elif path.suffix == ".m4a":
             mime = "audio/mp4"
 
-        speaker_names = ["Andrew Scott", "Lance O'Sullivan"]
-        prompt = f"""Transcribe this audio of the horse '{horse_name}'.
+        if not speaker_names:
+            speaker_names = ["Andrew Scott", "Lance O'Sullivan"]
+        prompt = f"""Transcribe this audio recording about '{subject}'.
 Expected speakers: {', '.join(speaker_names)}.
 Return ONLY valid JSON matching:
 {{"full_text": "...", "segments": [{{"start_time": 0.0, "end_time": 5.2, "speaker": "...", "text": "..."}}]}}
@@ -402,7 +421,7 @@ Return ONLY valid JSON matching:
             "https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent",
             headers=headers,
             json=payload,
-            timeout=120,
+            timeout=max(300, int(duration * 0.5) + 120),
         )
         if resp.status_code != 200:
             raise RuntimeError(f"AI Studio returned {resp.status_code}: {resp.text[:200]}")
@@ -535,7 +554,12 @@ Return ONLY valid JSON matching:
 
     # ── Gemini/Vertex (last resort, gated) ──────────────────────
 
-    def gemini_transcribe(self, video_path: str, horse_name: str) -> dict:
+    def gemini_transcribe(
+        self,
+        video_path: str,
+        subject: str,
+        speaker_names: list[str] | None = None,
+    ) -> dict:
         """
         Gated Gemini video transcription.  ONLY runs if:
           1. GEMINI_ALLOW_TRANSCRIPTION=true
@@ -565,11 +589,11 @@ Return ONLY valid JSON matching:
             if uploaded_file.state.name == "FAILED":
                 raise RuntimeError(f"Gemini file processing failed: {uploaded_file.error.message}")
 
-            # Re-use existing prompt from transcriber.py
-            speaker_names = ["Andrew Scott", "Lance O'Sullivan"]
+            if not speaker_names:
+                speaker_names = ["Andrew Scott", "Lance O'Sullivan"]
             prompt = f"""
 You are an expert audio transcription assistant.
-We have a video update of the horse '{horse_name}' from Wexford Stables.
+We have an audio recording about '{subject}'.
 Expected speakers: {', '.join(speaker_names)}.
 Please transcribe the audio of this video with speaker diarization.
 Return ONLY a valid JSON object matching the schema below. Do not wrap in markdown block, do not include any explanatory text.

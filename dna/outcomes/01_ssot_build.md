@@ -1,6 +1,8 @@
-# Extraction Report: SSOT_Build
+# Extraction Report: SSOT_Build (Legacy Old Build)
 
-**Source:** `/home/evo/workspace/projects/SSOT_Build`
+**Note:** SSOT_Build and Evolution_Platform refer to the pre-evo_01 / workspace/projects/ structure. This is historical migration documentation only. Current surfaces and code are in evo_01/ per SURFACES.md.
+
+**Source:** `/home/evo/workspace/projects/SSOT_Build` (legacy pre-evo_01 monolith; migrated into 01_evolution)
 **Date:** 2026-05-19
 **Extraction Role:** Lead Cloud Architect — outcome-driven, ignoring current execution methods
 

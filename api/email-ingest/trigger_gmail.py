@@ -16,7 +16,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 # Import our unified pipeline modules
 from archive_media import (
     archive_enabled,
-    archive_media,
+    archive_from_parsed,
     delete_temp_enabled,
     infer_media_kind,
     normalize_horse_slug,
@@ -393,13 +393,7 @@ def main():
         content_id = store_content_api(parsed, microchip, asset_id, transcript)
 
         if archive_enabled():
-            archive_media(
-                video_path,
-                horse_slug,
-                parsed.content_date,
-                media_kind,
-                source_cdn_url=parsed.video_url,
-            )
+            archive_from_parsed(video_path, horse_slug, parsed)
         
         # 8. Store in local SQLite DB
         store_in_local_sqlite(parsed, transcript)

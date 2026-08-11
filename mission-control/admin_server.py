@@ -16,7 +16,6 @@ from pathlib import Path
 # ─── Sys Path Setup for Monorepo ──────────────────────────────────────────────
 TOOLS_DIR = Path(__file__).resolve().parent
 MONOREPO_ROOT = TOOLS_DIR.parents[1]
-sys.path.insert(0, str(MONOREPO_ROOT / "01_evolution" / "api"))
 sys.path.insert(0, str(TOOLS_DIR))
 
 from flask import Flask, send_from_directory, send_file, jsonify, request

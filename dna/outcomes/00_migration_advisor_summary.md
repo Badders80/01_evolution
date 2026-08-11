@@ -158,7 +158,7 @@ The agent layer is the **foundation everything else sits on**. If it's fragile, 
 | Evolution_Studio | 🟡 Medium | Medium | 🔴 None | 5th |
 | Evolution_Ops | 🟡 Medium | Low | 🔴 None | 6th |
 | Evolution_CRM | 🟢 Low | Low | 🔴 None | 7th |
-| DNA/Shared | 🔴 Critical | Low | 🟡 Partial | Parallel with pilot |
+| DNA/Shared (pre-evo_01; see new slim central in _shared/dna/) | 🔴 Critical | Low | 🟡 Partial | Parallel with pilot |
 
 ---
 

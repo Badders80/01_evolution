@@ -3,6 +3,7 @@
 from datetime import datetime, timezone
 
 from parser import _extract_date, _extract_horse_name, _extract_video_url, parse_email
+from horse_registry import normalize_horse_slug, resolve_horse_microchip
 
 
 def test_audio_update_horse_name():
@@ -35,6 +36,20 @@ def test_extract_date_from_race_subject_when_body_missing():
         date_received=received,
     )
     assert parsed_date.isoformat() == "2026-03-14"
+
+
+def test_mistable_horse_report_subject():
+    subject = "Turn Me Loose - Yearn 23F Horse Report"
+    assert _extract_horse_name(subject, source="stephen-gray") == "Turn Me Loose x Yearn"
+
+
+def test_first_gear_horse_report_subject():
+    assert _extract_horse_name("First Gear Horse Report", source="stephen-gray") == "First Gear"
+
+
+def test_turn_me_loose_slug_and_microchip():
+    assert normalize_horse_slug("Turn Me Loose x Yearn") == "turn-me-loose-x-yearn"
+    assert resolve_horse_microchip("Turn Me Loose - Yearn 23F") == "985125000128426"
 
 
 def test_extract_video_url_prefers_prism_over_wrapper():

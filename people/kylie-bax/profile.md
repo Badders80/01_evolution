@@ -6,7 +6,7 @@ tags: [person, owner, bax-bloodstock]
 name: Kylie Bax
 company: bax-bloodstock
 backend_id: OWN-001
-horses: [prudentia, hottathanafantasy, i-stole-a-manolo, almanzorxnightdanza]
+horses: [prudentia, hottathanafantasy, i-stole-a-manolo, almanzor-x-night-danza]
 updated_at: 2026-06-24
 ---
 

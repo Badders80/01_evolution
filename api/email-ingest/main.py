@@ -226,8 +226,7 @@ def _process_email(raw_email: dict, gmail: GmailClient) -> IngestResult:
             archive_and_cleanup_temp(
                 video_path,
                 horse_slug=normalize_horse_slug(parsed.horse_name),
-                content_date=parsed.content_date,
-                source_cdn_url=parsed.video_url,
+                parsed=parsed,
             )
 
         # Step 8: Mark email as read
@@ -249,6 +248,9 @@ def _process_email(raw_email: dict, gmail: GmailClient) -> IngestResult:
 def _download_video(url: str) -> str:
     """Download a video from a URL to a temp file. Returns local path."""
     lower = url.lower()
+    if "vimeo.com" in lower or "mistable.com/site/report" in lower:
+        return _download_video_ytdlp(url)
+
     ext = ".mp4"
     if ".mov" in lower:
         ext = ".mov"
@@ -274,6 +276,38 @@ def _download_video(url: str) -> str:
 
     size_mb = os.path.getsize(tmp_path) / (1024 * 1024)
     logger.info(f"Downloaded: {size_mb:.1f}MB → {tmp_path}")
+    return tmp_path
+
+
+def _download_video_ytdlp(url: str) -> str:
+    """Download Vimeo or miStable-hosted media via yt-dlp."""
+    import subprocess
+
+    ext = ".mp4"
+    tmp_path = os.path.join(
+        tempfile.gettempdir(),
+        f"email-video-{uuid.uuid4().hex[:8]}{ext}",
+    )
+    logger.info("Downloading media via yt-dlp: %s", url[:100])
+    cmd = [
+        "yt-dlp",
+        "--no-playlist",
+        "-f",
+        "bv*+ba/b",
+        "-o",
+        tmp_path,
+        url,
+    ]
+    result = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
+    if result.returncode != 0:
+        raise RuntimeError(
+            f"yt-dlp failed ({result.returncode}): {result.stderr[-1000:]}"
+        )
+    if not os.path.exists(tmp_path) or os.path.getsize(tmp_path) <= 0:
+        raise RuntimeError(f"yt-dlp produced no output at {tmp_path}")
+
+    size_mb = os.path.getsize(tmp_path) / (1024 * 1024)
+    logger.info("Downloaded via yt-dlp: %.1fMB → %s", size_mb, tmp_path)
     return tmp_path
 
 

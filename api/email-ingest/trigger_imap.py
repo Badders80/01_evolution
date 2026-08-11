@@ -15,7 +15,7 @@ from google.auth.transport.requests import Request
 # Import our unified pipeline modules
 from archive_media import (
     archive_enabled,
-    archive_media,
+    archive_from_parsed,
     delete_temp_enabled,
     infer_media_kind,
     normalize_horse_slug,
@@ -489,13 +489,7 @@ def main():
 
         archived_path = None
         if archive_enabled():
-            archived_path = archive_media(
-                video_path,
-                horse_slug,
-                parsed.content_date,
-                media_kind,
-                source_cdn_url=parsed.video_url,
-            )
+            archived_path = archive_from_parsed(video_path, horse_slug, parsed)
         local_media_path = to_relative_asset_path(archived_path) if archived_path else None
         
         # 8. Store in local SQLite DB for frontend/orchestrator ingestion

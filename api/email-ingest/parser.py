@@ -17,6 +17,8 @@ import re
 import logging
 from datetime import date, datetime
 
+from horse_registry import infer_source, resolve_horse_entry
+from mistable import resolve_mistable_video_url
 from models import ParsedEmail
 
 logger = logging.getLogger(__name__)
@@ -48,7 +50,10 @@ def parse_email(raw_email: dict) -> ParsedEmail:
         ParsedEmail with extracted horse_name, content_date, title, video_url, speaker_count.
     """
     subject = raw_email.get("subject", "")
-    body = raw_email.get("body_text", "") or raw_email.get("body_html", "")
+    body_text_raw = raw_email.get("body_text", "") or ""
+    body_html_raw = raw_email.get("body_html", "") or ""
+    body = body_text_raw or body_html_raw
+    media_body = f"{body_html_raw}\n{body_text_raw}".strip()
 
     # Strip HTML if the body contains HTML tags (some emails are single-part text/html,
     # so body_text itself can be HTML — not just body_html)
@@ -56,12 +61,19 @@ def parse_email(raw_email: dict) -> ParsedEmail:
         body = re.sub(r"<[^>]*>", " ", body)
         body = re.sub(r"\s+", " ", body).strip()
 
-    horse_name = _clean_horse_display(_extract_horse_name(subject))
+    from_address = raw_email.get("from_address", "")
+    source = infer_source(from_address)
+    horse_name = _clean_horse_display(_extract_horse_name(subject, source=source))
     date_received = raw_email.get("date_received", datetime.now())
-    content_date = _extract_date(body, subject=subject, date_received=date_received)
-    title = _extract_title(body)
-    video_url = _extract_video_url(body)
-    speaker_count = _detect_speaker_count(body)
+    content_date = _extract_date(
+        body,
+        subject=subject,
+        date_received=date_received,
+        source=source,
+    )
+    title = _extract_title(body, subject=subject, source=source)
+    video_url = _extract_video_url(media_body or body, from_address=from_address)
+    speaker_count = _detect_speaker_count(body, source=source, from_address=from_address)
 
     logger.info(
         f"Parsed email: horse={horse_name}, date={content_date}, "
@@ -72,7 +84,7 @@ def parse_email(raw_email: dict) -> ParsedEmail:
         message_id=raw_email["message_id"],
         thread_id=raw_email.get("thread_id", ""),
         subject=subject,
-        from_address=raw_email.get("from_address", ""),
+        from_address=from_address,
         date_received=raw_email.get("date_received", datetime.now()),
         horse_name=horse_name,
         content_date=content_date,
@@ -83,7 +95,7 @@ def parse_email(raw_email: dict) -> ParsedEmail:
     )
 
 
-def _extract_horse_name(subject: str) -> str:
+def _extract_horse_name(subject: str, *, source: str = "wexford") -> str:
     """
     Extract horse name from subject line.
     Handles multiple formats:
@@ -92,7 +104,22 @@ def _extract_horse_name(subject: str) -> str:
       - "Video Update - {HorseName}"
       - "Race Acceptance - {HorseName} - {date} - {venue}"
       - "Update for {HorseName}"
+      - miStable: "{Sire} - {Dam} 23F Horse Report" / "{HorseName} Horse Report"
     """
+    if source == "stephen-gray":
+        match = re.search(
+            r"^(.+?)\s+\d{2}[A-Z]\s+Horse\s+Report\s*$",
+            subject.strip(),
+            re.IGNORECASE,
+        )
+        if match:
+            sire_dam = match.group(1).strip()
+            sire_dam = re.sub(r"\s*-\s*", " x ", sire_dam, count=1)
+            return sire_dam
+
+        match = re.search(r"^(.+?)\s+Horse\s+Report\s*$", subject.strip(), re.IGNORECASE)
+        if match:
+            return match.group(1).strip()
     # Try "Audio Update: X" or "Audio Update - X"
     match = re.search(r"Audio\s+Update\s*[:\-]\s*(.+?)(?:\s*$)", subject, re.IGNORECASE)
     if match:
@@ -142,7 +169,13 @@ def _parse_day_month_year(day_month: str, year: int) -> date | None:
     return None
 
 
-def _extract_date(body: str, subject: str = "", date_received: datetime | None = None) -> date:
+def _extract_date(
+    body: str,
+    subject: str = "",
+    date_received: datetime | None = None,
+    *,
+    source: str = "wexford",
+) -> date:
     """
     Extract date from email body, with subject-line fallback for race emails.
     Pattern: "Date: 18 May 2026"
@@ -181,11 +214,14 @@ def _extract_date(body: str, subject: str = "", date_received: datetime | None =
             if parsed:
                 return parsed
 
+    if source == "stephen-gray" and date_received:
+        return date_received.date()
+
     logger.warning("Could not parse date from email body, using today")
     return date.today()
 
 
-def _extract_title(body: str) -> str:
+def _extract_title(body: str, *, subject: str = "", source: str = "wexford") -> str:
     """
     Extract title from email body.
     Pattern: "Title: VIDEO Update - 18 May 26"
@@ -193,6 +229,8 @@ def _extract_title(body: str) -> str:
     match = re.search(r"Title:\s*(.+?)(?:\n|$)", body, re.IGNORECASE)
     if match:
         return match.group(1).strip()
+    if source == "stephen-gray" and subject:
+        return subject.strip()
     return "Video Update"
 
 
@@ -241,8 +279,13 @@ def _video_url_score(url: str) -> int:
     return score
 
 
-def _extract_video_url(body: str) -> str | None:
+def _extract_video_url(body: str, *, from_address: str = "") -> str | None:
     """Extract the best video URL from the email body (prefer Prism CDN)."""
+    if infer_source(from_address) == "stephen-gray":
+        mistable_url = resolve_mistable_video_url(body)
+        if mistable_url:
+            return mistable_url
+
     candidates: list[str] = []
     for pattern in VIDEO_URL_PATTERNS:
         matches = re.findall(pattern, body, re.IGNORECASE)
@@ -257,23 +300,43 @@ def _extract_video_url(body: str) -> str | None:
     return max(candidates, key=_video_url_score)
 
 
-def _detect_speaker_count(body: str) -> int:
+def _detect_speaker_count(body: str, *, source: str = "wexford", from_address: str = "") -> int:
     """
     Detect number of speakers from email body.
     If "Lance O'Sullivan & Andrew Scott" (or variants) appear → 2 speakers.
     Otherwise → 1 speaker (Andrew Scott solo).
     """
+    if source == "stephen-gray" or "mistable.com" in (from_address or "").lower():
+        return 1
     for pattern in TWO_SPEAKER_PATTERNS:
         if re.search(pattern, body, re.IGNORECASE):
             return 2
     return 1
 
 
-def get_speaker_names(speaker_count: int) -> list[str]:
+def get_speaker_names(
+    speaker_count: int,
+    speaker_names: list[str] | None = None,
+    *,
+    horse_name: str | None = None,
+    from_address: str = "",
+) -> list[str]:
     """
-    Return the speaker name list based on count.
-    Rule: 1 speaker = Andrew Scott. 2 speakers = Andrew (first), Lance (second).
+    Return speaker labels for diarization mapping.
+    Uses explicit names when provided; otherwise source-specific defaults.
     """
+    if speaker_names:
+        return speaker_names[: max(1, min(speaker_count, 2))]
+
+    if horse_name:
+        try:
+            entry = resolve_horse_entry(horse_name)
+            return entry.speakers[: max(1, min(speaker_count, len(entry.speakers)))]
+        except ValueError:
+            pass
+
+    if infer_source(from_address) == "stephen-gray":
+        return ["Stephen Gray"]
     if speaker_count == 2:
         return ["Andrew Scott", "Lance O'Sullivan"]
     return ["Andrew Scott"]

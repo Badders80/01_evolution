@@ -7,7 +7,7 @@ dam: darkova
 country: FR
 foaled: 2013
 tags: [pedigree, sire, european-blood, wootton-bassett-line]
-progeny: [almanzorxnightdanza]
+progeny: [almanzor-x-night-danza]
 stands_at: Cambridge Stud (NZ)
 updated_at: 2026-06-24
 verified: false

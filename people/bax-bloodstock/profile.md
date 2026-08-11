@@ -9,7 +9,7 @@ contact: kylie-bax
 phone: "+64 21 557 045"
 email: baxltd@yahoo.com
 website: https://www.baxltd.com
-horses: [prudentia, hottathanafantasy, i-stole-a-manolo, almanzorxnightdanza]
+horses: [prudentia, hottathanafantasy, i-stole-a-manolo, almanzor-x-night-danza]
 backend_id: OWN-001
 updated_at: 2026-06-24
 ---

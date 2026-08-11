@@ -22,6 +22,7 @@ sys.path.insert(0, INGEST_DIR)
 
 from archive_media import (  # noqa: E402
     base_archive_dest,
+    derive_original_label,
     infer_extension,
     infer_media_kind,
     normalize_horse_slug,
@@ -45,7 +46,7 @@ MANIFEST_PATH = os.path.join(DATA_DIR, "media-download-manifest.csv")
 class MediaRecord:
     url: str
     horse_name: str
-    content_date: date
+    received_date: date
     subject: str
     source: str
 
@@ -70,9 +71,9 @@ def _parse_ndjson(path: str) -> list[MediaRecord]:
             email = entry.get("email", {})
             extracted = email.get("extracted", {})
             horse_name = extracted.get("horse") or ""
-            content_date = parse_content_date(extracted.get("race_date", ""))
-            if content_date is None:
-                content_date = parse_content_date(email.get("date", ""))
+            received_date = parse_content_date(email.get("date", ""))
+            if received_date is None:
+                received_date = parse_content_date(extracted.get("race_date", ""))
             subject = email.get("subject", "")
 
             for url in extracted.get("video_urls") or []:
@@ -81,7 +82,7 @@ def _parse_ndjson(path: str) -> list[MediaRecord]:
                         MediaRecord(
                             url=url,
                             horse_name=horse_name,
-                            content_date=content_date or date.today(),
+                            received_date=received_date or date.today(),
                             subject=subject,
                             source="ndjson",
                         )
@@ -113,9 +114,9 @@ def _parse_ledger(path: str, source_label: str) -> list[MediaRecord]:
             continue
 
         horse_name = extracted.get("horse") or ""
-        content_date = parse_content_date(extracted.get("race_date", ""))
-        if content_date is None:
-            content_date = parse_content_date(row["date_received"] or "")
+        received_date = parse_content_date(row["date_received"] or "")
+        if received_date is None:
+            received_date = parse_content_date(extracted.get("race_date", ""))
         subject = row["subject"] or ""
 
         for url in extracted.get("video_urls") or []:
@@ -124,7 +125,7 @@ def _parse_ledger(path: str, source_label: str) -> list[MediaRecord]:
                     MediaRecord(
                         url=url,
                         horse_name=horse_name,
-                        content_date=content_date or date.today(),
+                        received_date=received_date or date.today(),
                         subject=subject,
                         source=source_label,
                     )
@@ -143,13 +144,13 @@ def collect_records(include_legacy: bool) -> list[MediaRecord]:
 
 
 def dedupe_by_url(records: Iterable[MediaRecord]) -> list[MediaRecord]:
-    """Keep earliest content_date per URL."""
+    """Keep earliest received_date per URL."""
     best: dict[str, MediaRecord] = {}
     for rec in records:
         existing = best.get(rec.url)
-        if existing is None or rec.content_date < existing.content_date:
+        if existing is None or rec.received_date < existing.received_date:
             best[rec.url] = rec
-    return sorted(best.values(), key=lambda r: (r.content_date, r.url))
+    return sorted(best.values(), key=lambda r: (r.received_date, r.url))
 
 
 def filter_records(
@@ -169,9 +170,9 @@ def filter_records(
 
         if horse and slug != normalize_horse_slug(horse):
             continue
-        if from_date and rec.content_date < from_date:
+        if from_date and rec.received_date < from_date:
             continue
-        if to_date and rec.content_date > to_date:
+        if to_date and rec.received_date > to_date:
             continue
         filtered.append(rec)
     return filtered
@@ -208,15 +209,20 @@ def download_url(url: str, dest_path: str, timeout: int = 120) -> int:
 def process_record(rec: MediaRecord, *, dry_run: bool, skip_existing: bool) -> dict:
     horse_slug = normalize_horse_slug(rec.horse_name)
     media_kind = infer_media_kind(rec.url)
+    original_label = derive_original_label(
+        source_url=rec.url,
+        media_kind=media_kind,
+        subject=rec.subject,
+    )
     ext = infer_extension(rec.url)
-    canonical_dest = base_archive_dest(horse_slug, rec.content_date, media_kind, ext)
+    canonical_dest = base_archive_dest(horse_slug, rec.received_date, original_label, ext)
     dest_path = canonical_dest
     rel_path = to_relative_asset_path(dest_path)
 
     row = {
         "url": rec.url,
         "horse_slug": horse_slug,
-        "content_date": rec.content_date.isoformat(),
+        "received_date": rec.received_date.isoformat(),
         "dest_path": rel_path,
         "status": "pending",
         "bytes": 0,
@@ -232,7 +238,7 @@ def process_record(rec: MediaRecord, *, dry_run: bool, skip_existing: bool) -> d
         logger.info("Skip existing: %s", rel_path)
         return row
 
-    dest_path = resolve_archive_dest(horse_slug, rec.content_date, media_kind, ext)
+    dest_path = resolve_archive_dest(horse_slug, rec.received_date, original_label, ext)
     rel_path = to_relative_asset_path(dest_path)
     row["dest_path"] = rel_path
 
@@ -256,7 +262,7 @@ def process_record(rec: MediaRecord, *, dry_run: bool, skip_existing: bool) -> d
 
 def write_manifest(rows: list[dict], path: str) -> None:
     os.makedirs(os.path.dirname(path), exist_ok=True)
-    fieldnames = ["url", "horse_slug", "content_date", "dest_path", "status", "bytes", "sha256"]
+    fieldnames = ["url", "horse_slug", "received_date", "dest_path", "status", "bytes", "sha256"]
     with open(path, "w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames, extrasaction="ignore")
         writer.writeheader()
@@ -269,8 +275,8 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Download archived media from NDJSON + ledger URLs")
     parser.add_argument("--dry-run", action="store_true", help="List URLs and target paths only")
     parser.add_argument("--include-legacy-ledger", action="store_true", help="Include Evolution_Content ledger")
-    parser.add_argument("--from", dest="from_date", metavar="YYYY-MM-DD", help="Filter from content_date")
-    parser.add_argument("--to", dest="to_date", metavar="YYYY-MM-DD", help="Filter to content_date")
+    parser.add_argument("--from", dest="from_date", metavar="YYYY-MM-DD", help="Filter from received_date")
+    parser.add_argument("--to", dest="to_date", metavar="YYYY-MM-DD", help="Filter to received_date")
     parser.add_argument("--horse", help="Filter by horse slug (e.g. prudentia)")
     parser.add_argument("--skip-existing", action="store_true", default=True, help="Skip if dest exists (default)")
     parser.add_argument("--no-skip-existing", dest="skip_existing", action="store_false")

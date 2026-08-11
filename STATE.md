@@ -62,8 +62,8 @@ Production runtime → GCP (RETIRED — code preserved in api/)
 
 1. **Keep knowledge repo current** — horse profiles, race records, investor update source data
 2. **Email-ingest** — local/dev pipeline (`api/email-ingest/`) when env vars available
-3. **Mission Control / admin** — dormant until GCP returns or rehosted locally
-4. **Sync path to website** — inventory flows via Google Sheets → `02_website/scripts/sync_inventory.py`, not live Firestore
+3. **Mission Control / admin** — **live local** at `_tools/mission-control/` (not under `api/admin` — that path is retired)
+4. **Sync path to website** — website still Sheet-first; MC publishes JSON only on explicit Sync confirm
 
 ---
 
