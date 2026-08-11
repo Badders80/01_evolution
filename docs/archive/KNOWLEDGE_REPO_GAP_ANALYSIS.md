@@ -49,7 +49,7 @@ This plan closes the gap in 3 phases, prioritizing what you need for marketplace
 
 | ID | Name | Contact | Type | Horses Owned |
 |----|------|---------|------|-------------|
-| OWN-001 | B.A.X Bloodstock Achieving Xcellence Limited | Kylie Bax, +64 21 557 045, baxltd@yahoo.com | company | Prudentia, Hotta than a fantasy, I Stole A Manolo |
+| OWN-001 | B.A.X Bloodstock Achieving Xcellence Limited | Kylie Bax, +64 21 557 045, baxltd@yahoo.com | company | Prudentia, Hottathanafantasy, I Stole A Manolo |
 | OWN-002 | Stephen Gray Racing | Stephen Gray, +64 21 933 183 | company | First Gear |
 
 **Note:** Backend lists Stephen Gray Racing (OWN-002) as the owner entity for First Gear. Breeder is M & W Rose (from loveracing.nz).
@@ -67,7 +67,7 @@ This plan closes the gap in 3 phases, prioritizing what you need for marketplace
 |-------|-------|----------|--------|-------------------|---------------|--------|
 | LSE-001 | First Gear | 10% | 20 | $240 | 80% | complete |
 | LSE-002 | Prudentia | 5% | 20 | $292.50 | 75% | draft |
-| LSE-003 | Hotta than a fantasy | 5% | 20 | $280 | 75% | draft |
+| LSE-003 | Hottathanafantasy | 5% | 20 | $280 | 75% | draft |
 | LSE-004 | I Stole A Manolo | 5% | 20 | $280 | 75% | draft |
 
 ### HLTs (campaign records)
@@ -76,7 +76,7 @@ This plan closes the gap in 3 phases, prioritizing what you need for marketplace
 |-----|-------|-------|---------|---------------|-------|--------|
 | HLT-1 | First Gear | SGR (OWN-002) | SGR (TRN-002) | NZTR | LSE-001 | draft |
 | HLT-2 | Prudentia | B.A.X (OWN-001) | Wexford (TRN-001) | NZTR | LSE-002 | draft |
-| HLT-3 | Hotta than a fantasy | B.A.X (OWN-001) | Wexford (TRN-001) | NZTR | LSE-003 | draft |
+| HLT-3 | Hottathanafantasy | B.A.X (OWN-001) | Wexford (TRN-001) | NZTR | LSE-003 | draft |
 | HLT-4 | I Stole A Manolo | B.A.X (OWN-001) | Wexford (TRN-001) | NZTR | LSE-004 | draft |
 
 ### Correct Microchips (from backend, different from HORSES.csv!)
@@ -85,7 +85,7 @@ This plan closes the gap in 3 phases, prioritizing what you need for marketplace
 |-------|------------------|---------------------|
 | First Gear | 985125000126713 | 985141004523601 |
 | Prudentia | 985125000126462 | 985141004512345 |
-| Hotta than a fantasy | 985125000139165 | 985141004517845 |
+| Hottathanafantasy | 985125000139165 | 985141004517845 |
 | I Stole A Manolo | 985125000139219 | 985141004518932 |
 
 **⚠️ The microchips in HORSES.csv and the pedigree.json files are WRONG.** The backend seed data has the correct ones (verified against loveracing.nz URLs in the seed data).

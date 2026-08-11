@@ -1,12 +1,12 @@
 ---
 horse_slug: hottathanafantasy
-horse_name: Hotta than a fantasy (NZ)
+horse_name: Hottathanafantasy (NZ)
 source_url: https://portal.tokinvest.capital/asset/11/details
 fetched_at: 2026-06-24
 status: Sold Out
 ---
 
-# Hotta than a fantasy (NZ)
+# Hottathanafantasy (NZ)
 
 **Tokinvest Asset ID:** 11
 **Source:** https://portal.tokinvest.capital/asset/11/details

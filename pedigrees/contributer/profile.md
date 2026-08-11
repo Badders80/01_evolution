@@ -58,7 +58,7 @@ Contributer was a **dual Group 1 winner** — far more accomplished than the lov
 
 ## Breeding Career
 
-Contributer sired **Hotta than a fantasy (NZ) 2023**, a 2YO filly currently in pre-training at Wexford Stables. He transmits the stamina and poise of the High Chaparral line.
+Contributer sired **Hottathanafantasy (NZ) 2023**, a 2YO filly currently in pre-training at Wexford Stables. He transmits the stamina and poise of the High Chaparral line.
 
 ## Significance for NZ Racing
 

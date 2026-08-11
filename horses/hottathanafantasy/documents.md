@@ -8,7 +8,7 @@ tokinvest_asset_id: 11
 updated_at: 2026-06-24
 ---
 
-# Hotta than a fantasy — Documents (Tokinvest version)
+# Hottathanafantasy — Documents (Tokinvest version)
 
 ## Documents on disk (`_assets/horses/hottathanafantasy/documents/`)
 

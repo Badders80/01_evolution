@@ -40,7 +40,7 @@ Operating out of world-class facilities in Matamata, Wexford Stables maintains o
 ## Current Evolution Stables Horses
 
 - Prudentia (NZ) — 4yo mare by Proisir
-- Hotta than a fantasy (NZ) — 2yo filly by Contributer
+- Hottathanafantasy (NZ) — 2yo filly by Contributer
 - I Stole A Manolo (NZ) — 2yo filly by Satono Aladdin
 
 ---

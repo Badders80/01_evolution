@@ -19,13 +19,13 @@ sa_status: pending
 updated_at: 2026-06-24
 ---
 
-# HLT Campaign — Hotta than a fantasy
+# HLT Campaign — Hottathanafantasy
 
 ## Campaign Summary
 
 | Field | Value |
 |-------|-------|
-| Horse | Hotta than a fantasy (NZ) |
+| Horse | Hottathanafantasy (NZ) |
 | Owner | B.A.X Bloodstock (OWN-001) |
 | Trainer | Lance O'Sullivan & Andrew Scott (TRN-001) |
 | Lease | LSE-003 (draft) |

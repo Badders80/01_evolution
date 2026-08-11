@@ -26,7 +26,7 @@ updated_at: 2026-06-24
 | Email | baxltd@yahoo.com |
 | Website | baxltd.com |
 | Backend ID | OWN-001 |
-| Horses | Prudentia, Hotta than a fantasy, I Stole A Manolo |
+| Horses | Prudentia, Hottathanafantasy, I Stole A Manolo |
 
 ---
 

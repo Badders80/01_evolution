@@ -1,7 +1,7 @@
 ---
 slug: hottathanafantasy
 type: horse
-name: Hotta than a fantasy (NZ)
+name: Hottathanafantasy (NZ)
 tags: [horse, active, filly, wexford-stables]
 trainer: lance-osullivan
 stable: wexford-stables
@@ -16,7 +16,7 @@ updated_at: 2026-06-24
 status: active
 ---
 
-# Hotta than a fantasy (NZ)
+# Hottathanafantasy (NZ)
 
 ## At a Glance
 
@@ -47,7 +47,7 @@ Performance profile is live on loveracing; `race-record.json` stays empty until 
 
 ## Profile
 
-Hotta than a fantasy is a promising two-year-old filly from New Zealand, combining a high-class international pedigree with the expert guidance of Hall of Fame trainer Lance O'Sullivan. She represents an exceptional opportunity to enter the world of New Zealand racing at its highest level.
+Hottathanafantasy is a promising two-year-old filly from New Zealand, combining a high-class international pedigree with the expert guidance of Hall of Fame trainer Lance O'Sullivan. She represents an exceptional opportunity to enter the world of New Zealand racing at its highest level.
 
 Currently in her first year of racing preparation, she shows all the physical traits of a high-performance athlete ready to make her mark on the New Zealand turf. Her natural athleticism and blue-chip bloodlines reflect both her high ceiling and the regard in which she is held by the Wexford Stables team.
 

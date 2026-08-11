@@ -132,7 +132,7 @@ Same rule for every NZTR horse. Example: `NZ00452052` → `452052` (Hottathanafa
 |------|------|-------------------|---------|--------|
 | `first-gear` | First Gear | 2 | Stephen Gray (Copper Belt Lodge) | Sold Out |
 | `prudentia` | Prudentia (NZ) | 10 | Lance O'Sullivan (Wexford Stables) | Sold Out |
-| `hottathanafantasy` | Hotta than a fantasy (NZ) | 11 | Lance O'Sullivan (Wexford Stables) | Sold Out |
+| `hottathanafantasy` | Hottathanafantasy (NZ) | 11 | Lance O'Sullivan (Wexford Stables) | Sold Out |
 | `i-stole-a-manolo` | I Stole A Manolo (NZ) | 14 | Lance O'Sullivan & Andrew Scott (Wexford Stables) | OTC Quote |
 | `almanzor-x-night-danza` | Almanzor x Night Danza (unnamed) | — | Logan Racing | Coming Soon |
 | `turn-me-loose-x-yearn` | Turn Me Loose x Yearn (unnamed) | — | Stephen Gray (Copper Belt Lodge) | Coming Soon |

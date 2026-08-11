@@ -20,7 +20,7 @@ updated_at: 2026-06-24
 | Company | B.A.X Bloodstock Achieving Xcellence Limited |
 | Phone | +64 21 557 045 |
 | Email | baxltd@yahoo.com |
-| Horses | Prudentia, Hotta than a fantasy, I Stole A Manolo |
+| Horses | Prudentia, Hottathanafantasy, I Stole A Manolo |
 
 ---
 
