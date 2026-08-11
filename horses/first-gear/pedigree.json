@@ -14,7 +14,8 @@
   },
   "dam": {
     "name": "A'Guin Ace (NZ) 2007",
-    "dam_id": null
+    "dam_id": null,
+    "dam_sire": "O'Reilly"
   },
   "breeder": "M & W Rose",
   "family_number": "13",
@@ -27,5 +28,289 @@
   "performance_profile_url": "https://loveracing.nz/Common/SystemTemplates/Modal/EntryDetail.aspx?DisplayContext=Modal&HorseID=428364",
   "verified": true,
   "verified_at": "2026-06-24",
-  "notes": "Verified against loveracing.nz Stud Book. Owner on loveracing: M Daines, C & M & Est late W Rose. Breeder: M & W Rose."
+  "notes": "Verified against loveracing.nz Stud Book. Owner on loveracing: M Daines, C & M & Est late W Rose. Breeder: M & W Rose.",
+  "dam_line": [
+    {
+      "name": "A'Guin Ace",
+      "country": "NZ",
+      "year": "2007",
+      "partner": {
+        "name": "O'Reilly",
+        "country": "NZ",
+        "year": "1993"
+      }
+    },
+    {
+      "name": "Guinness Affair",
+      "country": "NZ",
+      "year": "1996",
+      "partner": {
+        "name": "Kaapstad",
+        "country": "NZ",
+        "year": "1984"
+      }
+    },
+    {
+      "name": "Threadneedle",
+      "country": "NZ",
+      "year": "1987",
+      "partner": {
+        "name": "Famous Star",
+        "country": "GB",
+        "year": "1979"
+      }
+    },
+    {
+      "name": "Military Madness",
+      "country": "NZ",
+      "year": "1980",
+      "partner": {
+        "name": "War Hawk II",
+        "country": "GB",
+        "year": "1968"
+      }
+    },
+    {
+      "name": "Chatty Girl",
+      "country": "NZ",
+      "year": "1963",
+      "partner": {
+        "name": "Chatsworth II",
+        "country": "GB",
+        "year": "1950"
+      }
+    },
+    {
+      "name": "Glamin",
+      "country": "NZ",
+      "year": "1952",
+      "partner": {
+        "name": "Instinct",
+        "country": "GB",
+        "year": "1941"
+      }
+    },
+    {
+      "name": "Glamor Girl",
+      "country": "NZ",
+      "year": "1942",
+      "partner": {
+        "name": "Coronach",
+        "country": "GB",
+        "year": "1923"
+      }
+    },
+    {
+      "name": "Kriemhild",
+      "country": "NZ",
+      "year": "1936",
+      "partner": {
+        "name": "Siegfried",
+        "country": "GB",
+        "year": "1925"
+      }
+    },
+    {
+      "name": "Left",
+      "country": "NZ",
+      "year": "1918",
+      "partner": {
+        "name": "Martian",
+        "country": "NZ",
+        "year": "1901"
+      }
+    },
+    {
+      "name": "Lovelorn",
+      "country": "NZ",
+      "year": "1906",
+      "partner": {
+        "name": "Melton",
+        "country": "GB",
+        "year": ""
+      }
+    },
+    {
+      "name": "Hebrew Maid",
+      "country": "GB",
+      "year": "1904",
+      "partner": {
+        "name": "Orion",
+        "country": "GB",
+        "year": "1888"
+      }
+    },
+    {
+      "name": "Jewish Maiden",
+      "country": "GB",
+      "year": "1892",
+      "partner": {
+        "name": "Sheen",
+        "country": "GB",
+        "year": "1885"
+      }
+    }
+  ],
+  "sire_line": [
+    {
+      "name": "Derryn",
+      "country": "AUS",
+      "year": "2013",
+      "partner": {
+        "name": "Munhro",
+        "country": "AUS",
+        "year": "2005"
+      }
+    },
+    {
+      "name": "Hinchinbrook",
+      "country": "AUS",
+      "year": "2007",
+      "partner": {
+        "name": "Snippets' Lass",
+        "country": "AUS",
+        "year": "1993"
+      }
+    },
+    {
+      "name": "Fastnet Rock",
+      "country": "AUS",
+      "year": "2001",
+      "partner": {
+        "name": "Piccadilly Circus",
+        "country": "AUS",
+        "year": "1995"
+      }
+    },
+    {
+      "name": "Danehill",
+      "country": "USA",
+      "year": "1986",
+      "partner": {
+        "name": "Razyana",
+        "country": "USA",
+        "year": "1981"
+      }
+    },
+    {
+      "name": "Danzig",
+      "country": "USA",
+      "year": "1977",
+      "partner": {
+        "name": "Pas de Nom",
+        "country": "USA",
+        "year": "1968"
+      }
+    },
+    {
+      "name": "Northern Dancer",
+      "country": "CAN",
+      "year": "1961",
+      "partner": {
+        "name": "Natalma",
+        "country": "USA",
+        "year": "1957"
+      }
+    },
+    {
+      "name": "Nearctic",
+      "country": "USA",
+      "year": "1954",
+      "partner": {
+        "name": "Lady Angela",
+        "country": "GB",
+        "year": "1944"
+      }
+    },
+    {
+      "name": "Nearco",
+      "country": "ITY",
+      "year": "1935",
+      "partner": {
+        "name": "Nogara",
+        "country": "ITY",
+        "year": "1928"
+      }
+    },
+    {
+      "name": "Pharos",
+      "country": "GB",
+      "year": "1920",
+      "partner": {
+        "name": "Scapa Flow",
+        "country": "GB",
+        "year": "1914"
+      }
+    },
+    {
+      "name": "Phalaris",
+      "country": "GB",
+      "year": "1913",
+      "partner": {
+        "name": "Bromus",
+        "country": "GB",
+        "year": "1905"
+      }
+    },
+    {
+      "name": "Polymelus",
+      "country": "GB",
+      "year": "1902",
+      "partner": {
+        "name": "Maid Marian",
+        "country": "GB",
+        "year": "1886"
+      }
+    },
+    {
+      "name": "Cyllene",
+      "country": "GB",
+      "year": "1895",
+      "partner": {
+        "name": "Arcadia",
+        "country": "GB",
+        "year": "1887"
+      }
+    },
+    {
+      "name": "Bona Vista",
+      "country": "GB",
+      "year": "1889",
+      "partner": {
+        "name": "Vista",
+        "country": "GB",
+        "year": "1879"
+      }
+    },
+    {
+      "name": "Bend Or",
+      "country": "GB",
+      "year": "1877",
+      "partner": {
+        "name": "Rouge Rose",
+        "country": "GB",
+        "year": "1865"
+      }
+    },
+    {
+      "name": "Doncaster",
+      "country": "GB",
+      "year": "1870",
+      "partner": {
+        "name": "Marigold",
+        "country": "GB",
+        "year": "1860"
+      }
+    },
+    {
+      "name": "Stockwell",
+      "country": "GB",
+      "year": "1849",
+      "partner": {
+        "name": "",
+        "country": "",
+        "year": ""
+      }
+    }
+  ]
 }

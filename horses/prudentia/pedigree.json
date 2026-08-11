@@ -14,7 +14,8 @@
   },
   "dam": {
     "name": "Little Bit Irish (NZ) 2012",
-    "dam_id": null
+    "dam_id": null,
+    "dam_sire": "O'Reilly"
   },
   "breeder": "Goldeye Trust",
   "family_number": "13",
@@ -27,5 +28,259 @@
   "performance_profile_url": "https://loveracing.nz/Common/SystemTemplates/Modal/EntryDetail.aspx?DisplayContext=Modal&HorseID=427416",
   "verified": true,
   "verified_at": "2026-06-24",
-  "notes": "Verified against loveracing.nz Stud Book. Owner on loveracing: Bloodstock Acherving Xcellence I'm Pru Syndicate (Mgr: K Bax). Breeder: Goldeye Trust."
+  "notes": "Verified against loveracing.nz Stud Book. Owner on loveracing: Bloodstock Acherving Xcellence I'm Pru Syndicate (Mgr: K Bax). Breeder: Goldeye Trust.",
+  "dam_line": [
+    {
+      "name": "Little Bit Irish",
+      "country": "NZ",
+      "year": "2012",
+      "partner": {
+        "name": "O'Reilly",
+        "country": "NZ",
+        "year": "1993"
+      }
+    },
+    {
+      "name": "Whiffle",
+      "country": "USA",
+      "year": "2004",
+      "partner": {
+        "name": "Red Ransom",
+        "country": "USA",
+        "year": "1987"
+      }
+    },
+    {
+      "name": "Whist",
+      "country": "GB",
+      "year": "1994",
+      "partner": {
+        "name": "Mr. Prospector",
+        "country": "USA",
+        "year": "1970"
+      }
+    },
+    {
+      "name": "Wajd",
+      "country": "USA",
+      "year": "1987",
+      "partner": {
+        "name": "Northern Dancer",
+        "country": "CAN",
+        "year": "1961"
+      }
+    },
+    {
+      "name": "Dahlia",
+      "country": "USA",
+      "year": "1970",
+      "partner": {
+        "name": "Vaguely Noble",
+        "country": "IRE",
+        "year": "1965"
+      }
+    },
+    {
+      "name": "Charming Alibi",
+      "country": "USA",
+      "year": "1963",
+      "partner": {
+        "name": "Honeys Alibi",
+        "country": "USA",
+        "year": "1952"
+      }
+    },
+    {
+      "name": "Adorada II",
+      "country": "ARG",
+      "year": "1947",
+      "partner": {
+        "name": "Hierocles",
+        "country": "FR",
+        "year": "1939"
+      }
+    },
+    {
+      "name": "Gilded Wave",
+      "country": "USA",
+      "year": "1938",
+      "partner": {
+        "name": "Gallant Fox",
+        "country": "USA",
+        "year": "1927"
+      }
+    },
+    {
+      "name": "Ondulation",
+      "country": "FR",
+      "year": "1920",
+      "partner": {
+        "name": "Sweeper",
+        "country": "USA",
+        "year": "1901"
+      }
+    }
+  ],
+  "sire_line": [
+    {
+      "name": "Proisir",
+      "country": "AUS",
+      "year": "2009",
+      "partner": {
+        "name": "Prophet Jewel",
+        "country": "AUS",
+        "year": "1999"
+      }
+    },
+    {
+      "name": "Choisir",
+      "country": "AUS",
+      "year": "1999",
+      "partner": {
+        "name": "Great Selection",
+        "country": "AUS",
+        "year": "1990"
+      }
+    },
+    {
+      "name": "Danehill Dancer",
+      "country": "IRE",
+      "year": "1993",
+      "partner": {
+        "name": "Mira Adonde",
+        "country": "USA",
+        "year": "1986"
+      }
+    },
+    {
+      "name": "Danehill",
+      "country": "USA",
+      "year": "1986",
+      "partner": {
+        "name": "Razyana",
+        "country": "USA",
+        "year": "1981"
+      }
+    },
+    {
+      "name": "Danzig",
+      "country": "USA",
+      "year": "1977",
+      "partner": {
+        "name": "Pas de Nom",
+        "country": "USA",
+        "year": "1968"
+      }
+    },
+    {
+      "name": "Northern Dancer",
+      "country": "CAN",
+      "year": "1961",
+      "partner": {
+        "name": "Natalma",
+        "country": "USA",
+        "year": "1957"
+      }
+    },
+    {
+      "name": "Nearctic",
+      "country": "USA",
+      "year": "1954",
+      "partner": {
+        "name": "Lady Angela",
+        "country": "GB",
+        "year": "1944"
+      }
+    },
+    {
+      "name": "Nearco",
+      "country": "ITY",
+      "year": "1935",
+      "partner": {
+        "name": "Nogara",
+        "country": "ITY",
+        "year": "1928"
+      }
+    },
+    {
+      "name": "Pharos",
+      "country": "GB",
+      "year": "1920",
+      "partner": {
+        "name": "Scapa Flow",
+        "country": "GB",
+        "year": "1914"
+      }
+    },
+    {
+      "name": "Phalaris",
+      "country": "GB",
+      "year": "1913",
+      "partner": {
+        "name": "Bromus",
+        "country": "GB",
+        "year": "1905"
+      }
+    },
+    {
+      "name": "Polymelus",
+      "country": "GB",
+      "year": "1902",
+      "partner": {
+        "name": "Maid Marian",
+        "country": "GB",
+        "year": "1886"
+      }
+    },
+    {
+      "name": "Cyllene",
+      "country": "GB",
+      "year": "1895",
+      "partner": {
+        "name": "Arcadia",
+        "country": "GB",
+        "year": "1887"
+      }
+    },
+    {
+      "name": "Bona Vista",
+      "country": "GB",
+      "year": "1889",
+      "partner": {
+        "name": "Vista",
+        "country": "GB",
+        "year": "1879"
+      }
+    },
+    {
+      "name": "Bend Or",
+      "country": "GB",
+      "year": "1877",
+      "partner": {
+        "name": "Rouge Rose",
+        "country": "GB",
+        "year": "1865"
+      }
+    },
+    {
+      "name": "Doncaster",
+      "country": "GB",
+      "year": "1870",
+      "partner": {
+        "name": "Marigold",
+        "country": "GB",
+        "year": "1860"
+      }
+    },
+    {
+      "name": "Stockwell",
+      "country": "GB",
+      "year": "1849",
+      "partner": {
+        "name": "",
+        "country": "",
+        "year": ""
+      }
+    }
+  ]
 }

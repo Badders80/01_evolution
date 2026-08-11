@@ -14,7 +14,8 @@
   },
   "dam": {
     "name": "Whiffle (USA) 2004",
-    "dam_id": null
+    "dam_id": null,
+    "dam_sire": "Red Ransom"
   },
   "breeder": "Goldeye Trust",
   "family_number": "13",
@@ -27,5 +28,229 @@
   "performance_profile_url": "https://loveracing.nz/Common/SystemTemplates/Modal/EntryDetail.aspx?DisplayContext=Modal&HorseID=452052",
   "verified": true,
   "verified_at": "2026-06-24",
-  "notes": "Verified against loveracing.nz Stud Book. Breeder: Goldeye Trust."
+  "notes": "Verified against loveracing.nz Stud Book. Breeder: Goldeye Trust.",
+  "dam_line": [
+    {
+      "name": "Whiffle",
+      "country": "USA",
+      "year": "2004",
+      "partner": {
+        "name": "Red Ransom",
+        "country": "USA",
+        "year": "1987"
+      }
+    },
+    {
+      "name": "Whist",
+      "country": "GB",
+      "year": "1994",
+      "partner": {
+        "name": "Mr. Prospector",
+        "country": "USA",
+        "year": "1970"
+      }
+    },
+    {
+      "name": "Wajd",
+      "country": "USA",
+      "year": "1987",
+      "partner": {
+        "name": "Northern Dancer",
+        "country": "CAN",
+        "year": "1961"
+      }
+    },
+    {
+      "name": "Dahlia",
+      "country": "USA",
+      "year": "1970",
+      "partner": {
+        "name": "Vaguely Noble",
+        "country": "IRE",
+        "year": "1965"
+      }
+    },
+    {
+      "name": "Charming Alibi",
+      "country": "USA",
+      "year": "1963",
+      "partner": {
+        "name": "Honeys Alibi",
+        "country": "USA",
+        "year": "1952"
+      }
+    },
+    {
+      "name": "Adorada II",
+      "country": "ARG",
+      "year": "1947",
+      "partner": {
+        "name": "Hierocles",
+        "country": "FR",
+        "year": "1939"
+      }
+    },
+    {
+      "name": "Gilded Wave",
+      "country": "USA",
+      "year": "1938",
+      "partner": {
+        "name": "Gallant Fox",
+        "country": "USA",
+        "year": "1927"
+      }
+    },
+    {
+      "name": "Ondulation",
+      "country": "FR",
+      "year": "1920",
+      "partner": {
+        "name": "Sweeper",
+        "country": "USA",
+        "year": "1901"
+      }
+    }
+  ],
+  "sire_line": [
+    {
+      "name": "Contributer",
+      "country": "IRE",
+      "year": "2010",
+      "partner": {
+        "name": "Serisia",
+        "country": "FR",
+        "year": "1999"
+      }
+    },
+    {
+      "name": "High Chaparral",
+      "country": "IRE",
+      "year": "1999",
+      "partner": {
+        "name": "Kasora",
+        "country": "IRE",
+        "year": "1993"
+      }
+    },
+    {
+      "name": "Sadler's Wells",
+      "country": "USA",
+      "year": "1981",
+      "partner": {
+        "name": "Fairy Bridge",
+        "country": "USA",
+        "year": "1975"
+      }
+    },
+    {
+      "name": "Northern Dancer",
+      "country": "CAN",
+      "year": "1961",
+      "partner": {
+        "name": "Natalma",
+        "country": "USA",
+        "year": "1957"
+      }
+    },
+    {
+      "name": "Nearctic",
+      "country": "USA",
+      "year": "1954",
+      "partner": {
+        "name": "Lady Angela",
+        "country": "GB",
+        "year": "1944"
+      }
+    },
+    {
+      "name": "Nearco",
+      "country": "ITY",
+      "year": "1935",
+      "partner": {
+        "name": "Nogara",
+        "country": "ITY",
+        "year": "1928"
+      }
+    },
+    {
+      "name": "Pharos",
+      "country": "GB",
+      "year": "1920",
+      "partner": {
+        "name": "Scapa Flow",
+        "country": "GB",
+        "year": "1914"
+      }
+    },
+    {
+      "name": "Phalaris",
+      "country": "GB",
+      "year": "1913",
+      "partner": {
+        "name": "Bromus",
+        "country": "GB",
+        "year": "1905"
+      }
+    },
+    {
+      "name": "Polymelus",
+      "country": "GB",
+      "year": "1902",
+      "partner": {
+        "name": "Maid Marian",
+        "country": "GB",
+        "year": "1886"
+      }
+    },
+    {
+      "name": "Cyllene",
+      "country": "GB",
+      "year": "1895",
+      "partner": {
+        "name": "Arcadia",
+        "country": "GB",
+        "year": "1887"
+      }
+    },
+    {
+      "name": "Bona Vista",
+      "country": "GB",
+      "year": "1889",
+      "partner": {
+        "name": "Vista",
+        "country": "GB",
+        "year": "1879"
+      }
+    },
+    {
+      "name": "Bend Or",
+      "country": "GB",
+      "year": "1877",
+      "partner": {
+        "name": "Rouge Rose",
+        "country": "GB",
+        "year": "1865"
+      }
+    },
+    {
+      "name": "Doncaster",
+      "country": "GB",
+      "year": "1870",
+      "partner": {
+        "name": "Marigold",
+        "country": "GB",
+        "year": "1860"
+      }
+    },
+    {
+      "name": "Stockwell",
+      "country": "GB",
+      "year": "1849",
+      "partner": {
+        "name": "",
+        "country": "",
+        "year": ""
+      }
+    }
+  ]
 }
