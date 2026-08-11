@@ -1,5 +1,5 @@
 ---
-slug: almanzorxnightdanza
+slug: almanzor-x-night-danza
 type: horse
 name: Almanzor x Night Danza (unnamed)
 tags: [horse, coming-soon, filly, 2yo, logan-racing, bax-bloodstock]
@@ -34,6 +34,11 @@ updated_at: 2026-06-24
 | Trainer | Logan Racing |
 | Owner | B.A.X Bloodstock |
 | Status | Coming Soon |
+| loveracing.nz | Not registered yet (unnamed) |
+
+## Official records (loveracing.nz)
+
+Pending — horse not yet named or on NZTR Stud Book. When registered: add `microchip`, `life_number`, `loveracing_id`, and both URLs per `horses/README.md` → *When a pending horse is named*.
 
 ---
 
@@ -43,7 +48,7 @@ A 2YO filly by Almanzor out of Night Danza, currently in early education with Lo
 
 ## Media
 
-- **Image:** `0H4A0292.png` — Squarespace CDN URL (to be downloaded to `_assets/horses/almanzorxnightdanza/images/`)
+- **Image:** `0H4A0292.png` — Squarespace CDN URL (to be downloaded to `_assets/horses/almanzor-x-night-danza/images/`)
 - **Video:** 59 seconds, embedded on page at https://www.baxltd.com/almanzorxnightdanza (Squarespace video player — URL not extracted, reference page URL)
 
 ---

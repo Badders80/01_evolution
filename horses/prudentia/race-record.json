@@ -2,12 +2,12 @@
   "horse_slug": "prudentia",
   "horse_name": "Prudentia (NZ)",
   "microchip": "985125000126462",
-  "total_starts": 9,
+  "total_starts": 10,
   "total_wins": 2,
   "total_seconds": 0,
   "total_thirds": 1,
-  "total_prizemoney_nzd": 36060,
-  "flat_rating": 67,
+  "total_prizemoney_nzd": 36585,
+  "flat_rating": 66,
   "starts": [
     {
       "date": "2025-05-28",
@@ -23,6 +23,20 @@
       "starting_price": "$9.40"
     },
     {
+      "date": "2026-03-14",
+      "venue": "Tauranga",
+      "race_name": "CRAIGS INVESTMENT PARTNERS 1400",
+      "race_class": "Rating 65 Benchmark",
+      "distance_m": 1400,
+      "track_condition": "Heavy8",
+      "jockey": "Masa Hashizume",
+      "result": "5th",
+      "margin": "2.8L",
+      "prizemoney_nzd": 1000,
+      "starting_price": "$16.90",
+      "field_size": 12
+    },
+    {
       "date": "2026-04-17",
       "venue": "Te Rapa (Waikato)",
       "race_name": "SAL'S PIZZA HAMILTON 1300",
@@ -33,7 +47,22 @@
       "result": "1st",
       "margin": "NECK",
       "prizemoney_nzd": 20125,
-      "starting_price": "$10.60"
+      "starting_price": "$10.60",
+      "field_size": 14
+    },
+    {
+      "date": "2026-05-02",
+      "venue": "Te Rapa (Waikato)",
+      "race_name": "SHELL & COSGRAVE 1400",
+      "race_class": "Rating 75 Benchmark",
+      "distance_m": 1400,
+      "track_condition": "Good4",
+      "jockey": "Masa Hashizume",
+      "result": "3rd",
+      "margin": "0.3L",
+      "prizemoney_nzd": 3150,
+      "starting_price": "$14.10",
+      "field_size": 16
     },
     {
       "date": "2026-05-30",
@@ -46,12 +75,30 @@
       "result": "5th",
       "margin": "SHORT HEAD",
       "prizemoney_nzd": 875,
-      "starting_price": "$8.20"
+      "starting_price": "$8.20",
+      "field_size": 13
+    },
+    {
+      "date": "2026-06-27",
+      "venue": "Tauranga",
+      "race_name": "SUPER LIQUOR GREERTON 1400",
+      "race_class": "Rating 75 Benchmark",
+      "distance_m": 1400,
+      "track_condition": "Heavy10",
+      "jockey": "Masa Hashizume",
+      "result": "6th",
+      "margin": "4.6L",
+      "prizemoney_nzd": 525,
+      "starting_price": "$7.70",
+      "field_size": 11,
+      "notes": "6th of 11 on Heavy10. $525 NZD prizemoney (loveracing.nz verified 2026-06-29). Stable noted puggy/sticky ground did not suit her running style; prefers looser heavy. Rating 67 (-1). Carried forward to Q3 distribution — NZTR settlement after distribution date. See post-race voice notes 2026-06-27_andrew-scott-wexford_post-race and 2026-06-27_kyle-bax_post-race."
     }
   ],
+  "loveracing_id": 427416,
   "source": "loveracing_nz",
   "source_url": "https://loveracing.nz/Breeding/427416/Prudentia-NZ-2021.aspx",
+  "performance_profile_url": "https://loveracing.nz/Common/SystemTemplates/Modal/EntryDetail.aspx?DisplayContext=Modal&HorseID=427416",
   "verified": true,
-  "verified_at": "2026-06-24",
-  "notes": "Verified from loveracing.nz. 9 starts: 2 wins, 0 seconds, 1 third, 2 fifths, 4 unplaced. $36,060 career prizemoney. Maiden win at Tauranga 28 May 2025 on Heavy10. Second win at Te Rapa 17 Apr 2026 on Heavy9 (BM65). Next nominated: Tauranga 27 Jun 2026."
+  "verified_at": "2026-06-29",
+  "notes": "Verified from loveracing.nz EntryDetail (HorseID 427416). 10 career starts: 2 wins, 0 seconds, 1 third, $36,585 prizemoney. Q1/Q2 2026 reporting period: 5 starts, $25,675 horse stakes ($25,150 in Q1/Q2 distribution; $525 from 27 Jun carried to Q3)."
 }

@@ -30,6 +30,18 @@ status: active
 | Trainer | Lance O'Sullivan & Andrew Scott |
 | Stable | Wexford Stables, Matamata |
 | Microchip | 985125000139165 |
+| Life no. | NZ00452052 |
+| loveracing.nz ID | 452052 |
+| Racing status | Unraced (pre-training) |
+
+## Official records (loveracing.nz)
+
+| Record | URL |
+|--------|-----|
+| Stud Book | [Breeding page](https://loveracing.nz/Breeding/452052/Hottathanafantasy-NZ-2023.aspx) |
+| Performance | [Performance profile](https://loveracing.nz/Common/SystemTemplates/Modal/EntryDetail.aspx?DisplayContext=Modal&HorseID=452052) |
+
+Performance profile is live on loveracing; `race-record.json` stays empty until her first official start. See `horses/README.md` → *When a horse gets its first start*.
 
 ---
 

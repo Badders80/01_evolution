@@ -1,0 +1,31 @@
+{
+  "horse_slug": "turn-me-loose-x-yearn",
+  "horse_name": "Turn Me Loose x Yearn (unnamed)",
+  "microchip": "985125000128426",
+  "life_number": "NZ00460867",
+  "loveracing_id": 460867,
+  "sex": "filly",
+  "colour": "Bay",
+  "foaling_date": "2023-08-17",
+  "country_code": "NZ",
+  "sire": {
+    "name": "Turn Me Loose (NZ) 2011",
+    "sire_id": 290223
+  },
+  "dam": {
+    "name": "Yearn (NZ) 2013",
+    "dam_id": 317105
+  },
+  "breeder": "C W Kwok",
+  "family_number": "21",
+  "left_shoulder_brand": "S",
+  "right_shoulder_brand": "104 OVER 3",
+  "dna_typed": true,
+  "pv": true,
+  "source": "loveracing_nz",
+  "source_url": "https://loveracing.nz/Breeding/460867/Yearn-NZ-2013-2023.aspx",
+  "performance_profile_url": "https://loveracing.nz/Common/SystemTemplates/Modal/EntryDetail.aspx?DisplayContext=Modal&HorseID=460867",
+  "verified": true,
+  "verified_at": "2026-07-08",
+  "notes": "Verified against loveracing.nz Stud Book (Breeding/460867). Bay filly by Turn Me Loose out of Yearn, foaled 17 Aug 2023. Breeder: C W Kwok. Family 21. DNA typed. Withdrawn from Karaka 2025 Book 1 (Lot 413, account Windsor Park Stud). Now in training with Stephen Gray at Copper Belt Lodge, Palmerston North."
+}

@@ -3,7 +3,7 @@
 slug: prudentia-transcripts
 type: transcript-index
 horse: prudentia
-updated_at: 2026-06-26
+updated_at: 2026-07-22
 ---
 
 # Prudentia — Transcript Index
@@ -12,6 +12,8 @@ updated_at: 2026-06-26
 
 | Date | File |
 |------|------|
+| 2026-06-27 | `2026-06-27_kyle-bax_post-race.ogg` |
+| 2026-07-02 | `2026-07-02_alex-baddeley_retirement.ogg` |
 | 2026-02-10 | `transcript_Prudentia_2026-02-10.json` |
 | 2026-02-13 | `transcript_Prudentia_2026-02-13.json` |
 | 2026-02-16 | `transcript_Prudentia_2026-02-16.json` |
@@ -42,3 +44,6 @@ updated_at: 2026-06-26
 | 2026-06-15 | `transcript_Prudentia_2026-06-15.json` |
 | 2026-06-22 | `transcript_Prudentia_2026-06-22.json` |
 | 2026-06-23 | `transcript_Prudentia_2026-06-23.json` |
+| 2026-06-27 | `transcript_Prudentia_2026-06-27_andrew-scott.json` |
+| 2026-06-27 | `transcript_Prudentia_2026-06-27_kyle-bax.json` |
+| 2026-07-02 | `transcript_Prudentia_2026-07-02_alex-baddeley.json` |

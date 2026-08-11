@@ -30,6 +30,18 @@ status: active
 | Trainer | Lance O'Sullivan & Andrew Scott |
 | Stable | Wexford Stables, Matamata |
 | Microchip | 985125000139219 |
+| Life no. | NZ00451442 |
+| loveracing.nz ID | 451442 |
+| Racing status | Unraced (trialling / early education) |
+
+## Official records (loveracing.nz)
+
+| Record | URL |
+|--------|-----|
+| Stud Book | [Breeding page](https://loveracing.nz/Breeding/451442/I-Stole-A-Manolo-NZ-2023.aspx) |
+| Performance | [Performance profile](https://loveracing.nz/Common/SystemTemplates/Modal/EntryDetail.aspx?DisplayContext=Modal&HorseID=451442) |
+
+Performance profile is live on loveracing; `race-record.json` stays empty until her first official start. See `horses/README.md` → *When a horse gets its first start*.
 
 ---
 

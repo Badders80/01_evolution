@@ -2,6 +2,7 @@
   "horse_slug": "hottathanafantasy",
   "horse_name": "Hotta than a fantasy (NZ)",
   "microchip": "985125000139165",
+  "loveracing_id": 452052,
   "total_starts": 0,
   "total_wins": 0,
   "total_placings": 0,
@@ -9,6 +10,8 @@
   "starts": [],
   "source": "tokinvest_portal",
   "source_url": "https://portal.tokinvest.capital/asset/11/details",
+  "performance_profile_url": "https://loveracing.nz/Common/SystemTemplates/Modal/EntryDetail.aspx?DisplayContext=Modal&HorseID=452052",
   "verified": false,
-  "notes": "From tokinvest listing: 'Currently in education/pre-training; no historical starts.' Update as racing career begins."
+  "racing_status": "unraced",
+  "notes": "Unraced — registered on loveracing.nz. performance_profile_url set; starts[] empty until first official start. On debut: scrape performance profile, set source to loveracing_nz, verified true. See horses/README.md."
 }

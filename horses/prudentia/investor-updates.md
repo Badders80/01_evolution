@@ -3,7 +3,7 @@
 slug: prudentia-investor-updates
 type: update-index
 horse: prudentia
-updated_at: 2026-06-26
+updated_at: 2026-07-22
 ---
 
 # Prudentia — Investor Updates Index

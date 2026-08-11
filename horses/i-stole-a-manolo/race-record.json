@@ -2,6 +2,7 @@
   "horse_slug": "i-stole-a-manolo",
   "horse_name": "I Stole A Manolo (NZ)",
   "microchip": "985125000139219",
+  "loveracing_id": 451442,
   "total_starts": 0,
   "total_wins": 0,
   "total_placings": 0,
@@ -9,6 +10,8 @@
   "starts": [],
   "source": "tokinvest_portal",
   "source_url": "https://portal.tokinvest.capital/asset/14/details",
+  "performance_profile_url": "https://loveracing.nz/Common/SystemTemplates/Modal/EntryDetail.aspx?DisplayContext=Modal&HorseID=451442",
   "verified": false,
-  "notes": "From tokinvest listing: 'Early Career / Trialling'. Currently in early racing education at Wexford Stables. Update as trials and starts begin."
+  "racing_status": "unraced",
+  "notes": "Unraced — registered on loveracing.nz. performance_profile_url set; starts[] empty until first official start. On debut: scrape performance profile, set source to loveracing_nz, verified true. See horses/README.md."
 }

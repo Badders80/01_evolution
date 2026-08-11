@@ -1,0 +1,33 @@
+{
+  "horse_slug": "prudentia",
+  "horse_name": "Prudentia (NZ)",
+  "tokinvest_asset_id": 10,
+  "period_key": "2026-q3",
+  "period_label": "Q3 2026",
+  "period_start": "2026-07-01",
+  "period_end": "2026-09-30",
+  "status": "draft",
+  "sources": {
+    "race_record": "01_evolution/horses/prudentia/race-record.json",
+    "loveracing_performance": "https://loveracing.nz/Common/SystemTemplates/Modal/EntryDetail.aspx?DisplayContext=Modal&HorseID=427416",
+    "tokinvest_aed": "operator_supplied — cross-check before final PDF"
+  },
+  "lease": {
+    "pct_of_horse": 5,
+    "tokens_in_issue": 20,
+    "investor_payout_pct_of_lease_pool": 75
+  },
+  "stakes": {
+    "derived_from": "run: just report-populate prudentia 2026-q3 2026-07-01 2026-09-30",
+    "starts": [],
+    "total_stakes_nzd": null,
+    "included_in_distribution_nzd": null,
+    "carry_forward_nzd": null
+  },
+  "waterfall_nzd": {},
+  "tokinvest": {
+    "distribution_total_aed": null,
+    "per_token_aed": null,
+    "aed_cross_check_note": "*AED to be cross-checked vs Tokinvest platform before final PDF export."
+  }
+}

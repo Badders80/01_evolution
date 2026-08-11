@@ -30,6 +30,17 @@ status: active
 | Trainer | Lance O'Sullivan & Andrew Scott |
 | Stable | Wexford Stables, Matamata |
 | Microchip | 985125000126462 |
+| Life no. | NZ00427416 |
+| loveracing.nz ID | 427416 |
+
+## Official records (loveracing.nz)
+
+| Record | URL |
+|--------|-----|
+| Stud Book (pedigree, brands, breeder) | [Breeding page](https://loveracing.nz/Breeding/427416/Prudentia-NZ-2021.aspx) |
+| Performance (starts, stakes, jockey, track) | [Performance profile](https://loveracing.nz/Common/SystemTemplates/Modal/EntryDetail.aspx?DisplayContext=Modal&HorseID=427416) |
+
+Life number `NZ00427416` maps to HorseID `427416` (strip `NZ00` prefix). Same pattern for all NZTR-registered horses.
 
 ---
 

@@ -343,17 +343,20 @@ def run_checks(verbose=False) -> Report:
                 except Exception:
                     pass
 
-    # Check leases
-    leases_dir = EVOLUTION / "leases"
-    if leases_dir.exists():
-        for lf in leases_dir.glob("*.json"):
-            try:
-                data = json.loads(lf.read_text(encoding="utf-8"))
-                json_slug = data.get("horse_slug", "")
-                if json_slug and json_slug not in repo_slugs:
-                    r.fail(f"JSON horse_slug: leases/{lf.name} has '{json_slug}' not in horse folders", "")
-            except Exception:
-                pass
+    # Check leases (co-located in horses/{slug}/lease.json)
+    for horse_dir in HORSES_REPO.iterdir() if HORSES_REPO.exists() else []:
+        if not horse_dir.is_dir():
+            continue
+        lf = horse_dir / "lease.json"
+        if not lf.exists():
+            continue
+        try:
+            data = json.loads(lf.read_text(encoding="utf-8"))
+            json_slug = data.get("horse_slug", "")
+            if json_slug and json_slug not in repo_slugs:
+                r.fail(f"JSON horse_slug: {horse_dir.name}/lease.json has '{json_slug}' not in horse folders", "")
+        except Exception:
+            pass
 
     # 10. No stale slugs
     stale_slug_hits = []

@@ -1,0 +1,74 @@
+{
+  "horse_slug": "prudentia",
+  "horse_name": "Prudentia (NZ)",
+  "tokinvest_asset_id": 10,
+  "period_key": "2026-q2",
+  "period_label": "Q1/Q2 2026",
+  "period_start": "2026-01-01",
+  "period_end": "2026-06-30",
+  "distribution_date": "2026-06-26",
+  "report_date": "2026-06-30",
+  "status": "content_locked",
+  "report_copy": "04_comms/reports/quarterly/prudentia/2026-q2/REPORT-COPY.md",
+
+  "sources": {
+    "race_record": "01_evolution/horses/prudentia/race-record.json",
+    "loveracing_stud_book": "https://loveracing.nz/Breeding/427416/Prudentia-NZ-2021.aspx",
+    "loveracing_performance": "https://loveracing.nz/Common/SystemTemplates/Modal/EntryDetail.aspx?DisplayContext=Modal&HorseID=427416",
+    "narrative": [
+      "01_evolution/horses/prudentia/race-record.json (notes)",
+      "04_comms/inbox/ (investor updates for period)",
+      "_assets/horses/prudentia/videos/*_post-race.md (Wexford transcripts)"
+    ],
+    "tokinvest_aed": "operator_supplied — cross-check on Tokinvest before final PDF"
+  },
+
+  "lease": {
+    "pct_of_horse": 5,
+    "tokens_in_issue": 20,
+    "pct_per_token": 0.25,
+    "investor_payout_pct_of_lease_pool": 75
+  },
+
+  "stakes": {
+    "derived_from": "race-record.json starts filtered 2026-01-01..2026-06-30",
+    "starts": [
+      { "date": "2026-03-14", "venue": "Tauranga", "result": "5th", "prizemoney_nzd": 1000, "in_distribution": true },
+      { "date": "2026-04-17", "venue": "Te Rapa", "result": "1st", "prizemoney_nzd": 20125, "in_distribution": true },
+      { "date": "2026-05-02", "venue": "Te Rapa", "result": "3rd", "prizemoney_nzd": 3150, "in_distribution": true },
+      { "date": "2026-05-30", "venue": "Te Rapa", "result": "5th", "prizemoney_nzd": 875, "in_distribution": true },
+      { "date": "2026-06-27", "venue": "Tauranga", "result": "6th", "prizemoney_nzd": 525, "in_distribution": false, "carry_forward": true }
+    ],
+    "total_stakes_nzd": 25675,
+    "included_in_distribution_nzd": 25150,
+    "carry_forward_nzd": 525,
+    "carry_forward_race_date": "2026-06-27",
+    "carry_forward_reason": "NZTR settlement after distribution date — included in Q3 2026 payout"
+  },
+
+  "waterfall_nzd": {
+    "derived_from": "included_in_distribution_nzd × lease × investor_share",
+    "lease_pool_nzd": 1257.5,
+    "per_one_pct_horse_nzd": 251.5,
+    "investor_pool_nzd": 943.13,
+    "per_one_pct_investor_nzd": 188.63,
+    "per_token_nzd": 47.16
+  },
+
+  "tokinvest": {
+    "distribution_total_aed": 1934.99,
+    "per_token_aed": 96.75,
+    "implied_aed_per_nzd_investor_pool": 2.05,
+    "distribution_confirmed": true,
+    "confirmed_by": "Tokinvest Operations",
+    "confirmed_date": "2026-06-26",
+    "aed_cross_check_note": "*AED to be cross-checked vs Tokinvest platform before final PDF export."
+  },
+
+  "design": {
+    "canva_reference": "https://www.canva.com/design/DAHOAbMN808/2KG5X9iEJxVGq0ATHc5NoQ/edit",
+    "approved_pdf": "04_comms/reports/Q2 Report_Prudentia (6).pdf",
+    "html_master": "04_comms/reports/quarterly/_master/ (to be created from approved 6-page layout)",
+    "output": "HTML → Playwright PDF replicating approved design"
+  }
+}

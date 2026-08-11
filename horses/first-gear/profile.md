@@ -30,6 +30,15 @@ status: active
 | Trainer | Stephen Gray |
 | Stable | Copper Belt Lodge, Palmerston North |
 | Microchip | 985125000126713 |
+| Life no. | NZ00428364 |
+| loveracing.nz ID | 428364 |
+
+## Official records (loveracing.nz)
+
+| Record | URL |
+|--------|-----|
+| Stud Book | [Breeding page](https://loveracing.nz/Breeding/428364/First-Gear-NZ-2021.aspx) |
+| Performance | [Performance profile](https://loveracing.nz/Common/SystemTemplates/Modal/EntryDetail.aspx?DisplayContext=Modal&HorseID=428364) |
 
 ---
 
