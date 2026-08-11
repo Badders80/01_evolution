@@ -5,6 +5,7 @@ Protects admin API endpoints with Firebase Authentication.
 All /api/* routes require a valid Firebase ID token.
 """
 
+from pathlib import Path
 from functools import wraps
 from flask import request, jsonify, current_app
 import firebase_admin
@@ -13,8 +14,9 @@ from firebase_admin import credentials, auth
 # Initialize Firebase Admin SDK (only once)
 if not firebase_admin._apps:
     try:
-        # Try to load from service account file
-        cred = credentials.Certificate("/home/evo/evo_01/01_evolution/api/firebase_service_account.json")
+        # Try to load from service account file (co-located in mission-control/credentials/)
+        _cred_path = Path(__file__).resolve().parent / "credentials" / "firebase_service_account.json"
+        cred = credentials.Certificate(str(_cred_path))
         firebase_admin.initialize_app(cred)
     except FileNotFoundError:
         # Fallback: use Application Default Credentials (for local dev with gcloud auth)

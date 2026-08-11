@@ -59,3 +59,4 @@ api/ssot/core/
 api/assets/core/
 api/kyc/core/
 api/applications/core/
+mission-control/credentials/firebase_service_account.json

@@ -60,6 +60,12 @@ class HorseCreate(BaseModel):
     status: Literal["active", "retired", "deceased"] = Field("active")
     breeding_url: Optional[str] = Field(None, description="loveracing.nz breeding page URL")
     performance_profile_url: Optional[str] = Field(None, description="loveracing.nz performance modal URL")
+    # Performance (P1) — operator-filled; sync exports to website + packs.
+    starts_count: Optional[int] = Field(None, description="Career starts.")
+    wins_count: Optional[int] = Field(None, description="Career wins. Exported as website 'wins'.")
+    places_count: Optional[int] = Field(None, description="Career placings (2nd/3rd). Exported as website 'placed'.")
+    total_earnings_nzd: Optional[float] = Field(None, description="Lifetime stakes earned (NZD).")
+    race_log_json: Optional[str] = Field(None, description="JSON-text array of race entries (v1). See PLAN race log shape.")
     country_code: Optional[str] = Field("NZ")
     nztr_life_number: Optional[str] = Field(
         None,
@@ -93,6 +99,7 @@ class HorseUpdate(BaseModel):
     sire_name: Optional[str] = None
     dam_id: Optional[str] = None
     dam_name: Optional[str] = None
+    dam_sire_name: Optional[str] = None
     family_number: Optional[str] = None
     dna_typed: Optional[bool] = None
     pv: Optional[bool] = None
@@ -101,9 +108,31 @@ class HorseUpdate(BaseModel):
     right_shoulder_brand: Optional[str] = None
     trainer_id: Optional[str] = None
     image_url: Optional[str] = None
+    cover_image: Optional[str] = None
+    conformation_image: Optional[str] = None
+    pedigree_image: Optional[str] = None
+    action_image: Optional[str] = None
+    story: Optional[str] = None
+    next_up: Optional[str] = None
+    image_path: Optional[str] = None
+    name_slug: Optional[str] = None
     status: Optional[Literal["active", "retired", "deceased"]] = None
     breeding_url: Optional[str] = None
     performance_profile_url: Optional[str] = None
+    # Performance (P1)
+    starts_count: Optional[int] = None
+    wins_count: Optional[int] = None
+    places_count: Optional[int] = None
+    total_earnings_nzd: Optional[float] = None
+    # Marketplace Overrides (P1)
+    pillar1_cat: Optional[str] = None
+    pillar1_val: Optional[str] = None
+    pillar2_cat: Optional[str] = None
+    pillar2_val: Optional[str] = None
+    pillar3_cat: Optional[str] = None
+    pillar3_val: Optional[str] = None
+    pedigree_blurb: Optional[str] = None
+    trainer_commentary: Optional[str] = None
     country_code: Optional[str] = None
     nztr_life_number: Optional[str] = None
     horse_status: Optional[Literal["active", "retired", "deceased", "sold", "transferred"]] = None
