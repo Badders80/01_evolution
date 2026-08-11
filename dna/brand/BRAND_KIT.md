@@ -1,7 +1,15 @@
-# Evolution Stables — Brand Kit
+# Evolution Stables — Brand Kit [DEPRECATED]
 
-**Version:** 2.4  
-**Status:** Central SSOT  
+**Canonical home:** [`_shared/dna/`](../../_shared/dna/) — `brand.md`, `voice.md`, `about.md`, `tokens.css`
+
+This file is superseded by the shared brand DNA. Do not extend. Migrate references to `_shared/dna/`.
+
+---
+
+# Evolution Stables — Brand Kit (legacy)
+
+**Version:** 2.4
+**Status:** Deprecated — superseded by `_shared/dna/`
 **Spokes:**
 - [02_website](../../02_website/dna/brand/BRAND_KIT.md)
 - [04_comms](../../04_comms/strategy/BRAND_KIT.md)
